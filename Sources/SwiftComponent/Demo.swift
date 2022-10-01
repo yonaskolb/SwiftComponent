@@ -18,10 +18,6 @@ struct ItemView: Component {
         var data: Resource<Int>
     }
 
-    enum Mutation {
-        case changeThing
-    }
-
     enum Route {
         case jobs
     }
@@ -40,7 +36,7 @@ struct ItemView: Component {
         switch action {
             case .calculate:
                 try? await Task.sleep(nanoseconds: 1_000_000_000 * 1)
-                handler.mutate(.changeThing)
+                handler.mutate(\.name, value: UUID().uuidString)
                 await handler.loadResource(\.data) {
                     try await Task.sleep(nanoseconds: 1_000_000_000 * 1)
                     return Int.random(in: 0...100)
@@ -53,13 +49,6 @@ struct ItemView: Component {
                 handler.present(.jobs, as: .push, inNav: false, using: Jobs.self) {
                     Jobs.State(id: "3")
                 }
-        }
-    }
-
-    static func mutate(_ state: inout State, mutation: Mutation) {
-        switch mutation {
-            case .changeThing:
-                state.name = UUID().uuidString
         }
     }
 

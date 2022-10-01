@@ -4,7 +4,6 @@ public protocol Component: View {
 
     associatedtype State
     associatedtype Action = Never
-    associatedtype Mutation = Never
     associatedtype Route = Never
     associatedtype ComponentView : View
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
@@ -13,7 +12,6 @@ public protocol Component: View {
     init(store: Store<Self>)
     static func handleBinding(keyPath: KeyPath<State, Action>) async
     static func handle(action: Action, _ handler: ActionHandler<Self>) async
-    static func mutate(_ state: inout State, mutation: Mutation)
 
 }
 
@@ -32,9 +30,7 @@ public class Store<C: Component>: ObservableObject {
 
     public init(state: C.State) {
         self.state = state
-        self.handler = ActionHandler(store: self, handler: { mutation in
-            C.mutate(&self.state , mutation: mutation)
-        })
+        self.handler = ActionHandler(store: self)
     }
 
     public func send(_ action: C.Action) {
@@ -138,10 +134,6 @@ public extension Component {
     var state: State { store.state }
 }
 
-public extension Component where Mutation == Never {
-    static func mutate(_ state: inout State, mutation: Never) { }
-}
-
 //public extension Component where Action == Never {
 //    static func handle(action: Action, _ handler: ActionHandler<Self>) async {}
 //}
@@ -153,15 +145,14 @@ public extension Component where State == Never {
 public class ActionHandler<C: Component> {
 
     public let store: Store<C>
-    let handler: (C.Mutation) -> Void
 
-    init(store: Store<C>, handler: @escaping (C.Mutation) -> Void) {
+    init(store: Store<C>) {
         self.store = store
-        self.handler = handler
     }
-    
-    public func mutate(_ mutation: C.Mutation) {
-        handler(mutation)
+
+    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, function: StaticString = #file, line: UInt = #line) {
+        store.state[keyPath: keyPath] = value
+        print("Mutating \(C.self): \(keyPath) = \(value)")
     }
 
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, load: () async throws -> ResourceState) async {
