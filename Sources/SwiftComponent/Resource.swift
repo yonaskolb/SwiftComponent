@@ -18,17 +18,23 @@ public extension Resource {
     static var empty: Self { Resource(content: nil, error: nil, isLoading: false) }
 }
 
-struct ResourceView<State, Content: View>: View {
+extension Resource: Equatable where State: Equatable {
+    public static func == (lhs: Resource<State>, rhs: Resource<State>) -> Bool {
+        lhs.content == rhs.content && lhs.isLoading == rhs.isLoading && lhs.error?.localizedDescription == rhs.error?.localizedDescription
+    }
+}
+
+public struct ResourceView<State, Content: View>: View {
 
     let resource: Resource<State>
     let content: (State) -> Content
 
-    init(_ resource: Resource<State>, content: @escaping (State) -> Content) {
+    public init(_ resource: Resource<State>, content: @escaping (State) -> Content) {
         self.resource = resource
         self.content = content
     }
 
-    var body: some View {
+    public var body: some View {
         if let content = resource.content {
             self.content(content)
         } else if let error = resource.error {

@@ -1,12 +1,12 @@
 //
-//  File.swift
-//  
+//  ContentView.swift
+//  Example
 //
-//  Created by Yonas Kolb on 14/9/2022.
+//  Created by Yonas Kolb on 1/10/2022.
 //
 
-import Foundation
 import SwiftUI
+import SwiftComponent
 
 struct ItemView: Component {
 
@@ -52,7 +52,7 @@ struct ItemView: Component {
         }
     }
 
-    static func handleBinding(keyPath: KeyPath<State, Action>) {
+    static func handleBinding(keyPath: PartialKeyPath<State>) {
         switch keyPath {
             case \.name:
                 print("changed name")
@@ -64,7 +64,9 @@ struct ItemView: Component {
     var view: some View {
         VStack {
             Text(store.state.name)
-            Text(String(describing: store.route))
+            if let route = store.route {
+                Text("\(String(describing: route.mode)): \(String(describing: route.route))")
+            }
             ResourceView(store.state.data) { state in
                 Text(state.description)
             }
@@ -88,7 +90,7 @@ struct ItemView: Component {
 
 struct Jobs: Component {
 
-    static func handleBinding(keyPath: KeyPath<State, Action>) async {
+    static func handleBinding(keyPath: PartialKeyPath<State>) async {
 
     }
 
@@ -131,35 +133,3 @@ struct DemoPreview: PreviewProvider {
         ]
     }
 }
-
-struct Test<C: Component> {
-    init(_ name: String, _ initialState: C.State, steps: [Test<C>.Step]) {
-        self.name = name
-        self.initialState = initialState
-        self.steps = steps
-    }
-
-    var name: String
-    var initialState: C.State
-    var steps: [Step]
-
-    enum Step {
-        case action(C.Action)
-    }
-}
-
-
-// #high
-//extension Component {
-//
-//    func setComponentState<Value, C: Component>(for component: C.Type, _ keyPath: WritableKeyPath<State, Value>, value: Value) -> Self {
-//        var state = fatalError()
-//        self.state[keyPath: keyPath]
-////        self.environment(keyPath, value)
-//    }
-//}
-//
-//extension View {
-//
-//    func actionButton<T>(action: T
-//}

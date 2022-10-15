@@ -11,14 +11,14 @@ import SwiftUI
 enum ComponentViewMode: String, Identifiable {
     case view
     case data
-    case actions
+    case history
 
     var id: String { rawValue }
 }
 
 public struct PresentedRoute<Route> {
-    var route: Route
-    var mode: PresentationMode
+    public var route: Route
+    public var mode: PresentationMode
     var inNav: Bool
     var component: AnyView
 }
