@@ -11,7 +11,7 @@ import SwiftUI
 struct ExampleApp: App {
     var body: some Scene {
         WindowGroup {
-            ItemView(store: .init(state: ItemView.State(name: "Bob", data: .empty)))
+            ItemView(store: .init(state: .init(name: "Bob", data: .empty), component: ItemComponent()))
         }
     }
 }

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 @dynamicMemberLookup
 public class Store<C: Component>: ObservableObject {
@@ -14,7 +15,10 @@ public class Store<C: Component>: ObservableObject {
     @Published public var state: C.State
     @Published public var route: PresentedRoute<C.Route>?
     @Published var viewModes: [ComponentViewMode] = [.view]
+    
     var handler: ActionHandler<C>!
+    var component: C
+    var cancellables: Set<AnyCancellable> = []
 
     var stateDump: String {
         var string = ""
@@ -23,10 +27,16 @@ public class Store<C: Component>: ObservableObject {
     }
 
     public var events: [Event<C>] = []
+    var listeners: [(Event<C>) -> Void] = []
 
     public init(state: C.State) {
         self.state = state
+        self.component = C()
         self.handler = ActionHandler(store: self)
+    }
+
+    func listen(_ event: @escaping (Event<C>) -> Void) {
+        listeners.append(event)
     }
 
     fileprivate func event(_ eventType: Event<C>.EventType) {
@@ -35,26 +45,33 @@ public class Store<C: Component>: ObservableObject {
 
     public func send(_ action: C.Action) {
         event(.action(action))
+        print("Action \(action)")
+        handleAction(action)
+    }
+
+    func handleAction(_ action: C.Action) {
         Task {
-            print("Action \(action)")
-            await C.handle(action: action, handler)
+            await component.handle(action: action, handler)
         }
     }
 
-    public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, onSet: ((Value) -> C.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: {
                 self.event(.binding(keyPath, $0))
                 self.state[keyPath: keyPath] = $0
+                if let onSet = onSet, let action = onSet($0) {
+                    self.send(action)
+                }
             }
         )
     }
 
     fileprivate func present<PC: Component>(_ route: C.Route, as mode: PresentationMode, inNav: Bool, using component: PC.Type, create: () -> PC.State) {
         let state = create()
-        let component: PC = PC(store: Store<PC>(state: state))
-        self.route = PresentedRoute(route: route, mode: mode, inNav: inNav, component: AnyView(component))
+//        let component: PC = PC(store: Store<PC>(state: state))
+//        self.route = PresentedRoute(route: route, mode: mode, inNav: inNav, component: AnyView(component))
     }
 
     public func dismiss() {
@@ -63,6 +80,10 @@ public class Store<C: Component>: ObservableObject {
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<C.State, Value>) -> Value {
       self.state[keyPath: keyPath]
+    }
+
+    func task() async {
+        await component.task(handler: handler)
     }
 }
 
@@ -134,5 +155,36 @@ extension ActionHandler {
             mutate(keyPath.appending(path: \.error), value: error)
             print("Failed to load resource \(ResourceState.self)")
         }
+    }
+}
+
+extension Store {
+
+    public func scope<Child: Component>(
+        state toChildState: @escaping (C.State) -> Child.State,
+        action fromChildAction: @escaping (Child.Action) -> C.Action
+    ) -> Store<Child> where Child.State: Equatable {
+
+        var state = toChildState(self.state)
+        let store = Store<Child>(state: state)
+        store.listen { event in
+            switch event.event {
+                case .action(let childAction):
+                    let action = fromChildAction(childAction)
+                    self.handleAction(action)
+                default:
+                    break
+            }
+        }
+        self.$state.sink { state in
+            let childState = toChildState(state)
+            if childState != store.state {
+                store.state = childState
+            }
+        }
+        .store(in: &cancellables)
+
+        //TODO: mutations in child should mutate parent
+        return store
     }
 }

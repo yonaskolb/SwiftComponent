@@ -27,3 +27,11 @@ public enum PresentationMode {
     case sheet
     case push
 }
+
+extension ComponentView {
+
+    func routing<V: View>(route: (C.Route) -> V) -> some View {
+        //TODO: do routing
+        EmptyView()
+    }
+}

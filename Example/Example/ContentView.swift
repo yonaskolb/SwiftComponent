@@ -8,9 +8,7 @@
 import SwiftUI
 import SwiftComponent
 
-struct ItemView: Component {
-
-    @ObservedObject var store: Store<Self>
+struct ItemComponent: Component {
 
     struct State {
         var name: String
@@ -28,11 +26,11 @@ struct ItemView: Component {
         case pushItem
     }
 
-    func task() async  {
+    func task(handler: ActionHandler<Self>) async {
 
     }
 
-    static func handle(action: Action, _ handler: ActionHandler<Self>) async {
+    func handle(action: Action, _ handler: ActionHandler<Self>) async {
         switch action {
             case .calculate:
                 try? await Task.sleep(nanoseconds: 1_000_000_000 * 1)
@@ -42,17 +40,17 @@ struct ItemView: Component {
                     return Int.random(in: 0...100)
                 }
             case .openItem:
-                handler.present(.jobs, as: .sheet, inNav: true, using: Jobs.self) {
-                    Jobs.State(id: "2")
+                handler.present(.jobs, as: .sheet, inNav: true, using: JobsComponent.self) {
+                    JobsComponent.State(id: "2")
                 }
             case .pushItem:
-                handler.present(.jobs, as: .push, inNav: false, using: Jobs.self) {
-                    Jobs.State(id: "3")
+                handler.present(.jobs, as: .push, inNav: false, using: JobsComponent.self) {
+                    JobsComponent.State(id: "3")
                 }
         }
     }
 
-    static func handleBinding(keyPath: PartialKeyPath<State>) {
+    func handleBinding(keyPath: PartialKeyPath<State>) {
         switch keyPath {
             case \.name:
                 print("changed name")
@@ -60,6 +58,11 @@ struct ItemView: Component {
                 break
         }
     }
+}
+
+struct ItemView: ComponentView {
+
+    @ObservedObject var store: Store<ItemComponent>
 
     var view: some View {
         VStack {
@@ -88,15 +91,8 @@ struct ItemView: Component {
     }
 }
 
-struct Jobs: Component {
+struct JobsComponent: Component {
 
-    static func handleBinding(keyPath: PartialKeyPath<State>) async {
-
-    }
-
-    static func handle(action: Action, _ handler: ActionHandler<Jobs>) async {
-
-    }
 
     struct State {
         var id: String
@@ -104,7 +100,22 @@ struct Jobs: Component {
 
     enum Action { case one }
 
-    var store: Store<Self>
+    func task(handler: ActionHandler<JobsComponent>) async {
+
+    }
+
+    func handleBinding(keyPath: PartialKeyPath<State>) async {
+
+    }
+
+    func handle(action: Action, _ handler: ActionHandler<JobsComponent>) async {
+
+    }
+}
+
+struct JobsView: ComponentView {
+
+    var store: Store<JobsComponent>
 
     var view: some View {
         Text("Jobs \(store.state.id)")
@@ -121,11 +132,11 @@ struct DemoPreview: PreviewProvider {
 
     static var previews: some View {
         NavigationView {
-            ItemView(store: Store<ItemView>(state: ItemView.State(name: "start", data: .empty)))
+            ItemView(store: .init(state: .init(name: "start", data: .empty), component: ItemComponent()))
         }
     }
 
-    static var tests: [Test<ItemView>] {
+    static var tests: [Test<ItemComponent>] {
         return [
             Test("Happy", .init(name: "john", data: .empty), steps: [
                 .action(.openItem),

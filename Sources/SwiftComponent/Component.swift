@@ -1,17 +1,23 @@
 import SwiftUI
 
-public protocol Component: View {
+public protocol Component<State, Action> {
 
     associatedtype State
     associatedtype Action = Never
     associatedtype Route = Never
-    associatedtype ComponentView : View
-    @ViewBuilder @MainActor var view: Self.ComponentView { get }
     func task(handler: ActionHandler<Self>) async
-    var store: Store<Self> { get }
-    init(store: Store<Self>)
-    static func handleBinding(keyPath: PartialKeyPath<State>) async
-    static func handle(action: Action, _ handler: ActionHandler<Self>) async
+    func handleBinding(keyPath: PartialKeyPath<State>) async
+    func handle(action: Action, _ handler: ActionHandler<Self>) async
+    init()
+}
+
+public protocol ComponentView: View {
+
+    associatedtype C: Component
+    associatedtype ComponentView : View
+    var store: Store<C> { get }
+    init(store: Store<C>)
+    @ViewBuilder @MainActor var view: Self.ComponentView { get }
 }
 
 struct EnumCase {
@@ -33,7 +39,7 @@ func getEnumCase<T>(_ enumValue: T) -> EnumCase {
     return EnumCase(name: associated.label!, values: values)
 }
 
-public extension Component {
+public extension ComponentView {
 
     @MainActor
     var body: some View {
@@ -80,7 +86,7 @@ public extension Component {
                 }
             }
         }
-        .task { await task(handler: store.handler) }
+        .task { await store.task() }
         .background {
             NavigationLink(isActive: Binding(get: { store.route?.mode == .push }, set: { present in
                 if !present {
@@ -119,17 +125,17 @@ public extension Component {
 
     }
 
-    func binding<Value>(_ keyPath: WritableKeyPath<State, Value>) -> Binding<Value> {
+    func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>) -> Binding<Value> {
         store.binding(keyPath)
     }
 
-    var state: State { store.state }
+    var state: C.State { store.state }
 }
 
 //public extension Component where Action == Never {
 //    static func handle(action: Action, _ handler: ActionHandler<Self>) async {}
 //}
 //
-public extension Component where State == Never {
-    static func handleBinding(keyPath: KeyPath<State, Action>) async { }
+public extension Component {
+    func handleBinding(keyPath: PartialKeyPath<State>) async { }
 }
