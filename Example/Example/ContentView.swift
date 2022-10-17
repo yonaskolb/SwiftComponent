@@ -15,6 +15,7 @@ struct ItemComponent: Component {
         var text: String = "text"
         var data: Resource<Int>
         var jobs: JobsComponent.State?
+        var jobsEmbed: JobsComponent.State = .init(id: "1")
     }
 
     enum Route {
@@ -79,6 +80,7 @@ struct ItemView: ComponentView {
                 Text(state.description)
             }
             .frame(height: 30)
+            JobsView(store: store.scope(state: \.jobsEmbed, event: ItemComponent.Action.jobs))
             TextField("Field", text: store.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
@@ -135,7 +137,7 @@ struct JobsView: ComponentView {
         Text("Jobs \(store.state.id)")
             .navigationBarTitle(Text("Item"))
             .toolbar {
-                Button(action: { store.dismiss(); store.send(.close) }) {
+                Button(action: { store.send(.close) }) {
                     Text("Close")
                 }
             }

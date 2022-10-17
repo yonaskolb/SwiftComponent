@@ -14,3 +14,18 @@ extension Store {
         Button(action: { self.send(action, file: file, line: line) }) { label() }
     }
 }
+
+/// Used to easily dismiss a view. Will not work inside a toolbar
+public struct DismissButton<Label: View>: View {
+
+    @Environment(\.dismiss) var dismiss
+    var label: Label
+
+    public init(@ViewBuilder label: () -> Label) {
+        self.label = label()
+    }
+
+    public var body: some View {
+        Button(action: { dismiss() }) { label }
+    }
+}
