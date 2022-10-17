@@ -5,6 +5,7 @@ public protocol Component<State, Action> {
     associatedtype State
     associatedtype Action = Never
     associatedtype Route = Never
+    associatedtype Output = Never
     func task(handler: ActionHandler<Self>) async
     func handleBinding(keyPath: PartialKeyPath<State>) async
     func handle(action: Action, _ handler: ActionHandler<Self>) async
@@ -87,24 +88,24 @@ public extension ComponentView {
             }
         }
         .task { await store.task() }
-        .background {
-            NavigationLink(isActive: Binding(get: { store.route?.mode == .push }, set: { present in
-                if !present {
-                    store.route = nil
-                }
-            })) {
-                routeView()
-            } label: {
-                EmptyView()
-            }
-        }
-        .sheet(isPresented: Binding(get: { store.route?.mode == .sheet }, set: { present in
-            if !present {
-                store.route = nil
-            }
-        })) {
-            routeView()
-        }
+//        .background {
+//            NavigationLink(isActive: Binding(get: { store.route?.mode == .push }, set: { present in
+//                if !present {
+//                    store.route = nil
+//                }
+//            })) {
+//                routeView()
+//            } label: {
+//                EmptyView()
+//            }
+//        }
+//        .sheet(isPresented: Binding(get: { store.route?.mode == .sheet }, set: { present in
+//            if !present {
+//                store.route = nil
+//            }
+//        })) {
+//            routeView()
+//        }
     }
 
 
@@ -138,4 +139,5 @@ public extension ComponentView {
 //
 public extension Component {
     func handleBinding(keyPath: PartialKeyPath<State>) async { }
+//    func task(handler: ActionHandler<Self>) async { }
 }

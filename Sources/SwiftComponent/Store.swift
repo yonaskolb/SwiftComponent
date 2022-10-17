@@ -35,18 +35,50 @@ public class Store<C: Component>: ObservableObject {
         self.handler = ActionHandler(store: self)
     }
 
+    public convenience init(state: C.State, output: @escaping (C.Output) -> Void) {
+        self.init(state: state)
+        listen { event in
+            switch event.event {
+                case .output(let event):
+                    output(event)
+                default: break
+            }
+        }
+    }
+
     func listen(_ event: @escaping (Event<C>) -> Void) {
         listeners.append(event)
     }
 
-    fileprivate func event(_ eventType: Event<C>.EventType) {
-        self.events.append(.init(eventType))
+    public func output(output: @escaping (C.Output) -> Void) -> Self {
+        listen { event in
+            switch event.event {
+                case .output(let event):
+                    output(event)
+                default: break
+            }
+        }
+        return self
     }
 
-    public func send(_ action: C.Action) {
-        event(.action(action))
-        print("Action \(action)")
-        handleAction(action)
+    fileprivate func event(_ eventType: Event<C>.EventType, file: StaticString, line: UInt) {
+        let event = Event(eventType, file: file, line: line)
+        self.events.append(event)
+        print("\(C.self) \(event.event.title): \(event.event.details)")
+        for listener in listeners {
+            listener(event)
+        }
+    }
+
+    public func send(_ action: C.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+        event(.action(action), file: file, line: line)
+        if let animation = animation {
+            withAnimation(animation) {
+                handleAction(action)
+            }
+        } else {
+            handleAction(action)
+        }
     }
 
     func handleAction(_ action: C.Action) {
@@ -55,11 +87,11 @@ public class Store<C: Component>: ObservableObject {
         }
     }
 
-    public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, onSet: ((Value) -> C.Action?)? = nil) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> C.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: {
-                self.event(.binding(keyPath, $0))
+                self.event(.binding(keyPath, $0), file: file, line: line)
                 self.state[keyPath: keyPath] = $0
                 if let onSet = onSet, let action = onSet($0) {
                     self.send(action)
@@ -83,7 +115,18 @@ public class Store<C: Component>: ObservableObject {
     }
 
     func task() async {
+        print("\(C.self) task")
         await component.task(handler: handler)
+    }
+
+    func output(_ event: C.Output, file: StaticString = #file, line: UInt = #line) {
+        self.event(.output(event), file: file, line: line)
+    }
+
+    func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, file: StaticString = #file, line: UInt = #line) {
+        event(.mutation(keyPath, value), file: file, line: line)
+        state[keyPath: keyPath] = value
+//        print(stateDump)
     }
 }
 
@@ -92,21 +135,27 @@ public struct Event<C: Component>: Identifiable {
     public var id = UUID()
     public var date = Date()
     public var event: EventType
+    public let file: StaticString
+    public let line: UInt
 
-    public init(_ event: EventType) {
+    public init(_ event: EventType, file: StaticString = #file, line: UInt = #line) {
         self.event = event
+        self.file = file
+        self.line = line
     }
 
     public enum EventType {
         case action(C.Action)
         case mutation(PartialKeyPath<C.State>, Any)
         case binding(PartialKeyPath<C.State>, Any)
+        case output(C.Output)
 
         public var title: String {
             switch self {
                 case .action: return "Action"
                 case .mutation: return "Mutation"
                 case .binding: return "Binding"
+                case .output: return "Output"
             }
         }
 
@@ -115,12 +164,13 @@ public struct Event<C: Component>: Identifiable {
                 case .action(let action): return String(describing: action)
                 case .mutation(let keyPath, let value): return String(describing: value)
                 case .binding(let keyPath, let value): return String(describing: value)
+                case .output(let event): return String(describing: event)
             }
         }
     }
 }
 
-public class ActionHandler<C: Component> {
+public struct ActionHandler<C: Component> {
 
     let store: Store<C>
 
@@ -130,61 +180,126 @@ public class ActionHandler<C: Component> {
 
     public var state: C.State { store.state }
 
-    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, function: StaticString = #file, line: UInt = #line) {
-        store.event(.mutation(keyPath, value))
-        store.state[keyPath: keyPath] = value
-        print("Mutating \(C.self): \(keyPath) = \(value)")
+    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, file: StaticString = #file, line: UInt = #line) {
+        store.mutate(keyPath, value: value, file: file, line: line)
     }
 
     public func present<PC: Component>(_ route: C.Route, as mode: PresentationMode, inNav: Bool, using component: PC.Type, create: () -> PC.State) {
         store.present(route, as: mode, inNav: inNav, using: component, create: create)
+    }
+
+    public func output(_ event: C.Output, file: StaticString = #file, line: UInt = #line) {
+        store.output(event, file: file, line: line)
     }
 }
 
 extension ActionHandler {
 
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, load: () async throws -> ResourceState) async {
+        mutate(keyPath.appending(path: \.isLoading), value: true)
         do {
-            mutate(keyPath.appending(path: \.isLoading), value: true)
             let content = try await load()
-            mutate(keyPath.appending(path: \.isLoading), value: false)
             mutate(keyPath.appending(path: \.content), value: content)
             print("Loaded resource  \(ResourceState.self):\n\(content)")
         } catch {
-            mutate(keyPath.appending(path: \.isLoading), value: false)
             mutate(keyPath.appending(path: \.error), value: error)
             print("Failed to load resource \(ResourceState.self)")
         }
+        mutate(keyPath.appending(path: \.isLoading), value: false)
     }
 }
 
 extension Store {
 
-    public func scope<Child: Component>(
-        state toChildState: @escaping (C.State) -> Child.State,
-        action fromChildAction: @escaping (Child.Action) -> C.Action
-    ) -> Store<Child> where Child.State: Equatable {
-
-        var state = toChildState(self.state)
+    func _scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State>) -> Store<Child> where Child.State: Equatable {
+        let state = self.state[keyPath: stateKeyPath]
         let store = Store<Child>(state: state)
+        var settingChild = false
+        var settingParent = false
+
+        self.$state.sink { state in
+            guard !settingChild else { return }
+            settingParent = true
+            let childState = self.state[keyPath: stateKeyPath]
+            if childState != store.state {
+                store.state = childState
+            }
+            settingParent = false
+        }
+        .store(in: &cancellables)
+
+        store.$state.dropFirst().sink { state in
+            guard !settingParent else { return }
+            settingChild = true
+            self.state[keyPath: stateKeyPath] = state
+            settingChild = false
+        }
+        .store(in: &cancellables)
+
+        return store
+    }
+
+    func _scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State?>, value: Child.State) -> Store<Child> where Child.State: Equatable {
+        let state = value
+        let store = Store<Child>(state: state)
+        var settingChild = false
+        var settingParent = false
+
+        self.$state.sink { state in
+            guard !settingChild else { return }
+            settingParent = true
+            let childState = self.state[keyPath: stateKeyPath]
+            if let childState = childState, childState != store.state {
+                store.state = childState
+            }
+            settingParent = false
+        }
+        .store(in: &cancellables)
+
+        store.$state.dropFirst().sink { state in
+            guard !settingParent else { return }
+            settingChild = true
+            self.state[keyPath: stateKeyPath] = state
+            settingChild = false
+        }
+        .store(in: &cancellables)
+
+        return store
+    }
+
+    public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State>, event toAction: @escaping (Child.Output) -> C.Action) -> Store<Child> where Child.State: Equatable {
+        let store = _scope(state: stateKeyPath) as Store<Child>
         store.listen { event in
             switch event.event {
-                case .action(let childAction):
-                    let action = fromChildAction(childAction)
-                    self.handleAction(action)
+                case .output(let output):
+                    let action = toAction(output)
+                    self.send(action)
                 default:
                     break
             }
         }
-        self.$state.sink { state in
-            let childState = toChildState(state)
-            if childState != store.state {
-                store.state = childState
+        return store
+    }
+
+    public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State?>, value: Child.State, event toAction: @escaping (Child.Output) -> C.Action) -> Store<Child> where Child.State: Equatable {
+        let store = _scope(state: stateKeyPath, value: value) as Store<Child>
+        store.listen { event in
+            switch event.event {
+                case .output(let output):
+                    let action = toAction(output)
+                    self.send(action)
+                default:
+                    break
             }
         }
-        .store(in: &cancellables)
-
-        //TODO: mutations in child should mutate parent
         return store
+    }
+
+    public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State?>, value: Child.State) -> Store<Child> where Child.State: Equatable, Child.Output == Never {
+        _scope(state: stateKeyPath, value: value)
+    }
+
+    public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State>) -> Store<Child> where Child.State: Equatable, Child.Output == Never {
+        _scope(state: stateKeyPath)
     }
 }

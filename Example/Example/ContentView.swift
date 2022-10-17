@@ -14,6 +14,7 @@ struct ItemComponent: Component {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
+        var jobs: JobsComponent.State?
     }
 
     enum Route {
@@ -24,10 +25,14 @@ struct ItemComponent: Component {
         case calculate
         case openItem
         case pushItem
+        case jobs(JobsComponent.Output)
     }
 
     func task(handler: ActionHandler<Self>) async {
-
+        await handler.loadResource(\.data) {
+            try await Task.sleep(nanoseconds: 1_000_000_000 * 1)
+            return Int.random(in: 0...100)
+        }
     }
 
     func handle(action: Action, _ handler: ActionHandler<Self>) async {
@@ -35,18 +40,18 @@ struct ItemComponent: Component {
             case .calculate:
                 try? await Task.sleep(nanoseconds: 1_000_000_000 * 1)
                 handler.mutate(\.name, value: UUID().uuidString)
-                await handler.loadResource(\.data) {
-                    try await Task.sleep(nanoseconds: 1_000_000_000 * 1)
-                    return Int.random(in: 0...100)
-                }
+
             case .openItem:
                 handler.present(.jobs, as: .sheet, inNav: true, using: JobsComponent.self) {
                     JobsComponent.State(id: "2")
                 }
+                handler.mutate(\.jobs, value: .init(id: handler.state.name))
             case .pushItem:
                 handler.present(.jobs, as: .push, inNav: false, using: JobsComponent.self) {
                     JobsComponent.State(id: "3")
                 }
+            case .jobs(.didThing):
+                break
         }
     }
 
@@ -73,9 +78,11 @@ struct ItemView: ComponentView {
             ResourceView(store.state.data) { state in
                 Text(state.description)
             }
+            .frame(height: 30)
             TextField("Field", text: store.binding(\.text))
                 .textFieldStyle(.roundedBorder)
-            Button(action: { store.send(.calculate) }) {
+
+            store.button(.calculate) {
                 Text("Calculate")
             }
 
@@ -87,6 +94,9 @@ struct ItemView: ComponentView {
                 Text("Push Item")
             }
         }
+        .sheet(item: store.binding(\.jobs)) { jobs in
+            JobsView(store: store.scope(state: \.jobs, value: jobs, event: ItemComponent.Action.jobs))
+        }
         .padding(20)
     }
 }
@@ -94,11 +104,12 @@ struct ItemView: ComponentView {
 struct JobsComponent: Component {
 
 
-    struct State {
+    struct State: Identifiable, Equatable {
         var id: String
     }
 
-    enum Action { case one }
+    enum Action { case close }
+    enum Output { case didThing }
 
     func task(handler: ActionHandler<JobsComponent>) async {
 
@@ -109,7 +120,10 @@ struct JobsComponent: Component {
     }
 
     func handle(action: Action, _ handler: ActionHandler<JobsComponent>) async {
-
+        switch action {
+            case .close:
+                handler.output(.didThing)
+        }
     }
 }
 
@@ -121,7 +135,7 @@ struct JobsView: ComponentView {
         Text("Jobs \(store.state.id)")
             .navigationBarTitle(Text("Item"))
             .toolbar {
-                Button(action: { store.dismiss() }) {
+                Button(action: { store.dismiss(); store.send(.close) }) {
                     Text("Close")
                 }
             }
@@ -132,7 +146,7 @@ struct DemoPreview: PreviewProvider {
 
     static var previews: some View {
         NavigationView {
-            ItemView(store: .init(state: .init(name: "start", data: .empty), component: ItemComponent()))
+            ItemView(store: .init(state: .init(name: "start", data: .empty)))
         }
     }
 
