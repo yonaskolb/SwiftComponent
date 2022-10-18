@@ -87,7 +87,7 @@ struct ItemView: ComponentView {
             HStack {
                 Text("Detail name: \(model.state.detail.name)")
                 Button(action: { model.send(.updateDetail)}) {
-                    Text("Update Detail")
+                    Text("Update")
                 }
             }
             ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Action.detail))
@@ -164,11 +164,25 @@ struct ItemDetailView: ComponentView {
     }
 }
 
-struct DemoPreview: PreviewProvider {
+//struct ItemPreviewSimple: PreviewProvider {
+//
+//    static var previews: some View {
+//        ItemView(model: .init(state: .init(name: "start", data: .empty)))
+////        ItemView(model: .init(state: .constant(.init(name: "start", data: .empty))))
+//    }
+//}
 
-    static var previews: some View {
-        NavigationView {
-            ItemView(store: .init(state: .init(name: "start", data: .empty)))
+struct ItemPreview: PreviewProvider, ComponentPreview {
+    typealias ComponentType = ItemComponent
+    typealias ComponentViewType = ItemView
+
+    static var states: [ComponentState] {
+        ComponentState {
+            .init(name: "start", data: .empty)
+        }
+
+        ComponentState("Loaded") {
+            .init(name: "Loaded", data: .content(2))
         }
     }
 

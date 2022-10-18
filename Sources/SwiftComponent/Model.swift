@@ -8,13 +8,28 @@
 import Foundation
 import SwiftUI
 import Combine
+import CustomDump
 
 @dynamicMemberLookup
 public class ViewModel<C: Component>: ObservableObject {
 
-    private var stateBinding: Binding<C.State>!
+    private var stateBinding: Binding<C.State>?
     private var ownedState: C.State?
-    public var state: C.State { stateBinding.wrappedValue }
+
+    public internal(set) var state: C.State {
+        get {
+            ownedState ?? stateBinding!.wrappedValue
+        }
+        set {
+            if let stateBinding = stateBinding {
+                stateBinding.wrappedValue = newValue
+            } else {
+                ownedState = newValue
+            }
+            objectWillChange.send()
+        }
+    }
+
     @Published public var route: PresentedRoute<C.Route>?
     @Published var viewModes: [ComponentViewMode] = [.view]
     let id = UUID()
@@ -25,7 +40,7 @@ public class ViewModel<C: Component>: ObservableObject {
 
     var stateDump: String {
         var string = ""
-        dump(state, to: &string)
+        customDump(state, to: &string)
         return string
     }
 
@@ -33,15 +48,9 @@ public class ViewModel<C: Component>: ObservableObject {
     var listeners: [(Event<C>) -> Void] = []
 
     public init(state: C.State) {
-        ownedState = state
+        self.ownedState = state
         self.component = C()
         self.componentModel = ComponentModel(viewModel: self)
-        self.stateBinding = Binding(get: {
-            self.ownedState!
-        }, set: {
-            self.ownedState = $0
-            self.objectWillChange.send()
-        })
     }
 
     public init(state: Binding<C.State>) {
@@ -68,7 +77,7 @@ public class ViewModel<C: Component>: ObservableObject {
     fileprivate func event(_ eventType: Event<C>.EventType, file: StaticString, line: UInt) {
         let event = Event(eventType, file: file, line: line)
         self.events.append(event)
-        print("\(C.self) \(id.uuidString.prefix(6)) \(event.event.title): \(event.event.details)")
+        print("\(C.self) \(event.event.title): \(event.event.details)")
         for listener in listeners {
             listener(event)
         }
@@ -91,13 +100,21 @@ public class ViewModel<C: Component>: ObservableObject {
         }
     }
 
+    func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, file: StaticString = #file, line: UInt = #line) {
+        let oldState = state
+        self.event(.mutation(keyPath, value, (keyPath as KeyPath).fieldName ?? ""), file: file, line: line)
+        self.state[keyPath: keyPath] = value
+        print(diff(oldState, self.state) ?? "  No state changes")
+    }
+
     public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> C.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: {
-                self.event(.binding(keyPath, $0), file: file, line: line)
-                self.stateBinding.wrappedValue[keyPath: keyPath] = $0
-                self.objectWillChange.send()
+                let oldState = self.state
+                self.event(.binding(keyPath, $0, (keyPath as KeyPath).fieldName ?? ""), file: file, line: line)
+                self.state[keyPath: keyPath] = $0
+                print(diff(oldState, self.state) ?? "  No state changes")
                 if let onSet = onSet, let action = onSet($0) {
                     self.send(action)
                 }
@@ -115,22 +132,14 @@ public class ViewModel<C: Component>: ObservableObject {
         self.route = nil
     }
 
+    @MainActor
     func task() async {
-        print("\(C.self) task")
+        //print("\(C.self) task")
         await component.task(model: componentModel)
     }
 
     func output(_ event: C.Output, file: StaticString = #file, line: UInt = #line) {
         self.event(.output(event), file: file, line: line)
-    }
-
-    func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, file: StaticString = #file, line: UInt = #line) {
-//        DispatchQueue.main.async {
-            self.event(.mutation(keyPath, value), file: file, line: line)
-            self.stateBinding.wrappedValue[keyPath: keyPath] = value
-            self.objectWillChange.send()
-//            print(self.stateDump)
-//        }
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<C.State, Value>) -> Value {
@@ -154,24 +163,25 @@ public struct Event<C: Component>: Identifiable {
 
     public enum EventType {
         case action(C.Action)
-        case mutation(PartialKeyPath<C.State>, Any)
-        case binding(PartialKeyPath<C.State>, Any)
+        case mutation(PartialKeyPath<C.State>, Any, String)
+        case binding(PartialKeyPath<C.State>, Any, String)
         case output(C.Output)
 
         public var title: String {
             switch self {
-                case .action: return "Action"
-                case .mutation: return "Mutation"
-                case .binding: return "Binding"
-                case .output: return "Output"
+                case .action: return "action"
+                case .mutation: return "mutate"
+                case .binding: return "binding"
+                case .output: return "output"
             }
         }
 
         public var details: String {
             switch self {
                 case .action(let action): return String(describing: action)
-                case .mutation(let keyPath, let value): return String(describing: value)
-                case .binding(let keyPath, let value): return String(describing: value)
+                case .mutation(let keyPath, let value, let property), .binding(let keyPath, let value, let property):
+                    return "\(property)"
+
                 case .output(let event): return String(describing: event)
             }
         }
@@ -225,12 +235,18 @@ extension ComponentModel {
 
 extension ViewModel {
 
+    private func scopeBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>) -> Binding<Value> {
+        Binding(
+            get: { self.state[keyPath: keyPath] },
+            set: { self.state[keyPath: keyPath] = $0 }
+        )
+    }
     func _scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State>) -> ViewModel<Child> where Child.State: Equatable {
-        ViewModel<Child>(state: binding(stateKeyPath))
+        ViewModel<Child>(state: scopeBinding(stateKeyPath))
     }
 
     func _scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.State: Equatable {
-        let optionalBinding = binding(stateKeyPath)
+        let optionalBinding = scopeBinding(stateKeyPath)
         let binding = Binding<Child.State> {
             optionalBinding.wrappedValue ?? value
         } set: {

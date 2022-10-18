@@ -1,0 +1,41 @@
+{
+  "pins" : [
+    {
+      "identity" : "runtime",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/wickwirew/Runtime",
+      "state" : {
+        "revision" : "dad03135d7701a4e7b3a4051e75d6b37bd8e178e",
+        "version" : "2.2.4"
+      }
+    },
+    {
+      "identity" : "swift-custom-dump",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-custom-dump",
+      "state" : {
+        "revision" : "819d9d370cd721c9d87671e29d947279292e4541",
+        "version" : "0.6.0"
+      }
+    },
+    {
+      "identity" : "swiftgui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/yonaskolb/SwiftGUI",
+      "state" : {
+        "revision" : "8d702c6fb42b2f8d02527a61380ccde986cc1a8e",
+        "version" : "0.1.1"
+      }
+    },
+    {
+      "identity" : "xctest-dynamic-overlay",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
+      "state" : {
+        "revision" : "30314f1ece684dd60679d598a9b89107557b67d9",
+        "version" : "0.4.1"
+      }
+    }
+  ],
+  "version" : 2
+}

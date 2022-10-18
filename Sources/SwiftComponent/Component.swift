@@ -20,5 +20,5 @@ public protocol Component<State, Action> {
 
 public extension Component {
     func handleBinding(keyPath: PartialKeyPath<State>) async { }
-//    func task(model: Model) async { }
+    func task(model: Model) async { }
 }

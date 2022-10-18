@@ -33,3 +33,14 @@ public struct DismissButton<Label: View>: View {
         Button(action: { dismiss() }) { label }
     }
 }
+
+extension View {
+
+    func interactiveBackground() -> some View {
+        contentShape(Rectangle())
+    }
+
+    func eraseToAnyView() -> AnyView {
+        AnyView(self)
+    }
+}

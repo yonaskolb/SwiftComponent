@@ -16,6 +16,9 @@ public struct Resource<State> {
 
 public extension Resource {
     static var empty: Self { Resource(content: nil, error: nil, isLoading: false) }
+    static var loading: Self { Resource(content: nil, error: nil, isLoading: true) }
+    static func content<C>(_ content: C) -> Resource<C> { Resource<C>(content: content, error: nil, isLoading: false) }
+    static func error(_ error: Error) -> Resource { Resource(content: nil, error: error, isLoading: false) }
 }
 
 extension Resource: Equatable where State: Equatable {
