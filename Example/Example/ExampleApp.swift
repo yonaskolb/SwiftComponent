@@ -9,9 +9,10 @@ import SwiftUI
 
 @main
 struct ExampleApp: App {
+    @State var state = ItemComponent.State(name: "Bob", data: .empty)
     var body: some Scene {
         WindowGroup {
-            ItemView(store: .init(state: .init(name: "Bob", data: .empty)))
+            ItemView(model: .init(state: $state))
         }
     }
 }

@@ -14,45 +14,49 @@ struct ItemComponent: Component {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
-        var jobs: JobsComponent.State?
-        var jobsEmbed: JobsComponent.State = .init(id: "1")
+        var presentDetail: ItemDetailComponent.State?
+        var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
     }
 
     enum Route {
-        case jobs
+        case detail
     }
 
     enum Action {
         case calculate
-        case openItem
+        case openDetail
         case pushItem
-        case jobs(JobsComponent.Output)
+        case detail(ItemDetailComponent.Output)
+        case updateDetail
     }
 
-    func task(handler: ActionHandler<Self>) async {
-        await handler.loadResource(\.data) {
+    func task(model: Model) async {
+        await model.loadResource(\.data) {
             try await Task.sleep(nanoseconds: 1_000_000_000 * 1)
             return Int.random(in: 0...100)
         }
     }
 
-    func handle(action: Action, _ handler: ActionHandler<Self>) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .calculate:
                 try? await Task.sleep(nanoseconds: 1_000_000_000 * 1)
-                handler.mutate(\.name, value: UUID().uuidString)
-
-            case .openItem:
-                handler.present(.jobs, as: .sheet, inNav: true, using: JobsComponent.self) {
-                    JobsComponent.State(id: "2")
+                model.name = String(UUID().uuidString.prefix(6))
+            case .openDetail:
+                model.present(.detail, as: .sheet, inNav: true, using: ItemDetailComponent.self) {
+                    model.state.detail
                 }
-                handler.mutate(\.jobs, value: .init(id: handler.state.name))
+                model.presentDetail = model.detail
             case .pushItem:
-                handler.present(.jobs, as: .push, inNav: false, using: JobsComponent.self) {
-                    JobsComponent.State(id: "3")
+                model.present(.detail, as: .push, inNav: false, using: ItemDetailComponent.self) {
+                    ItemDetailComponent.State(id: model.state.data.content?.description ?? "1", name: model.state.name)
                 }
-            case .jobs(.didThing):
-                break
+            case .detail(.finished(let name)):
+                model.detail.name = name
+                model.name = name
+                model.presentDetail = nil
+            case .updateDetail:
+                model.detail.name = Int.random(in: 0...1000).description
         }
     }
 
@@ -68,52 +72,60 @@ struct ItemComponent: Component {
 
 struct ItemView: ComponentView {
 
-    @ObservedObject var store: Store<ItemComponent>
+    @ObservedObject var model: ViewModel<ItemComponent>
 
     var view: some View {
         VStack {
-            Text(store.state.name)
-            if let route = store.route {
+            Text(model.state.name)
+            if let route = model.route {
                 Text("\(String(describing: route.mode)): \(String(describing: route.route))")
             }
-            ResourceView(store.state.data) { state in
+            ResourceView(model.state.data) { state in
                 Text(state.description)
             }
             .frame(height: 30)
-            JobsView(store: store.scope(state: \.jobsEmbed, event: ItemComponent.Action.jobs))
-            TextField("Field", text: store.binding(\.text))
+            HStack {
+                Text("Detail name: \(model.state.detail.name)")
+                Button(action: { model.send(.updateDetail)}) {
+                    Text("Update Detail")
+                }
+            }
+            ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Action.detail))
+                .fixedSize()
+            TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
-            store.button(.calculate) {
-                Text("Calculate")
-            }
-
-            Button(action: { store.send(.openItem) }) {
-                Text("Item")
-            }
-
-            Button(action: { store.send(.pushItem) }) {
-                Text("Push Item")
-            }
+            model.actionButton(.calculate, "Calculate")
+            model.actionButton(.openDetail, "Item")
+            model.actionButton(.pushItem, "Push Item")
+            Spacer()
         }
-        .sheet(item: store.binding(\.jobs)) { jobs in
-            JobsView(store: store.scope(state: \.jobs, value: jobs, event: ItemComponent.Action.jobs))
+        .sheet(item: model.binding(\.presentDetail)) { state in
+            NavigationView {
+                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Action.detail))
+            }
         }
         .padding(20)
     }
 }
 
-struct JobsComponent: Component {
-
+struct ItemDetailComponent: Component {
 
     struct State: Identifiable, Equatable {
         var id: String
+        var name: String
     }
 
-    enum Action { case close }
-    enum Output { case didThing }
+    enum Action {
+        case close
+        case updateName
+    }
 
-    func task(handler: ActionHandler<JobsComponent>) async {
+    enum Output {
+        case finished(String)
+    }
+
+    func task(model: Model) async {
 
     }
 
@@ -121,26 +133,34 @@ struct JobsComponent: Component {
 
     }
 
-    func handle(action: Action, _ handler: ActionHandler<JobsComponent>) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .close:
-                handler.output(.didThing)
+                model.output(.finished(model.state.name))
+            case .updateName:
+                model.name = Int.random(in: 0...100).description
         }
     }
 }
 
-struct JobsView: ComponentView {
+struct ItemDetailView: ComponentView {
 
-    var store: Store<JobsComponent>
+    @ObservedObject var model: ViewModel<ItemDetailComponent>
 
     var view: some View {
-        Text("Jobs \(store.state.id)")
-            .navigationBarTitle(Text("Item"))
-            .toolbar {
-                Button(action: { store.send(.close) }) {
-                    Text("Close")
-                }
+        VStack {
+            Text("Item Detail \(model.state.name)")
+                .bold()
+            Button(action: { model.send(.updateName)}) {
+                Text("Update")
             }
+        }
+        .navigationBarTitle(Text("Item"))
+        .toolbar {
+            Button(action: { model.send(.close) }) {
+                Text("Close")
+            }
+        }
     }
 }
 
@@ -155,7 +175,7 @@ struct DemoPreview: PreviewProvider {
     static var tests: [Test<ItemComponent>] {
         return [
             Test("Happy", .init(name: "john", data: .empty), steps: [
-                .action(.openItem),
+                .action(.openDetail),
             ])
         ]
     }

@@ -8,10 +8,14 @@
 import Foundation
 import SwiftUI
 
-extension Store {
+extension ViewModel {
 
-    public func button<Label: View>(_ action: C.Action, file: StaticString = #file, line: UInt = #line, label: () -> Label) -> some View {
+    public func actionButton<Label: View>(_ action: C.Action, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         Button(action: { self.send(action, file: file, line: line) }) { label() }
+    }
+
+    public func actionButton(_ action: C.Action, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
+        actionButton(action) { Text(text) }
     }
 }
 
