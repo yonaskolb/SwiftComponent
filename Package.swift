@@ -18,7 +18,10 @@ let package = Package(
     targets: [
         .target(
             name: "SwiftComponent",
-            dependencies: [.product(name: "CustomDump", package: "swift-custom-dump"), "SwiftGUI"]),
+            dependencies: [
+                .product(name: "CustomDump", package: "swift-custom-dump"),
+                "SwiftGUI",
+            ]),
         .testTarget(
             name: "SwiftComponentTests",
             dependencies: ["SwiftComponent"]),

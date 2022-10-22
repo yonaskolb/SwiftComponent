@@ -75,37 +75,41 @@ struct ItemView: ComponentView {
     @ObservedObject var model: ViewModel<ItemComponent>
 
     var view: some View {
-        VStack {
-            Text(model.state.name)
-            if let route = model.route {
-                Text("\(String(describing: route.mode)): \(String(describing: route.route))")
+        NavigationView {
+            VStack {
+                Text(model.state.name)
+                if let route = model.route {
+                    Text("\(String(describing: route.mode)): \(String(describing: route.route))")
+                }
+                ResourceView(model.state.data) { state in
+                    Text(state.description)
+                }
+                .frame(height: 30)
+                HStack {
+                    Text("Detail name: \(model.state.detail.name)")
+                    Button(action: { model.send(.updateDetail)}) {
+                        Text("Update")
+                    }
+                }
+                ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Action.detail))
+                    .fixedSize()
+                TextField("Field", text: model.binding(\.text))
+                    .textFieldStyle(.roundedBorder)
+
+                model.actionButton(.calculate, "Calculate")
+                model.actionButton(.openDetail, "Item")
+                model.actionButton(.pushItem, "Push Item")
+                Spacer()
             }
-            ResourceView(model.state.data) { state in
-                Text(state.description)
-            }
-            .frame(height: 30)
-            HStack {
-                Text("Detail name: \(model.state.detail.name)")
-                Button(action: { model.send(.updateDetail)}) {
-                    Text("Update")
+            .padding()
+            .sheet(item: model.binding(\.presentDetail)) { state in
+                NavigationView {
+                    ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Action.detail))
                 }
             }
-            ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Action.detail))
-                .fixedSize()
-            TextField("Field", text: model.binding(\.text))
-                .textFieldStyle(.roundedBorder)
-
-            model.actionButton(.calculate, "Calculate")
-            model.actionButton(.openDetail, "Item")
-            model.actionButton(.pushItem, "Push Item")
-            Spacer()
+            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle(Text("Item"))
         }
-        .sheet(item: model.binding(\.presentDetail)) { state in
-            NavigationView {
-                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Action.detail))
-            }
-        }
-        .padding(20)
     }
 }
 
@@ -189,7 +193,8 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
     static var tests: [Test<ItemComponent>] {
         return [
             Test("Happy", .init(name: "john", data: .empty), steps: [
-                .action(.openDetail),
+                .action(.updateDetail),
+                .setBinding(\.text, "yeah")
             ])
         ]
     }

@@ -23,11 +23,11 @@ public struct ComponentPreviewView: View {
         !components.isEmpty || !views.isEmpty
     }
 
-    public init(components: [ComponentInfo], views: [ViewItem]) {
+    public init(components: [ComponentInfo], views: [ViewItem] = []) {
         self.components = components
         self.views = views
         let component = components.first!
-        let view = ViewItem(component.view, name: component.name)
+        let view = ViewItem(component.view, componentName: component.componentName)
         self._view = State(initialValue: view)
         self._component = State(initialValue: component)
         self._state = State(initialValue: component.states.first!)
@@ -37,17 +37,17 @@ public struct ComponentPreviewView: View {
         self.components = []
         self.views = []
         self._component = State(initialValue: component)
-        self._view = State(initialValue: ViewItem(component.view, name: component.name))
+        self._view = State(initialValue: ViewItem(component.view, componentName: component.componentName))
         self._state = State(initialValue: component.states.first!)
     }
 
     let iconScale: CGFloat = 0.2
-    let iconWidth = Device.iPhoneSE.size.width
-    let iconHeight = Device.iPhoneSE.size.width*1.3
+    let iconWidth = Device.iPhoneSE.width
+    let iconHeight = Device.iPhoneSE.width*1.3
 
     func select(_ component: ComponentInfo) {
         withAnimation {
-            self.view = ViewItem(component.view, name: component.name)
+            self.view = ViewItem(component.view, componentName: component.componentName)
             self.component = component
             self.state = component.states.first
         }
@@ -65,11 +65,15 @@ public struct ComponentPreviewView: View {
         HStack(spacing: 0) {
             if hasList {
                 List {
-                    Section(header: Text("Components")) {
-                        componentsList
+                    if !components.isEmpty {
+                        Section(header: Text("Components")) {
+                            componentsList
+                        }
                     }
-                    Section(header: Text("Other Views")) {
-                        viewsList
+                    if !views.isEmpty {
+                        Section(header: Text("Views")) {
+                            viewsList
+                        }
                     }
                 }
                 .listStyle(.grouped)
@@ -78,7 +82,7 @@ public struct ComponentPreviewView: View {
             }
             ZStack {
                 if let view = view {
-                    ViewPreviewer(content: view.view, name: view.name)
+                    ViewPreviewer(content: view.view, name: view.componentName)
                         .padding()
                 } else {
                     emptyView
@@ -94,15 +98,20 @@ public struct ComponentPreviewView: View {
                 .transition(.move(edge: .trailing))
             }
         }
-        .edgesIgnoringSafeArea(.all)
+        //.edgesIgnoringSafeArea(.all)
         .navigationViewStyle(StackNavigationViewStyle())
-        .previewDevice("iPad Pro (12.9-inch) (5th generation)")
+        .previewDevice(.iPadLargest)
     }
 
     var componentsList: some View {
-        ForEach(components.sorted { $0.name < $1.name }) { component in
+        ForEach(components.sorted { $0.componentName < $1.componentName }) { component in
             Button(action: { select(component) }) {
-                viewItem(ViewItem(component.view, name: component.name), states: component.states)
+                VStack(alignment: .leading) {
+                    Text(component.componentName)
+                        .bold()
+                    Text(component.viewName)
+                }
+//                viewItem(ViewItem(component.view, componentName: component.componentName), states: component.states)
             }
             .buttonStyle(.plain)
 //            .listRowBackground(self.view?.name == component.name ? Color.neutral90 : Color.systemBackground)
@@ -110,7 +119,7 @@ public struct ComponentPreviewView: View {
     }
 
     var viewsList: some View {
-        ForEach(views.sorted { $0.name < $1.name }) { view in
+        ForEach(views.sorted { $0.componentName < $1.componentName }) { view in
             Button(action: { select(view) }) {
                 viewItem(view)
             }
@@ -127,12 +136,12 @@ public struct ComponentPreviewView: View {
                 .frame(width: iconWidth, height: iconHeight)
                 .scaleEffect(iconScale)
                 .frame(width: iconWidth*iconScale, height: iconHeight*iconScale)
-//                .background(.systemBackground)
+                .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 5))
                 .shadow(radius: 2)
             VStack(alignment: .leading) {
                 Spacer()
-                Text(view.name.replacingOccurrences(of: "View", with: ""))
+                Text(view.componentName.replacingOccurrences(of: "View", with: ""))
                     .font(.subheadline)
                     .bold()
 //                    .color(self.view?.name == view.name ? .white : .neutral90)
@@ -160,11 +169,11 @@ public struct ComponentPreviewView: View {
 
 public struct ViewItem: Identifiable {
     public let id = UUID()
-    public let name: String
+    public let componentName: String
     public let view: AnyView
 
-    public init<V: View>(_ view: V, name: String? = nil) {
-        self.name = name ?? String(describing: V.self)
+    public init<V: View>(_ view: V, componentName: String? = nil) {
+        self.componentName = componentName ?? String(describing: V.self)
         self.view = view.eraseToAnyView()
     }
 }
@@ -173,6 +182,13 @@ extension ComponentPreview {
 
     public static func componentPreview() -> some View {
         ComponentPreviewView(component: componentInfo)
+    }
+}
+
+struct ComponentPreview_Previews: PreviewProvider {
+
+    static var previews: some View {
+        ExamplePreview.componentPreview()
     }
 }
 

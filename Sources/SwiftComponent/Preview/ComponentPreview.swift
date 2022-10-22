@@ -12,13 +12,16 @@ public protocol ComponentPreview: PreviewProvider {
     associatedtype ComponentType: Component
     associatedtype ComponentViewType: ComponentView where ComponentType == ComponentViewType.C
     typealias ComponentState = StateInfo<ComponentType.State>
+    typealias ComponentTest = Test<ComponentType>
 
     @StateBuilder static var states: [ComponentState] { get }
+    @TestBuilder static var tests: [ComponentTest] { get }
     static var embedInNav: Bool { get }
 }
 
 extension ComponentPreview {
 
+    public static var tests: [ComponentTest] { [] }
     static func createComponentView(state: ComponentType.State) -> ComponentViewType {
         ComponentViewType(model: ViewModel<ComponentType>(state: state))
     }
@@ -53,7 +56,12 @@ extension ComponentPreview {
         let component = createComponentView(state: state)
         let viewModel = component.model
         let view = createView(component)
-        return ComponentInfo(component: ComponentType.self, view: view, viewModel: viewModel, states: states) { state in
+        return ComponentInfo(
+            component: ComponentType.self,
+            componentView: ComponentViewType.self,
+            view: view,
+            viewModel: viewModel,
+            states: states, tests: tests) { state in
             createView(createComponentView(state: state))
         }
     }
@@ -75,6 +83,13 @@ public struct StateBuilder {
     public static func buildBlock<State>(_ states: [StateInfo<State>]) -> [StateInfo<State>] { states }
 }
 
+@resultBuilder
+public struct TestBuilder {
+    public static func buildBlock<ComponentType: Component>() -> [Test<ComponentType>] { [] }
+    public static func buildBlock<ComponentType: Component>(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { tests }
+    public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
+}
+
 public struct StateInfo<State> {
     public let name: String
     public let state: State
@@ -87,24 +102,36 @@ public struct StateInfo<State> {
     }
 }
 
+public struct TestInfo {
+    let name: String
+    let stepCount: Int
+}
+
 public struct ComponentInfo: Identifiable {
 
-    public var id: String { name }
-    public var name: String
-    public var states: [String]
-    public var view: AnyView
+    public var id: String { componentName + viewName }
+    var componentName: String
+    var viewName: String
+    var states: [String]
+    var view: AnyView
     private let createView: (Any) -> AnyView
     private var statesByName: [String: StateInfo<Any>]
-    private var applyState: (Any) -> Void
+    var applyState: (Any) -> Void
+    var applyAction: (Any) -> Void
+    var runTest: @MainActor (TestInfo, TimeInterval) async -> Void
+    var tests: [TestInfo]
 
-    init<ComponentType: Component>(
+    init<ComponentType: Component, ComponentViewType: ComponentView>(
         component: ComponentType.Type,
+        componentView: ComponentViewType.Type,
         view: AnyView,
         viewModel: ViewModel<ComponentType>,
         states: [StateInfo<ComponentType.State>],
+        tests: [Test<ComponentType>],
         createView: @escaping (ComponentType.State) -> AnyView
     ) {
-        self.name = String(describing: ComponentType.self)
+        self.componentName = String(describing: ComponentType.self)
+        self.viewName = String(describing: ComponentViewType.self)
         self.view = view
         var stateDictionary: [String: StateInfo<Any>] = [:]
         for state in states {
@@ -116,9 +143,29 @@ public struct ComponentInfo: Identifiable {
             let state = state as! ComponentType.State
             viewModel.state = state
         }
+        self.applyAction = { action in
+            let action = action as! ComponentType.Action
+            viewModel.handleAction(action, sourceLocation: .capture(file: #file, fileID: #fileID, line: #line))
+        }
         self.createView = { state in
             let state = state as! ComponentType.State
             return createView(state)
+        }
+
+        var testByName: [String: (TimeInterval) async -> Void] = [:]
+        for test in tests {
+            testByName[test.name] = { delay in
+                await viewModel.runTest(test, delay: delay)
+            }
+        }
+
+        self.tests = tests.map { test in
+            TestInfo(name: test.name, stepCount: test.steps.count)
+        }
+
+        runTest = { testInfo, delay in
+            let runner = testByName[testInfo.name]!
+            await runner(delay)
         }
     }
 
@@ -128,10 +175,6 @@ public struct ComponentInfo: Identifiable {
 
     public func applyState(name: String) {
         let state = statesByName[name]!.state
-        self.applyState(state)
-    }
-
-    public func applyState(_ state: Any) {
         self.applyState(state)
     }
 

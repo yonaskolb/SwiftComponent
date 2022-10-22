@@ -23,13 +23,15 @@ public struct ComponentInfoView: View {
         )
     }
 
+    func playTest(_ test: TestInfo) {
+        Task { @MainActor in
+            await component.runTest(test, 0.2)
+        }
+    }
+
     public var body: some View {
         VStack(alignment: .leading) {
-            Text("STATES")
-                .foregroundColor(.gray)
-                .font(.footnote)
-                .padding(.horizontal)
-                .padding(.top)
+            section("STATES")
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(component.states, id: \.self) { state in
                     Button(action: {
@@ -43,8 +45,8 @@ public struct ComponentInfoView: View {
                             Divider()
                             HStack {
                                 Text(state)
-//                                    .color(self.state == state ? .white : .gray)
-//                                    .midnight()
+                                //                                    .color(self.state == state ? .white : .gray)
+                                //                                    .midnight()
                                 Spacer()
                             }
                             .padding(.horizontal, 16)
@@ -52,17 +54,33 @@ public struct ComponentInfoView: View {
                             Divider()
                         }
 
-//                        .background(self.state == state ? Color.background : Color.systemBackground)
+                        //                        .background(self.state == state ? Color.background : Color.systemBackground)
+                    }
+                }
+            }
+            if !component.tests.isEmpty {
+                section("TESTS")
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(component.tests, id: \.name) { test in
+                        Button(action: { playTest(test) }) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Divider()
+                                HStack {
+                                    Text(test.name)
+                                    Spacer()
+                                    Text(test.stepCount.description)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                Divider()
+                            }
+                        }
                     }
                 }
             }
             if state != nil {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("STATE EDITOR")
-                        .foregroundColor(.gray)
-                        .font(.footnote)
-                        .padding(.horizontal)
-                        .padding(.bottom)
+                    section("STATE EDITOR")
                     Divider()
                     NavigationView {
                         SwiftView(value: stateBinding, config: Config(editing: true))
@@ -75,6 +93,14 @@ public struct ComponentInfoView: View {
             }
         }
         .padding(.top)
+    }
+
+    func section(_ title: String) -> some View {
+        Text(title)
+            .foregroundColor(.gray)
+            .font(.footnote)
+            .padding(.horizontal)
+            .padding(.bottom)
     }
 }
 #endif

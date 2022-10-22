@@ -10,12 +10,12 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func actionButton<Label: View>(_ action: C.Action, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
-        Button(action: { self.send(action, file: file, line: line) }) { label() }
+    public func actionButton<Label: View>(_ action: C.Action, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+        Button(action: { self.send(action, file: file, fileID: fileID, line: line) }) { label() }
     }
 
-    public func actionButton(_ action: C.Action, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
-        actionButton(action) { Text(text) }
+    public func actionButton(_ action: C.Action, _ text: LocalizedStringKey, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> some View {
+        actionButton(action, file: file, fileID: fileID, line: line) { Text(text) }
     }
 }
 

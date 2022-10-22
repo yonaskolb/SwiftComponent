@@ -20,7 +20,46 @@ public struct Test<C: Component> {
     var steps: [Step]
 
     public enum Step {
+        case task
         case action(C.Action)
+        case binding((inout C.State, Any) -> Void, Any)
+
+        public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value) -> Step {
+            .binding({ $0[keyPath: keyPath] = $1 as! Value }, value)
+        }
+
+    }
+}
+
+extension ViewModel {
+
+    func runTest(_ test: Test<C>, delay: Double) async {
+        state = test.initialState
+        for step in test.steps {
+            let sleepDelay = 1_000_000_000.0 * delay
+            if delay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+            }
+            switch step {
+                case .task:
+                    await task()
+                case .action(let action):
+                    await component.handle(action: action, model: componentModel)
+                case .binding(let mutate, let value):
+                    if let string = value as? String, string.count > 1, string != "" {
+                        var currentString = ""
+                        mutate(&state, currentString)
+                        for character in string {
+                            let sleeptime = sleepDelay/(Double(string.count))
+                            try? await Task.sleep(nanoseconds: UInt64(sleeptime))
+                            currentString.append(character)
+                            mutate(&state, currentString)
+                        }
+                    } else {
+                        mutate(&state, value)
+                    }
+            }
+        }
     }
 }
 

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftGUI
 
 public protocol ComponentView: View {
 
@@ -17,78 +18,73 @@ public protocol ComponentView: View {
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
 }
 
+struct ComponentViewContainer<C: Component, Content: View>: View {
+
+    let model: ViewModel<C>
+    let view: Content
+    @State var showDebug = false
+    @State var viewModes: [ComponentViewMode] = [.view]
+    @Environment(\.isPreviewReference) var isPreviewReference
+
+    enum ComponentViewMode: String, Identifiable {
+        case view
+        case data
+        case history
+        case editor
+        case debug
+
+        var id: String { rawValue }
+    }
+
+    var body: some View {
+        view
+        .task { @MainActor in
+            // don't call this for other reference views
+            if !isPreviewReference {
+                await model.task()
+            }
+        }
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            showDebug = !showDebug
+        }
+        .sheet(isPresented: $showDebug) {
+            if #available(iOS 16.0, *) {
+                ComponentDebugView(viewModel: model)
+                    .presentationDetents([.medium, .large])
+            } else {
+                ComponentDebugView(viewModel: model)
+            }
+        }
+        
+        //        .background {
+        //            NavigationLink(isActive: Binding(get: { model.route?.mode == .push }, set: { present in
+        //                if !present {
+        //                    model.route = nil
+        //                }
+        //            })) {
+        //                routeView()
+        //            } label: {
+        //                EmptyView()
+        //            }
+        //        }
+        //        .sheet(isPresented: Binding(get: { model.route?.mode == .sheet }, set: { present in
+        //            if !present {
+        //                model.route = nil
+        //            }
+        //        })) {
+        //            routeView()
+        //        }
+    }
+}
+
 public extension ComponentView {
 
     @MainActor
     var body: some View {
-        VStack {
-            ForEach(model.viewModes) { viewMode in
-                switch viewMode {
-                    case .view: view
-                    case .data:
-                        ScrollView(.vertical) {
-                            Text(model.stateDump)
-                        }
-                    case .history:
-                        List {
-                            ForEach(model.events) { event in
-                                VStack {
-                                    Text(event.event.title)
-                                        .bold()
-                                    Text(event.event.details)
-                                        .lineLimit(2)
-                                    Spacer()
-                                }
-                            }
-                        }
-                }
-            }
-            .frame(maxHeight: .infinity)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
-            withAnimation {
-                switch model.viewModes {
-                    case [.view]:
-                        model.viewModes = [.data]
-                    case [.data]:
-                        model.viewModes = [.history]
-                    case [.history]:
-                        model.viewModes = [.view]
-//                    case [.view]:
-//                        model.viewModes = [.view, .data]
-//                    case [.view, .data]:
-//                        model.viewModes = [.data]
-//                    case [.data]:
-//                        model.viewModes = [.data, .view]
-//                    case [.data, .view]:
-//                        model.viewModes = [.view]
-                    default:
-                        break
-                }
-            }
-        }
-        .task { await model.task() }
-//        .background {
-//            NavigationLink(isActive: Binding(get: { model.route?.mode == .push }, set: { present in
-//                if !present {
-//                    model.route = nil
-//                }
-//            })) {
-//                routeView()
-//            } label: {
-//                EmptyView()
-//            }
-//        }
-//        .sheet(isPresented: Binding(get: { model.route?.mode == .sheet }, set: { present in
-//            if !present {
-//                model.route = nil
-//            }
-//        })) {
-//            routeView()
-//        }
+        ComponentViewContainer(model: model, view: view)
     }
-
 
     @ViewBuilder
     func routeView() -> some View {
