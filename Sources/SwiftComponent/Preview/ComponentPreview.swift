@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 #if DEBUG
-public protocol ComponentPreview: PreviewProvider {
+public protocol ComponentPreview<ComponentType, ComponentViewType>: PreviewProvider {
     associatedtype ComponentType: Component
     associatedtype ComponentViewType: ComponentView where ComponentType == ComponentViewType.C
     typealias ComponentState = ComponentPreviewState<ComponentType.State>
@@ -41,7 +41,7 @@ extension ComponentPreview {
     public static var embedInNav: Bool { false }
     public static var previews: some View {
         Group {
-            ComponentPreviewView<Self>()
+            componentPreview
             ForEach(states, id: \.name) { state in
                 createView(createComponentView(state: state.state))
                     .previewDisplayName("\(String(describing: ComponentViewType.self).replacingOccurrences(of: "View", with: "")) \(state.name)" )
@@ -63,6 +63,10 @@ extension ComponentPreview {
             states: states, tests: tests) { state in
             createView(createComponentView(state: state))
         }
+    }
+
+    public static var componentPreview: some View {
+        ComponentPreviewView<Self>()
     }
 }
 

@@ -258,7 +258,7 @@ public class ComponentModel<C: Component> {
         self.viewModel = viewModel
     }
 
-    public var state: C.State { viewModel.state }
+    var state: C.State { viewModel.state }
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
         viewModel.mutate(keyPath, value: value, sourceLocation: .capture(file: file, fileID: fileID, line: line))

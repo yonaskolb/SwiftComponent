@@ -14,12 +14,14 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.1.1"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.43.0"),
     ],
     targets: [
         .target(
             name: "SwiftComponent",
             dependencies: [
                 .product(name: "CustomDump", package: "swift-custom-dump"),
+                .product(name: "Dependencies", package: "swift-composable-architecture"),
                 "SwiftGUI",
                 "SwiftPreview",
             ]),

@@ -5,7 +5,7 @@ public protocol Component<State, Action> {
     associatedtype State = Void
     associatedtype Action = Never
     associatedtype Route = Never
-    associatedtype Output = Never
+    associatedtype Output: Equatable = Never
     @MainActor func task(model: Model) async
     @MainActor func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(action: Action, model: Model) async

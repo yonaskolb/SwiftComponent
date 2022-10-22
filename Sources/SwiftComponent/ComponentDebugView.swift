@@ -234,8 +234,8 @@ struct EventView<ComponentType: Component>: View {
                                 Text(mutation.property + ": ") + Text(mutation.valueType).bold()
                                 Spacer()
                                 Text(dumpLine(mutation.value))
-                                    .lineLimit(1)
                             }
+                            .lineLimit(1)
                         }
 
                     }
@@ -343,7 +343,7 @@ struct ComponentDebugView_Previews: PreviewProvider {
         )),
 
         AnyEvent(Event<ExampleComponent>(
-            .action(.tap(UUID()), [
+            .action(.tap(2), [
                 .init(keyPath: \.name, value: "new1"),
                 .init(keyPath: \.name, value: "new2"),
             ]),

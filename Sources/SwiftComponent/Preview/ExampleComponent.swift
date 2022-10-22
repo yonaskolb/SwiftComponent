@@ -17,7 +17,7 @@ struct ExampleComponent: Component {
         var loaded: Bool = false
     }
     enum Action: Equatable {
-        case tap(UUID)
+        case tap(Int)
     }
     enum Output {
         case finished
@@ -28,7 +28,10 @@ struct ExampleComponent: Component {
     }
     
     func handle(action: Action, model: Model) async {
-
+        switch action {
+            case .tap(let int):
+                model.name += int.description
+        }
     }
 }
 
@@ -38,14 +41,17 @@ struct ExampleSubComponent: Component {
         var name: String
     }
     enum Action: Equatable {
-        case tap(UUID)
+        case tap(Int)
     }
     enum Output {
         case finished
     }
 
     func handle(action: Action, model: Model) async {
-
+        switch action {
+            case .tap(let int):
+                model.name += int.description
+        }
     }
 }
 
@@ -57,6 +63,7 @@ struct ExampleView: ComponentView {
         VStack {
             Text(model.name)
             ProgressView().opacity(model.loaded ? 0 : 1)
+            model.actionButton(.tap(1), "Tap")
         }
     }
 }
@@ -76,7 +83,7 @@ struct ExamplePreview: PreviewProvider, ComponentPreview {
 
     static var tests: [ComponentTest] {
         ComponentTest("Sets name", .init(name: "Main"), steps: [
-            .action(.tap(UUID())),
+            .sendAction(.tap(2)),
             .setBinding(\.name, "test"),
 //            .validateState { state in
 //                state.name == "test2"

@@ -44,12 +44,12 @@ struct ItemComponent: Component {
                 model.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
                 model.present(.detail, as: .sheet, inNav: true, using: ItemDetailComponent.self) {
-                    model.state.detail
+                    model.detail
                 }
                 model.presentDetail = model.detail
             case .pushItem:
                 model.present(.detail, as: .push, inNav: false, using: ItemDetailComponent.self) {
-                    ItemDetailComponent.State(id: model.state.data.content?.description ?? "1", name: model.state.name)
+                    ItemDetailComponent.State(id: model.data.content?.description ?? "1", name: model.name)
                 }
             case .detail(.finished(let name)):
                 model.detail.name = name
@@ -125,7 +125,7 @@ struct ItemDetailComponent: Component {
         case updateName
     }
 
-    enum Output {
+    enum Output: Equatable {
         case finished(String)
     }
 
@@ -140,7 +140,7 @@ struct ItemDetailComponent: Component {
     func handle(action: Action, model: Model) async {
         switch action {
             case .close:
-                model.output(.finished(model.state.name))
+                model.output(.finished(model.name))
             case .updateName:
                 model.name = Int.random(in: 0...100).description
         }
@@ -192,9 +192,9 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
 
     static var tests: [ComponentTest] {
         ComponentTest("Happy", .init(name: "john", data: .empty), steps: [
-            .action(.updateDetail),
+            .sendAction(.updateDetail),
             .setBinding(\.text, "yeah"),
-            .validateState { state in
+            .validateState("text is set") { state in
                 state.text == "yeah"
             },
             .expectState { state in

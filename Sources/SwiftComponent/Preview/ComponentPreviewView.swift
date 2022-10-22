@@ -34,6 +34,10 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     @AppStorage("autoRunTests") var autoRunTests = true
     @AppStorage("previewTests") var previewTests = true
 
+    var events: [AnyEvent] {
+        componentEvents(for: viewModel.path, includeChildren: true)
+    }
+
     func getTestState(_ test: Test<Preview.ComponentType>) -> TestState {
         testState[test.name] ?? .notRun
     }
@@ -76,7 +80,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         testState[test.name] = .running
 
         let viewModel: ViewModel<Preview.ComponentType>
-        let delay: TimeInterval = previewTests ? 0.3 : 0
+        let delay: TimeInterval = previewTests ? 0.2 : 0
         if delay > 0 {
             viewModel = self.viewModel
         } else {
@@ -116,85 +120,90 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
 
     var form: some View {
         Form {
-//            Section(header:
-//            Text(Preview.ComponentType.name + " Component")
-//                .bold()
-//                .foregroundColor(.primary)
-//                .font(.title2)
-//                .textCase(.none)
-//                .padding(.top, 20)
-//                .padding(.bottom, -12)
-//            ) {}
-            Section(header: Text("Settings")) {
-                Toggle("Auto Run Tests", isOn: $autoRunTests)
-                Toggle("Preview Tests", isOn: $previewTests)
-            }
-            Section(header: Text("States")) {
-                ForEach(Preview.states, id: \.name) { state in
-                    Button {
-                        viewModel.state = state.state
-                    } label: {
-                        HStack {
-                            Text(state.name)
-                            Spacer()
-                            Text(dumpLine(state.state))
-                                .lineLimit(1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            settingsSection
+            stateSection
             if !Preview.tests.isEmpty {
-                Section(header: testHeader) {
-                    ForEach(Preview.tests, id: \.name) { test in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button {
-                                Task { @MainActor in
-                                    await runTest(test)
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    ZStack {
-                                        ProgressView().hidden()
-                                        switch getTestState(test) {
-                                            case .running:
-                                                ProgressView().progressViewStyle(CircularProgressViewStyle())
-                                            case .failed:
-                                                Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
-                                            case .success:
-                                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                            case .notRun:
-                                                Image(systemName: "circle")
-                                        }
-                                    }
-                                    .foregroundColor(getTestState(test).color)
-                                    Text(test.name)
-                                        .foregroundColor(getTestState(test).color)
-                                    Spacer()
-                                    Image(systemName: "play.circle")
-                                        .font(.title3)
-                                }
-                            }
-                            if let errors = getTestState(test).errors {
-                                Divider()
-                                ForEach(errors) { error in
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text(error.error)
-                                            .foregroundColor(.red)
-                                        if let detail = error.errorDetail {
-                                            Text(detail)
-                                            //                                                .font(.footnote)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                testSection
+            }
+            eventsSection
+        }
+        .animation(.default, value: events.count)
+        .animation(.default, value: testState)
+    }
 
+    var settingsSection: some View {
+        Section(header: Text("Settings")) {
+            Toggle("Auto Run Tests", isOn: $autoRunTests)
+            Toggle("Preview Tests", isOn: $previewTests)
+        }
+    }
+
+    var stateSection: some View {
+        Section(header: Text("States")) {
+            ForEach(Preview.states, id: \.name) { state in
+                Button {
+                    withAnimation {
+                        viewModel.state = state.state
                     }
-                    .disabled(runningTests)
+                } label: {
+                    Text(state.name)
                 }
             }
         }
+    }
+
+    var testSection: some View {
+        Section(header: testHeader) {
+            ForEach(Preview.tests, id: \.name) { test in
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        Task { @MainActor in
+                            await runTest(test)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            ZStack {
+                                ProgressView().hidden()
+                                switch getTestState(test) {
+                                    case .running:
+                                        ProgressView().progressViewStyle(CircularProgressViewStyle())
+                                    case .failed:
+                                        Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                                    case .success:
+                                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                    case .notRun:
+                                        Image(systemName: "circle")
+                                }
+                            }
+                            .animation(nil)
+                            .foregroundColor(getTestState(test).color)
+                            Text(test.name)
+                            Spacer()
+                            if !runningTests {
+                                Image(systemName: "play.circle")
+                                    .font(.title3)
+                            }
+                        }
+                    }
+                    if let errors = getTestState(test).errors {
+                        Divider()
+                            .padding(.horizontal, 20)
+                        ForEach(Array(errors.enumerated()), id: \.1) { (index, error) in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("\(index + 1). \(error.error)")
+                                    .foregroundColor(.red)
+                                if let detail = error.errorDetail {
+                                    Text(detail)
+                                    //                                                .font(.footnote)
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+        .disabled(runningTests)
     }
 
     var testHeader: some View {
@@ -205,6 +214,12 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                 Text("Run all")
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    var eventsSection: some View {
+        Section(header: Text("Events")) {
+            ComponentEventList(viewModel: viewModel, events: events.reversed(), showMutations: false)
         }
     }
 }
