@@ -31,7 +31,7 @@ public struct ComponentInfoView: View {
 
     public var body: some View {
         VStack(alignment: .leading) {
-            section("STATES")
+            section("States")
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(component.states, id: \.self) { state in
                     Button(action: {
@@ -59,7 +59,7 @@ public struct ComponentInfoView: View {
                 }
             }
             if !component.tests.isEmpty {
-                section("TESTS")
+                section("Tests")
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(component.tests, id: \.name) { test in
                         Button(action: { playTest(test) }) {
@@ -80,7 +80,7 @@ public struct ComponentInfoView: View {
             }
             if state != nil {
                 VStack(alignment: .leading, spacing: 0) {
-                    section("STATE EDITOR")
+                    section("State Editor")
                     Divider()
                     NavigationView {
                         SwiftView(value: stateBinding, config: Config(editing: true))
@@ -96,11 +96,18 @@ public struct ComponentInfoView: View {
     }
 
     func section(_ title: String) -> some View {
-        Text(title)
+        Text(title.uppercased())
             .foregroundColor(.gray)
             .font(.footnote)
             .padding(.horizontal)
             .padding(.bottom)
+    }
+}
+
+struct ComponentInfoView_Previews: PreviewProvider {
+
+    static var previews: some View {
+        ComponentInfoView(component: ExamplePreview.componentInfo, state: .constant(nil))
     }
 }
 #endif

@@ -16,8 +16,70 @@ struct ComponentDebugView<ComponentType: Component>: View {
 
     @State var showStateEditor = false
     @State var showStateOutput = false
-    @State var showMutations = false
-    @AppStorage("showMutations") var showHistory = false
+    @State var showEvents = false
+
+    var events: [AnyEvent] {
+        componentEvents(for: viewModel.path, includeChildren: true)
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    if let parent = viewModel.path.parent {
+                        HStack {
+                            Text("Parent")
+                            Spacer()
+                            Text(parent.string)
+                                .lineLimit(2)
+                                .truncationMode(.head)
+                        }
+                    }
+                    NavigationLink("State", isActive: $showStateEditor) {
+                        SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+                    }
+//                    NavigationLink("State Output", isActive: $showStateOutput) {
+//                        ScrollView {
+//                            Text(viewModel.stateDump)
+//                                .frame(maxWidth: .infinity)
+//                                .padding()
+//                        }
+//                    }
+                    NavigationLink.init(destination: ComponentEventsView(viewModel: viewModel), isActive: $showEvents) {
+                        HStack {
+                            Text("Events")
+                            Spacer()
+                            Text(events.count.formatted())
+                        }
+                    }
+                }
+            }
+            .navigationTitle(viewModel.componentName + " Component")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss ()}) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+
+    var componentHeader: some View {
+        Text(viewModel.componentName)
+            .bold()
+            .textCase(.none)
+            .font(.headline)
+            .foregroundColor(.primary)
+    }
+}
+
+struct ComponentEventsView<ComponentType: Component>: View {
+
+    let viewModel: ViewModel<ComponentType>
+
+    @AppStorage("showMutations") var showMutations = false
     @AppStorage("showBindings") var showBindings = true
     @AppStorage("showChildEvents") var showChildEvents = true
     @State var showEvent: UUID?
@@ -38,76 +100,57 @@ struct ComponentDebugView<ComponentType: Component>: View {
     }
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section {
-                    if let parent = viewModel.path.parent {
+        Form {
+            Section {
+                Toggle("Show State Mutations", isOn: $showMutations.animation())
+                Toggle("Show Bindings", isOn: $showBindings.animation())
+                Toggle("Show Children", isOn: $showChildEvents.animation())
+            }
+            Section(header: eventsHeader) {
+                ForEach(events) { event in
+                    if showMutations, let mutations = event.type.mutations, !mutations.isEmpty {
+                        mutationsList(mutations.reversed())
+                    }
+                    NavigationLink(tag: event.id, selection: $showEvent, destination: {
+                        EventView(viewModel: viewModel, event: event)
+                    }) {
                         HStack {
-                            Text("Parent")
-                            Spacer()
-                            Text(parent.string)
-                                .font(.caption2)
-                                .lineLimit(2)
-                                .truncationMode(.head)
-                                .multilineTextAlignment(.trailing)
-                        }
-                    }
-                    NavigationLink("State", isActive: $showStateEditor) {
-                        SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
-                    }
-//                    NavigationLink("State Output", isActive: $showStateOutput) {
-//                        ScrollView {
-//                            Text(viewModel.stateDump)
-//                                .frame(maxWidth: .infinity)
-//                                .padding()
-//                        }
-//                    }
-                }
-                Section(header: Text("Events")) {
-                    Toggle("Mutations", isOn: $showMutations.animation())
-                    Toggle("Bindings", isOn: $showBindings.animation())
-                    Toggle("Children", isOn: $showChildEvents.animation())
-                    ForEach(events) { event in
-                        NavigationLink(tag: event.id, selection: $showEvent, destination: {
-                            EventView(viewModel: viewModel, event: event)
-                        }) {
-                            HStack {
-                                Circle()
-                                    .fill(event.type.color)
-                                    .frame(width: 12)
-                                    .padding(.top, 8)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(event.componentPath.string)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                    HStack {
-                                        Text(event.type.title)
-                                            .bold()
-                                        +
-                                        Text(".\(event.type.details)")
-                                    }
-                                    .font(.footnote)
+                            Text("\(event.type.emoji)")
+                                .font(.footnote)
+                                .padding(.top, 8)
+                            //                                Circle()
+                            //                                    .fill(event.type.color)
+                            //                                    .frame(width: 12)
+                            //                                    .padding(.top, 8)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(event.componentPath.string)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                HStack {
+                                    Text(event.type.title)
+                                        .bold()
+                                    +
+                                    Text(event.type.details != "" ? ".\(event.type.details)" : "")
                                 }
+                                .font(.footnote)
                             }
                         }
-                        if showMutations, let mutations = event.type.mutations, !mutations.isEmpty {
-                            mutationsList(mutations)
-                        }
-                    }
-                    .animation(.default)
-                }
-            }
-            .navigationTitle(String(describing: ComponentType.self))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss ()}) {
-                        Text("Close")
                     }
                 }
+                .animation(.default)
             }
+        }
+        .navigationTitle("Events")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    var eventsHeader: some View {
+        HStack {
+            Text("Events")
+            Spacer()
+            Text(events.count.formatted())
         }
     }
 
@@ -117,15 +160,16 @@ struct ComponentDebugView<ComponentType: Component>: View {
                 SwiftView(value: .constant(mutation.value), config: Config(editing: false))
             }) {
                 HStack {
-//                    Circle().fill(Color.yellow)
-//                        .frame(width: 16)
-                    Text(mutation.property + ": ") + Text(mutation.valueType).bold()
+                    Circle().fill(Color.yellow)
+                        .frame(width: 12)
+                    Text("State").bold() + Text(".\(mutation.property)")
+                    //                    Text(mutation.property + ": ") + Text(mutation.valueType).bold()
                     Spacer()
                     Text(dump(mutation.value))
                         .lineLimit(1)
                 }
                 .font(.footnote)
-                .padding(.leading, 25)
+                //                .padding(.leading, 25)
             }
         }
     }
@@ -152,15 +196,19 @@ struct EventView<ComponentType: Component>: View {
             line("Component") {
                 Text(event.componentName)
             }
-            line(event.type.detailsTitle) {
-                Text(event.type.details)
+            if !event.type.detailsTitle.isEmpty || !event.type.details.isEmpty {
+                line(event.type.detailsTitle) {
+                    Text(event.type.details)
+                }
             }
-            NavigationLink(isActive: $showValue) {
-                SwiftView(value: .constant(event.type.value), config: Config(editing: false))
-            } label: {
-                line(event.type.valueTitle) {
-                    Text(dump(event.type.value))
-                        .lineLimit(1)
+            if !event.type.valueTitle.isEmpty {
+                NavigationLink(isActive: $showValue) {
+                    SwiftView(value: .constant(event.type.value), config: Config(editing: false))
+                } label: {
+                    line(event.type.valueTitle) {
+                        Text(dump(event.type.value))
+                            .lineLimit(1)
+                    }
                 }
             }
             line("Time") {
@@ -230,6 +278,19 @@ extension AnyEvent.EventType {
                 return .purple
             case .viewTask:
                 return .orange
+        }
+    }
+
+    var emoji: String {
+        switch self {
+            case .action:
+                return "🔵"
+            case .binding:
+                return "🟢"
+            case .output:
+                return "🟣"
+            case .viewTask:
+                return "🟠"
         }
     }
 
@@ -305,12 +366,35 @@ extension ComponentView {
 struct ComponentDebugView_Previews: PreviewProvider {
 
     static let events: [AnyEvent] = [
-        AnyEvent(Event<ExampleComponent>(.action(.tap(UUID()), [
-            .init(keyPath: \.name, value: "new1"),
-            .init(keyPath: \.name, value: "new2"),
-        ]), componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]), sourceLocation: .capture())),
-        AnyEvent(Event<ExampleComponent>(.binding(Mutation(keyPath: \.name, value: "Hello")), componentPath: .init(ExampleComponent.self), sourceLocation: .capture())),
-         AnyEvent(Event<ExampleComponent>(.output(.finished), componentPath: .init(ExampleComponent.self), sourceLocation: .capture())),
+        AnyEvent(Event<ExampleComponent>(
+            .viewTask([
+                .init(keyPath: \.name, value: "new1"),
+                .init(keyPath: \.name, value: "new2"),
+            ]),
+            componentPath: .init([ExampleComponent.self]),
+            sourceLocation: .capture()
+        )),
+
+        AnyEvent(Event<ExampleComponent>(
+            .action(.tap(UUID()), [
+                .init(keyPath: \.name, value: "new1"),
+                .init(keyPath: \.name, value: "new2"),
+            ]),
+            componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
+            sourceLocation: .capture()
+        )),
+
+        AnyEvent(Event<ExampleComponent>(
+            .binding(Mutation(keyPath: \.name, value: "Hello")),
+            componentPath: .init(ExampleComponent.self),
+            sourceLocation: .capture()
+        )),
+
+         AnyEvent(Event<ExampleComponent>(
+            .output(.finished),
+            componentPath: .init(ExampleComponent.self),
+            sourceLocation: .capture()
+         )),
     ]
     static func createTestEvents() {
         viewModelEvents = events

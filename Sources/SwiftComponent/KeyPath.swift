@@ -11,7 +11,6 @@ import Runtime
 extension KeyPath {
 
     var propertyName: String? {
-
         guard let offset = MemoryLayout<Root>.offset(of: self) else {
             return nil
         }
@@ -19,19 +18,34 @@ extension KeyPath {
             return nil
         }
 
-        func getPropertyName(for info: TypeInfo, path: [String]) -> String? {
-            if let property = info.properties.first(where: { $0.offset == offset }) {
-                return (path + [property.name]).joined(separator: ".")
-            } else {
-                for property in info.properties {
-                    if let info = try? typeInfo(of: property.type),
-                       let propertyName = getPropertyName(for: info, path: path + [property.name]) {
-                        return propertyName
-                    }
+        func getPropertyName(for info: TypeInfo, baseOffset: Int, path: [String]) -> String? {
+            for property in info.properties {
+                // Make sure to check the type as well as the offset. In the case of
+                // something like \Foo.bar.baz, if baz is the first property of bar, they
+                // will have the same offset since it will be at the top (offset 0).
+                if property.offset == offset - baseOffset && property.type == Value.self {
+                    return (path + [property.name]).joined(separator: ".")
                 }
-                return nil
+
+                guard let propertyTypeInfo = try? typeInfo(of: property.type) else { continue }
+
+                let trueOffset = baseOffset + property.offset
+                let byteRange = trueOffset..<(trueOffset + propertyTypeInfo.size)
+
+                if byteRange.contains(offset) {
+                    // The property is not this property but is within the byte range used by the value.
+                    // So check its properties for the value at the offset.
+                    return getPropertyName(
+                        for: propertyTypeInfo,
+                        baseOffset: property.offset + baseOffset,
+                        path: path + [property.name]
+                    )
+                }
             }
+
+            return nil
         }
-        return getPropertyName(for: info, path: [])
+
+        return getPropertyName(for: info, baseOffset: 0, path: [])
     }
 }

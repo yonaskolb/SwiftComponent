@@ -149,7 +149,7 @@ public class ViewModel<C: Component>: ObservableObject {
         let event = Event<C>(eventType, componentPath: path, sourceLocation: sourceLocation)
         events.append(event)
         viewModelEvents.append(AnyEvent(event))
-        print("\(path) \(event.type.title): \(event.type.details)")
+        print("\(event.type.anyEvent.emoji) \(path) \(event.type.title): \(event.type.details)")
         for listener in listeners {
             listener(event)
         }
@@ -207,7 +207,7 @@ public class ViewModel<C: Component>: ObservableObject {
                 let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
                 self.sendEvent(.binding(mutation), sourceLocation: .capture(file: file, fileID: fileID, line: line))
 
-                print(diff(oldState, self.state) ?? "  No state changes")
+                //print(diff(oldState, self.state) ?? "  No state changes")
 
                 Task { @MainActor in
                     await self.component.handleBinding(keyPath: keyPath, model: self.componentModel)
