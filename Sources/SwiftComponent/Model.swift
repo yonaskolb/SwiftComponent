@@ -185,18 +185,35 @@ public class ViewModel<C: Component>: ObservableObject {
     public func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, onSet: ((Value) -> C.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
-            set: {
+            set: { value in
                 let oldState = self.state
-                let mutation = Mutation<C.State>(keyPath: keyPath, value: $0)
+                var mutatedState = self.state
+                mutatedState[keyPath: keyPath] = value
+
+                // don't continue if change doesn't lead to state change
+                if value is any Equatable {
+                    func equals<A: Equatable>(_ lhs: A, _ rhs: Any) -> Bool {
+                        lhs == (rhs as? A)
+                    }
+
+                    if let oldValue = oldState[keyPath: keyPath] as? any Equatable {
+                        if equals(oldValue, mutatedState[keyPath: keyPath]) {
+                            return
+                        }
+                    }
+                }
+                self.state = mutatedState
+
+                let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
                 self.sendEvent(.binding(mutation), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-                self.state[keyPath: keyPath] = $0
+
                 print(diff(oldState, self.state) ?? "  No state changes")
 
                 Task { @MainActor in
                     await self.component.handleBinding(keyPath: keyPath, model: self.componentModel)
                 }
 
-                if let onSet = onSet, let action = onSet($0) {
+                if let onSet = onSet, let action = onSet(value) {
                     self.send(action, file: file, fileID: fileID, line: line)
                 }
             }
