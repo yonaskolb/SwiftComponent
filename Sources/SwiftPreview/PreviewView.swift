@@ -33,31 +33,31 @@ public struct ViewPreviewer<Content: View>: View {
     }
 
     public var body: some View {
+        VStack(spacing: 0) {
             VStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    Text(name)
-                        .bold()
-                        .font(.title2)
-                        .padding(.bottom)
-                    content
-                        .environment(\.sizeCategory, sizeCategory)
-                        .embedIn(device: device)
-                        .colorScheme(colorScheme ?? systemColorScheme)
-                        .shadow(radius: 10)
-                        .scaleEffect(device.contentScale)
-                        .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
-                        .padding()
-                }
-                Spacer()
-                HStack(spacing: 40) {
-                    sizeCategorySelector
-                    colorSchemeSelector
-                }
-                .padding()
-//                .padding(.bottom, 20)
-//                deviceSelector
+                Text(name)
+                    .bold()
+                    .font(.title2)
+                    .padding(.bottom)
+                content
+                    .environment(\.sizeCategory, sizeCategory)
+                    .embedIn(device: device)
+                    .colorScheme(colorScheme ?? systemColorScheme)
+                    .shadow(radius: 10)
+                    .scaleEffect(device.contentScale)
+                    .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
+                    .padding()
             }
-            .navigationViewStyle(StackNavigationViewStyle())
+            Spacer()
+            HStack(spacing: 40) {
+                sizeCategorySelector
+                colorSchemeSelector
+            }
+            .padding()
+            //                .padding(.bottom, 20)
+            //                deviceSelector
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     var sizeCategorySelector: some View {
@@ -68,7 +68,7 @@ public struct ViewPreviewer<Content: View>: View {
                         Text(size.acronym)
                             .bold()
                         //                            .fontWeight(size == sizeCategory ? .bold : .regular)
-//                            .font(.footnote)
+                        //                            .font(.footnote)
                         //                            .foregroundColor(size == sizeCategory ? .accentColor : .primary)
                         previewContent
                             .environment(\.sizeCategory, size)
@@ -78,7 +78,7 @@ public struct ViewPreviewer<Content: View>: View {
                             .frame(height: device.height * buttonScale * device.contentScale)
                         Image(systemName: size == sizeCategory ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
-//                            .foregroundColor(.blue)
+                        //                            .foregroundColor(.blue)
                     }
                     .frame(width: device.width * buttonScale * device.contentScale)
                 }
@@ -100,7 +100,7 @@ public struct ViewPreviewer<Content: View>: View {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
-//                            .font(.footnote)
+                        //                            .font(.footnote)
                         previewContent
                             .environment(\.sizeCategory, sizeCategory)
                             .embedIn(device: device)
@@ -109,7 +109,7 @@ public struct ViewPreviewer<Content: View>: View {
                             .frame(height: device.height * buttonScale * device.contentScale)
                         Image(systemName: self.colorScheme == colorScheme ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
-//                            .foregroundColor(.blue)
+                        //                            .foregroundColor(.blue)
                     }
                     .frame(width: device.width * buttonScale * device.contentScale)
                 }
@@ -124,9 +124,9 @@ public struct ViewPreviewer<Content: View>: View {
                 ForEach(devices, id: \.name) { device in
                     Button(action: { withAnimation { self.device = device } }) {
                         VStack(spacing: 2) {
-                            device.image
+                            device.icon
                                 .font(.system(size: 80, weight: .ultraLight))
-    //                            .scaleEffect(device.scale * device.contentScale, anchor: .bottom)
+                            //                            .scaleEffect(device.scale * device.contentScale, anchor: .bottom)
                             var nameParts = device.name.components(separatedBy: " ")
                             let deviceType = nameParts.removeFirst()
                             let name = "\(deviceType)\n\(nameParts.joined(separator: " "))"
@@ -142,6 +142,23 @@ public struct ViewPreviewer<Content: View>: View {
                 }
             }
             .foregroundColor(.blue)
+        }
+    }
+}
+
+struct PreviewReferenceKey: EnvironmentKey {
+
+    static var defaultValue: Bool = false
+}
+
+extension EnvironmentValues {
+
+    public var isPreviewReference: Bool {
+        get {
+            self[PreviewReferenceKey.self]
+        }
+        set {
+            self[PreviewReferenceKey.self] = newValue
         }
     }
 }
@@ -204,6 +221,6 @@ struct ViewPreviewer_Previews: PreviewProvider {
             }
         }
         .preview(name: "My Cool View")
-        .previewDevice(.iPadLargest)
+        .previewDevice(.largestDevice)
     }
 }

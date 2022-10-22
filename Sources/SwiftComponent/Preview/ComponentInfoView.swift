@@ -10,6 +10,89 @@ import SwiftUI
 import SwiftGUI
 
 #if DEBUG
+
+public struct ComponentInfo: Identifiable {
+
+    public var id: String { componentName + viewName }
+    var componentName: String
+    var viewName: String
+    var states: [String]
+    var view: AnyView
+    private let createView: (Any) -> AnyView
+    private var statesByName: [String: ComponentPreviewState<Any>]
+    var applyState: (Any) -> Void
+    var applyAction: (Any) -> Void
+    var runTest: @MainActor (TestInfo, TimeInterval) async -> Void
+    var tests: [TestInfo]
+
+    init<ComponentType: Component, ComponentViewType: ComponentView>(
+        component: ComponentType.Type,
+        componentView: ComponentViewType.Type,
+        view: AnyView,
+        viewModel: ViewModel<ComponentType>,
+        states: [ComponentPreviewState<ComponentType.State>],
+        tests: [Test<ComponentType>],
+        createView: @escaping (ComponentType.State) -> AnyView
+    ) {
+        self.componentName = String(describing: ComponentType.self)
+        self.viewName = String(describing: ComponentViewType.self)
+        self.view = view
+        var stateDictionary: [String: ComponentPreviewState<Any>] = [:]
+        for state in states {
+            stateDictionary[state.name] = ComponentPreviewState(state.name) { state.state }
+        }
+        self.statesByName = stateDictionary
+        self.states = states.map { $0.name }
+        self.applyState = { state in
+            let state = state as! ComponentType.State
+            viewModel.state = state
+        }
+        self.applyAction = { action in
+            let action = action as! ComponentType.Action
+            viewModel.handleAction(action, sourceLocation: .capture(file: #file, fileID: #fileID, line: #line))
+        }
+        self.createView = { state in
+            let state = state as! ComponentType.State
+            return createView(state)
+        }
+
+        var testByName: [String: (TimeInterval) async -> Void] = [:]
+        for test in tests {
+            testByName[test.name] = { delay in
+                await viewModel.runTest(test, delay: delay)
+            }
+        }
+
+        self.tests = tests.map { test in
+            TestInfo(name: test.name, stepCount: test.steps.count)
+        }
+
+        runTest = { testInfo, delay in
+            let runner = testByName[testInfo.name]!
+            await runner(delay)
+        }
+    }
+
+    public func state(name: String) -> ComponentPreviewState<Any> {
+        statesByName[name]!
+    }
+
+    public func applyState(name: String) {
+        let state = statesByName[name]!.state
+        self.applyState(state)
+    }
+
+    public func view(with state: String) -> AnyView {
+        let state = statesByName[state]!.state
+        return createView(state)
+    }
+}
+
+public struct TestInfo {
+    let name: String
+    let stepCount: Int
+}
+
 public struct ComponentInfoView: View {
 
     let component: ComponentInfo

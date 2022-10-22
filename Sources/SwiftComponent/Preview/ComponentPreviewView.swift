@@ -1,195 +1,216 @@
 //
-//  File.swift
+//  SwiftUIView.swift
 //  
 //
-//  Created by Yonas Kolb on 18/10/2022.
+//  Created by Yonas Kolb on 22/10/2022.
 //
 
-import Foundation
 import SwiftUI
+import SwiftPreview
+import SwiftGUI
 
-#if DEBUG
+struct ComponentPreviewView<Preview: ComponentPreview>: View {
 
-public struct ComponentPreviewView: View {
-    let components: [ComponentInfo]
-    let views: [ViewItem]
+    @StateObject var viewModel = ViewModel<Preview.ComponentType>.init(state: Preview.states[0].state)
 
-    @State var view: ViewItem?
-    @State var component: ComponentInfo?
-    @State var state: String?
-    @State var render = UUID()
-
-    var hasList: Bool {
-        !components.isEmpty || !views.isEmpty
-    }
-
-    public init(components: [ComponentInfo], views: [ViewItem] = []) {
-        self.components = components
-        self.views = views
-        let component = components.first!
-        let view = ViewItem(component.view, componentName: component.componentName)
-        self._view = State(initialValue: view)
-        self._component = State(initialValue: component)
-        self._state = State(initialValue: component.states.first!)
-    }
-
-    public init(component: ComponentInfo) {
-        self.components = []
-        self.views = []
-        self._component = State(initialValue: component)
-        self._view = State(initialValue: ViewItem(component.view, componentName: component.componentName))
-        self._state = State(initialValue: component.states.first!)
-    }
-
-    let iconScale: CGFloat = 0.2
-    let iconWidth = Device.iPhoneSE.width
-    let iconHeight = Device.iPhoneSE.width*1.3
-
-    func select(_ component: ComponentInfo) {
-        withAnimation {
-            self.view = ViewItem(component.view, componentName: component.componentName)
-            self.component = component
-            self.state = component.states.first
-        }
-    }
-
-    func select(_ view: ViewItem) {
-        withAnimation {
-            self.view = view
-            self.component = nil
-            self.state = nil
-        }
-    }
-
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 0) {
-            if hasList {
-                List {
-                    if !components.isEmpty {
-                        Section(header: Text("Components")) {
-                            componentsList
+            Preview.ComponentViewType(model: viewModel)
+                .preview()
+                .padding()
+            Divider()
+            ComponentPreviewMenuView<Preview>(viewModel: viewModel)
+        }
+        .previewDevice(.largestDevice)
+        .edgesIgnoringSafeArea(.all)
+    }
+}
+
+struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
+
+    @ObservedObject var viewModel: ViewModel<Preview.ComponentType>
+    @State var testState: [String: TestState] = [:]
+    @State var runningTests = false
+    @AppStorage("autoRunTests") var autoRunTests = true
+    @AppStorage("previewTests") var previewTests = true
+
+    func getTestState(_ test: Test<Preview.ComponentType>) -> TestState {
+        testState[test.name] ?? .notRun
+    }
+
+    enum TestState: Equatable {
+        case notRun
+        case running
+        case failed([TestError])
+        case success
+
+        var errors: [TestError]? {
+            switch self {
+                case .failed(let errors):
+                    if !errors.isEmpty { return errors}
+                default: break
+            }
+            return nil
+        }
+
+        var color: Color {
+            switch self {
+                case .notRun: return .accentColor
+                case .running: return .gray
+                case .failed: return .red
+                case .success: return .green
+            }
+        }
+    }
+
+    func runAllTests() {
+        Task { @MainActor in
+            for test in Preview.tests {
+                await runTest(test)
+            }
+        }
+    }
+
+    func runTest(_ test: Test<Preview.ComponentType>) async {
+        runningTests = true
+        testState[test.name] = .running
+
+        let viewModel: ViewModel<Preview.ComponentType>
+        let delay: TimeInterval = previewTests ? 0.3 : 0
+        if delay > 0 {
+            viewModel = self.viewModel
+        } else {
+            viewModel = ViewModel(state: test.initialState)
+        }
+        let errors = await viewModel.runTest(test, delay: delay)
+
+        if errors.isEmpty {
+            testState[test.name] = .success
+        } else {
+            testState[test.name] = .failed(errors)
+        }
+        runningTests = false
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            NavigationView {
+                form
+                    .navigationTitle(Text("\(Preview.ComponentType.name) Component"))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .frame(minHeight: 0)
+            }
+            Divider()
+            NavigationView {
+                SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+            }
+            .navigationViewStyle(.stack)
+        }
+        .task {
+            if autoRunTests {
+                runAllTests()
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+
+    var form: some View {
+        Form {
+//            Section(header:
+//            Text(Preview.ComponentType.name + " Component")
+//                .bold()
+//                .foregroundColor(.primary)
+//                .font(.title2)
+//                .textCase(.none)
+//                .padding(.top, 20)
+//                .padding(.bottom, -12)
+//            ) {}
+            Section(header: Text("Settings")) {
+                Toggle("Auto Run Tests", isOn: $autoRunTests)
+                Toggle("Preview Tests", isOn: $previewTests)
+            }
+            Section(header: Text("States")) {
+                ForEach(Preview.states, id: \.name) { state in
+                    Button {
+                        viewModel.state = state.state
+                    } label: {
+                        HStack {
+                            Text(state.name)
+                            Spacer()
+                            Text(dumpLine(state.state))
+                                .lineLimit(1)
                         }
                     }
-                    if !views.isEmpty {
-                        Section(header: Text("Views")) {
-                            viewsList
+                    .buttonStyle(.plain)
+                }
+            }
+            if !Preview.tests.isEmpty {
+                Section(header: testHeader) {
+                    ForEach(Preview.tests, id: \.name) { test in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button {
+                                Task { @MainActor in
+                                    await runTest(test)
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    ZStack {
+                                        ProgressView().hidden()
+                                        switch getTestState(test) {
+                                            case .running:
+                                                ProgressView().progressViewStyle(CircularProgressViewStyle())
+                                            case .failed:
+                                                Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                                            case .success:
+                                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                            case .notRun:
+                                                Image(systemName: "circle")
+                                        }
+                                    }
+                                    .foregroundColor(getTestState(test).color)
+                                    Text(test.name)
+                                        .foregroundColor(getTestState(test).color)
+                                    Spacer()
+                                    Image(systemName: "play.circle")
+                                        .font(.title3)
+                                }
+                            }
+                            if let errors = getTestState(test).errors {
+                                Divider()
+                                ForEach(errors) { error in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(error.error)
+                                            .foregroundColor(.red)
+                                        if let detail = error.errorDetail {
+                                            Text(detail)
+                                            //                                                .font(.footnote)
+                                        }
+                                    }
+                                }
+                            }
                         }
+
                     }
+                    .disabled(runningTests)
                 }
-                .listStyle(.grouped)
-                .frame(width: 250)
-                Divider()
-            }
-            ZStack {
-                if let view = view {
-                    ViewPreviewer(content: view.view, name: view.componentName)
-                        .padding()
-                } else {
-                    emptyView
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if let component = component {
-                HStack(spacing: 0) {
-                    Divider()
-                    ComponentInfoView(component: component, state: $state)
-                }
-                .animation(.default)
-                .transition(.move(edge: .trailing))
             }
         }
-        //.edgesIgnoringSafeArea(.all)
-        .navigationViewStyle(StackNavigationViewStyle())
-        .previewDevice(.iPadLargest)
     }
 
-    var componentsList: some View {
-        ForEach(components.sorted { $0.componentName < $1.componentName }) { component in
-            Button(action: { select(component) }) {
-                VStack(alignment: .leading) {
-                    Text(component.componentName)
-                        .bold()
-                    Text(component.viewName)
-                }
-//                viewItem(ViewItem(component.view, componentName: component.componentName), states: component.states)
+    var testHeader: some View {
+        HStack {
+            Text("Tests")
+            Spacer()
+            Button(action: runAllTests) {
+                Text("Run all")
             }
             .buttonStyle(.plain)
-//            .listRowBackground(self.view?.name == component.name ? Color.neutral90 : Color.systemBackground)
         }
-    }
-
-    var viewsList: some View {
-        ForEach(views.sorted { $0.componentName < $1.componentName }) { view in
-            Button(action: { select(view) }) {
-                viewItem(view)
-            }
-            .buttonStyle(.plain)
-//            .listRowBackground(self.view?.name == view.name ? Color.neutral90 : Color.systemBackground)
-        }
-    }
-
-    func viewItem(_ view: ViewItem, states: [String] = []) -> some View {
-        HStack(spacing: 12) {
-            view
-                .view
-                .allowsHitTesting(false)
-                .frame(width: iconWidth, height: iconHeight)
-                .scaleEffect(iconScale)
-                .frame(width: iconWidth*iconScale, height: iconHeight*iconScale)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 5))
-                .shadow(radius: 2)
-            VStack(alignment: .leading) {
-                Spacer()
-                Text(view.componentName.replacingOccurrences(of: "View", with: ""))
-                    .font(.subheadline)
-                    .bold()
-//                    .color(self.view?.name == view.name ? .white : .neutral90)
-                Spacer()
-                Spacer()
-            }
-            Spacer()
-        }
-        .interactiveBackground()
-    }
-
-    var emptyView: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "list.bullet.below.rectangle")
-                .font(.system(size: 80, weight: .thin))
-            Text("Select a view")
-                .font(.title)
-            Spacer()
-            Spacer()
-        }
-        .foregroundColor(.gray)
     }
 }
 
-public struct ViewItem: Identifiable {
-    public let id = UUID()
-    public let componentName: String
-    public let view: AnyView
-
-    public init<V: View>(_ view: V, componentName: String? = nil) {
-        self.componentName = componentName ?? String(describing: V.self)
-        self.view = view.eraseToAnyView()
-    }
-}
-
-extension ComponentPreview {
-
-    public static func componentPreview() -> some View {
-        ComponentPreviewView(component: componentInfo)
-    }
-}
-
-struct ComponentPreview_Previews: PreviewProvider {
-
+struct ComponentPreviewView_Previews: PreviewProvider {
     static var previews: some View {
-        ExamplePreview.componentPreview()
+        ComponentPreviewView<ExamplePreview>()
     }
 }
-
-#endif

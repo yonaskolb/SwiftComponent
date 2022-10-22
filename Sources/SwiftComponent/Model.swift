@@ -36,7 +36,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
     }
 
     var parent: ComponentPath? {
-        if !path.isEmpty {
+        if path.count > 1 {
             return ComponentPath(path.dropLast())
         } else {
             return nil

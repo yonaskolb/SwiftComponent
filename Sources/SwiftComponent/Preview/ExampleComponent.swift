@@ -54,9 +54,9 @@ struct ExampleView: ComponentView {
     @ObservedObject var model: ViewModel<ExampleComponent>
 
     var view: some View {
-        ZStack {
-            Color.gray
+        VStack {
             Text(model.name)
+            ProgressView().opacity(model.loaded ? 0 : 1)
         }
     }
 }
@@ -69,6 +69,22 @@ struct ExamplePreview: PreviewProvider, ComponentPreview {
         ComponentState {
             .init(name: "Main")
         }
+        ComponentState("Empty") {
+            .init(name: "")
+        }
+    }
+
+    static var tests: [ComponentTest] {
+        ComponentTest("Sets name", .init(name: "Main"), steps: [
+            .action(.tap(UUID())),
+            .setBinding(\.name, "test"),
+//            .validateState { state in
+//                state.name == "test2"
+//            },
+            .expectState { state in
+                state.name = "test2"
+            }
+        ])
     }
 }
 

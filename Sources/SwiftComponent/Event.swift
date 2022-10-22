@@ -7,6 +7,7 @@
 
 import Foundation
 import CustomDump
+import SwiftUI
 
 public var viewModelEvents: [AnyEvent] = []
 
@@ -43,6 +44,15 @@ public struct AnyEvent: Identifiable {
         case action(Any, [AnyMutation])
         case output(Any)
         case viewTask([AnyMutation])
+
+        var type: EventSimpleType {
+            switch self {
+                case .action: return .action
+                case .binding: return .binding
+                case .output: return .output
+                case .viewTask: return .viewTask
+            }
+        }
     }
 
     func asComponentEvent<C: Component>() -> Event<C>? {
@@ -77,6 +87,50 @@ extension Event.EventType {
     }
 }
 
+public enum EventSimpleType: String, CaseIterable {
+    case viewTask
+    case action
+    case binding
+    case output
+
+    static var set: Set<EventSimpleType> { Set(allCases) }
+
+    var title: String {
+        switch self {
+            case .action: return "Action"
+            case .binding: return "Binding"
+            case .output: return "Output"
+            case .viewTask: return "View Task"
+        }
+    }
+
+    var color: Color {
+        switch self {
+            case .action:
+                return .blue
+            case .binding:
+                return .green
+            case .output:
+                return .purple
+            case .viewTask:
+                return .orange
+        }
+    }
+
+    var emoji: String {
+        switch self {
+            case .action:
+                return "🔵"
+            case .binding:
+                return "🟢"
+            case .output:
+                return "🟣"
+            case .viewTask:
+                return "🟠"
+        }
+    }
+}
+
 extension Mutation {
 
     var anyMutation: AnyMutation {
@@ -105,12 +159,14 @@ public struct Event<C: Component>: Identifiable {
         case binding(Mutation<C.State>)
         case output(C.Output)
 
-        public var title: String {
+        public var title: String { type.title }
+
+        public var type: EventSimpleType {
             switch self {
-                case .action: return "Action"
-                case .binding: return "Binding"
-                case .output: return "Output"
-                case .viewTask: return "View Task"
+                case .action: return .action
+                case .binding: return .binding
+                case .output: return .output
+                case .viewTask: return .viewTask
             }
         }
 

@@ -17,9 +17,15 @@ struct ComponentDebugView<ComponentType: Component>: View {
     @State var showStateEditor = false
     @State var showStateOutput = false
     @State var showEvents = false
+    @State var eventTypes = EventSimpleType.set
+    @AppStorage("showMutations") var showMutations = false
+    @AppStorage("showBindings") var showBindings = true
+    @AppStorage("showChildEvents") var showChildEvents = true
 
     var events: [AnyEvent] {
-        componentEvents(for: viewModel.path, includeChildren: true)
+        componentEvents(for: viewModel.path, includeChildren: showChildEvents)
+            .filter { eventTypes.contains($0.type.type) }
+            .reversed()
     }
 
     var body: some View {
@@ -29,31 +35,58 @@ struct ComponentDebugView<ComponentType: Component>: View {
                     if let parent = viewModel.path.parent {
                         HStack {
                             Text("Parent")
+                                .bold()
                             Spacer()
                             Text(parent.string)
                                 .lineLimit(2)
                                 .truncationMode(.head)
                         }
                     }
-                    NavigationLink("State", isActive: $showStateEditor) {
-                        SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
-                    }
-//                    NavigationLink("State Output", isActive: $showStateOutput) {
-//                        ScrollView {
-//                            Text(viewModel.stateDump)
-//                                .frame(maxWidth: .infinity)
-//                                .padding()
-//                        }
-//                    }
-                    NavigationLink.init(destination: ComponentEventsView(viewModel: viewModel), isActive: $showEvents) {
+                    NavigationLink(destination: SwiftView(value: viewModel.binding(\.self), config: Config(editing: true)), isActive: $showStateEditor) {
                         HStack {
-                            Text("Events")
+                            Text("State")
+                                .bold()
                             Spacer()
-                            Text(events.count.formatted())
+                            Text(dumpLine(viewModel.state))
+                                .lineLimit(1)
                         }
                     }
                 }
+                Section(header: Text("Event filtering")) {
+                    Toggle("Show Children", isOn: $showChildEvents)
+                    Toggle("Show State Mutations", isOn: $showMutations)
+                        HStack {
+                            Text("Show Types")
+                            Spacer()
+                            ForEach(EventSimpleType.allCases, id: \.rawValue) { event in
+                                Button {
+                                    if eventTypes.contains(event) {
+                                        eventTypes.remove(event)
+                                    } else {
+                                        eventTypes.insert(event)
+                                    }
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Text(event.emoji)
+                                            .font(.system(size: 20))
+                                            .padding(2)
+                                    }
+                                    .opacity(eventTypes.contains(event) ? 1 : 0.2)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+                Section(header: eventsHeader) {
+                    ComponentEventList(
+                        viewModel: viewModel,
+                        events: events,
+                        showMutations: showMutations)
+                }
             }
+            .animation(.default, value: eventTypes)
+            .animation(.default, value: showMutations)
+            .animation(.default, value: showChildEvents)
             .navigationTitle(viewModel.componentName + " Component")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -66,6 +99,14 @@ struct ComponentDebugView<ComponentType: Component>: View {
         }
     }
 
+    var eventsHeader: some View {
+        HStack {
+            Text("Events")
+            Spacer()
+            Text(events.count.formatted())
+        }
+    }
+
     var componentHeader: some View {
         Text(viewModel.componentName)
             .bold()
@@ -75,82 +116,46 @@ struct ComponentDebugView<ComponentType: Component>: View {
     }
 }
 
-struct ComponentEventsView<ComponentType: Component>: View {
+struct ComponentEventList<ComponentType: Component>: View {
 
     let viewModel: ViewModel<ComponentType>
-
-    @AppStorage("showMutations") var showMutations = false
-    @AppStorage("showBindings") var showBindings = true
-    @AppStorage("showChildEvents") var showChildEvents = true
+    let events: [AnyEvent]
+    let showMutations: Bool
     @State var showEvent: UUID?
     @State var showMutation: UUID?
 
-    var events: [AnyEvent] {
-        componentEvents(for: viewModel.path, includeChildren: showChildEvents)
-            .filter { event in
-                if showBindings {
-                    return true
-                }
-                switch event.type {
-                    case .binding: return false
-                    default: return true
-                }
-            }
-            .reversed()
-    }
-
     var body: some View {
-        Form {
-            Section {
-                Toggle("Show State Mutations", isOn: $showMutations.animation())
-                Toggle("Show Bindings", isOn: $showBindings.animation())
-                Toggle("Show Children", isOn: $showChildEvents.animation())
+        ForEach(events) { event in
+            if showMutations, let mutations = event.type.mutations, !mutations.isEmpty {
+                mutationsList(mutations.reversed())
             }
-            Section(header: eventsHeader) {
-                ForEach(events) { event in
-                    if showMutations, let mutations = event.type.mutations, !mutations.isEmpty {
-                        mutationsList(mutations.reversed())
-                    }
-                    NavigationLink(tag: event.id, selection: $showEvent, destination: {
-                        EventView(viewModel: viewModel, event: event)
-                    }) {
+            NavigationLink(tag: event.id, selection: $showEvent, destination: {
+                EventView(viewModel: viewModel, event: event)
+            }) {
+                HStack {
+                    Text("\(event.type.emoji)")
+                        .font(.footnote)
+                        .padding(.top, 8)
+                    //                                Circle()
+                    //                                    .fill(event.type.color)
+                    //                                    .frame(width: 12)
+                    //                                    .padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(event.componentPath.string)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                         HStack {
-                            Text("\(event.type.emoji)")
-                                .font(.footnote)
-                                .padding(.top, 8)
-                            //                                Circle()
-                            //                                    .fill(event.type.color)
-                            //                                    .frame(width: 12)
-                            //                                    .padding(.top, 8)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(event.componentPath.string)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                HStack {
-                                    Text(event.type.title)
-                                        .bold()
-                                    +
-                                    Text(event.type.details != "" ? ".\(event.type.details)" : "")
-                                }
-                                .font(.footnote)
-                            }
+                            Text(event.type.title)
+                                .bold()
+                            +
+                            Text(event.type.details != "" ? ".\(event.type.details)" : "")
                         }
+                        .font(.footnote)
                     }
                 }
-                .animation(.default)
             }
-        }
-        .navigationTitle("Events")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    var eventsHeader: some View {
-        HStack {
-            Text("Events")
-            Spacer()
-            Text(events.count.formatted())
         }
     }
 
@@ -160,12 +165,12 @@ struct ComponentEventsView<ComponentType: Component>: View {
                 SwiftView(value: .constant(mutation.value), config: Config(editing: false))
             }) {
                 HStack {
-                    Circle().fill(Color.yellow)
-                        .frame(width: 12)
+                    Text("🟡")
+                        .font(.footnote)
                     Text("State").bold() + Text(".\(mutation.property)")
                     //                    Text(mutation.property + ": ") + Text(mutation.valueType).bold()
                     Spacer()
-                    Text(dump(mutation.value))
+                    Text(dumpLine(mutation.value))
                         .lineLimit(1)
                 }
                 .font(.footnote)
@@ -206,7 +211,7 @@ struct EventView<ComponentType: Component>: View {
                     SwiftView(value: .constant(event.type.value), config: Config(editing: false))
                 } label: {
                     line(event.type.valueTitle) {
-                        Text(dump(event.type.value))
+                        Text(dumpLine(event.type.value))
                             .lineLimit(1)
                     }
                 }
@@ -228,7 +233,7 @@ struct EventView<ComponentType: Component>: View {
                             HStack {
                                 Text(mutation.property + ": ") + Text(mutation.valueType).bold()
                                 Spacer()
-                                Text(dump(mutation.value))
+                                Text(dumpLine(mutation.value))
                                     .lineLimit(1)
                             }
                         }
@@ -251,49 +256,11 @@ struct EventView<ComponentType: Component>: View {
     }
 }
 
-private func dump(_ value: Any) -> String {
-    var string = ""
-    customDump(value, to: &string)
-    return string
-}
-
 extension AnyEvent.EventType {
 
-    public var title: String {
-        switch self {
-            case .action: return "Action"
-            case .binding: return "Binding"
-            case .output: return "Output"
-            case .viewTask: return "View Task"
-        }
-    }
-
-    var color: Color {
-        switch self {
-            case .action:
-                return .blue
-            case .binding:
-                return .green
-            case .output:
-                return .purple
-            case .viewTask:
-                return .orange
-        }
-    }
-
-    var emoji: String {
-        switch self {
-            case .action:
-                return "🔵"
-            case .binding:
-                return "🟢"
-            case .output:
-                return "🟣"
-            case .viewTask:
-                return "🟠"
-        }
-    }
-
+    var title: String { type.title }
+    var color: Color { type.color }
+    var emoji: String { type.emoji }
     var detailsTitle: String {
         switch self {
             case .action:
@@ -390,11 +357,11 @@ struct ComponentDebugView_Previews: PreviewProvider {
             sourceLocation: .capture()
         )),
 
-         AnyEvent(Event<ExampleComponent>(
+        AnyEvent(Event<ExampleComponent>(
             .output(.finished),
             componentPath: .init(ExampleComponent.self),
             sourceLocation: .capture()
-         )),
+        )),
     ]
     static func createTestEvents() {
         viewModelEvents = events

@@ -190,12 +190,16 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
         }
     }
 
-    static var tests: [Test<ItemComponent>] {
-        return [
-            Test("Happy", .init(name: "john", data: .empty), steps: [
-                .action(.updateDetail),
-                .setBinding(\.text, "yeah")
-            ])
-        ]
+    static var tests: [ComponentTest] {
+        ComponentTest("Happy", .init(name: "john", data: .empty), steps: [
+            .action(.updateDetail),
+            .setBinding(\.text, "yeah"),
+            .validateState { state in
+                state.text == "yeah"
+            },
+            .expectState { state in
+                state.name = "yeah"
+            }
+        ])
     }
 }
