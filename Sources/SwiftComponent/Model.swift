@@ -191,6 +191,11 @@ public class ViewModel<C: Component>: ObservableObject {
                 self.sendEvent(.binding(mutation), sourceLocation: .capture(file: file, fileID: fileID, line: line))
                 self.state[keyPath: keyPath] = $0
                 print(diff(oldState, self.state) ?? "  No state changes")
+
+                Task { @MainActor in
+                    await self.component.handleBinding(keyPath: keyPath, model: self.componentModel)
+                }
+
                 if let onSet = onSet, let action = onSet($0) {
                     self.send(action, file: file, fileID: fileID, line: line)
                 }

@@ -7,7 +7,7 @@ public protocol Component<State, Action> {
     associatedtype Route = Never
     associatedtype Output = Never
     @MainActor func task(model: Model) async
-    @MainActor func handleBinding(keyPath: PartialKeyPath<State>) async
+    @MainActor func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(action: Action, model: Model) async
     init()
 
@@ -33,6 +33,6 @@ extension Component {
 //}
 
 public extension Component {
-    func handleBinding(keyPath: PartialKeyPath<State>) async { }
+    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async { }
     func task(model: Model) async { model.viewModel.handledTask = false }
 }

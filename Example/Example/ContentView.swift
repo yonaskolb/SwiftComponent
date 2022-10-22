@@ -60,7 +60,7 @@ struct ItemComponent: Component {
         }
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>) {
+    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
         switch keyPath {
             case \.name:
                 print("changed name")
@@ -133,7 +133,7 @@ struct ItemDetailComponent: Component {
 
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>) async {
+    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
 
     }
 
