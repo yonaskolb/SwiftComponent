@@ -21,6 +21,9 @@ extension Component {
         if name.hasSuffix("Component") {
             name = String(name.dropLast(9))
         }
+        if name.hasSuffix("Feature") {
+            name = String(name.dropLast(7))
+        }
         return name
     }
 }
