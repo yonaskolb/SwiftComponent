@@ -14,6 +14,8 @@ public protocol ComponentPreview<ComponentType, ComponentViewType>: PreviewProvi
     associatedtype ComponentViewType: ComponentView where ComponentType == ComponentViewType.C
     typealias ComponentState = ComponentPreviewState<ComponentType.State>
     typealias ComponentTest = Test<ComponentType>
+    typealias Step = ComponentTest.Step
+    typealias State = ComponentType.State
 
     @StateBuilder static var states: [ComponentState] { get }
     @TestBuilder static var tests: [ComponentTest] { get }

@@ -82,16 +82,13 @@ struct ExamplePreview: PreviewProvider, ComponentPreview {
     }
 
     static var tests: [ComponentTest] {
-        ComponentTest("Sets name", .init(name: "Main"), steps: [
-            .sendAction(.tap(2)),
-            .setBinding(\.name, "test"),
-//            .validateState { state in
-//                state.name == "test2"
-//            },
-            .expectState { state in
+        ComponentTest("Sets name", .init(name: "Main")) {
+            Step.sendAction(.tap(2))
+            Step.setBinding(\.name, "test")
+            Step.expectState { state in
                 state.name = "test2"
             }
-        ])
+        }
     }
 }
 

@@ -69,9 +69,13 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
 
     func runAllTests() {
         Task { @MainActor in
-            for test in Preview.tests {
-                await runTest(test)
-            }
+            await runAllTests()
+        }
+    }
+
+    func runAllTests() async {
+        for test in Preview.tests {
+            await runTest(test)
         }
     }
 
@@ -110,9 +114,9 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
             }
             .navigationViewStyle(.stack)
         }
-        .task {
+        .task { @MainActor in
             if autoRunTests {
-                runAllTests()
+                await runAllTests()
             }
         }
         .navigationViewStyle(.stack)

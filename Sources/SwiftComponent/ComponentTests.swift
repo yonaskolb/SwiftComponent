@@ -16,6 +16,12 @@ public struct Test<C: Component> {
         self.steps = steps
     }
 
+    public init(_ name: String, _ initialState: C.State, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
+        self.name = name
+        self.initialState = initialState
+        self.steps = steps()
+    }
+
     var name: String
     var initialState: C.State
     var steps: [Step]
@@ -63,11 +69,19 @@ public struct Test<C: Component> {
     }
 }
 
+
 @resultBuilder
 public struct TestBuilder {
     public static func buildBlock<ComponentType: Component>() -> [Test<ComponentType>] { [] }
     public static func buildBlock<ComponentType: Component>(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { tests }
     public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
+}
+
+@resultBuilder
+public struct TestStepBuilder {
+    public static func buildBlock<ComponentType: Component>() -> [Test<ComponentType>.Step] { [] }
+    public static func buildBlock<ComponentType: Component>(_ tests: Test<ComponentType>.Step...) -> [Test<ComponentType>.Step] { tests }
+    public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>.Step]) -> [Test<ComponentType>.Step] { tests }
 }
 
 struct TestError: CustomStringConvertible, Identifiable, Hashable {

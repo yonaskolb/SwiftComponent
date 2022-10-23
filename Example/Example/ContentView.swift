@@ -171,8 +171,8 @@ struct ItemDetailView: ComponentView {
 //struct ItemPreviewSimple: PreviewProvider {
 //
 //    static var previews: some View {
-//        ItemView(model: .init(state: .init(name: "start", data: .empty)))
-////        ItemView(model: .init(state: .constant(.init(name: "start", data: .empty))))
+//        ItemView(model: State(state: .init(name: "start", data: .empty)))
+////        ItemView(model: State(state: .constant(.init(name: "start", data: .empty))))
 //    }
 //}
 
@@ -182,24 +182,24 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
 
     static var states: [ComponentState] {
         ComponentState {
-            .init(name: "start", data: .empty)
+            State(name: "start", data: .empty)
         }
 
         ComponentState("Loaded") {
-            .init(name: "Loaded", data: .content(2))
+            State(name: "Loaded", data: .content(2))
         }
     }
 
     static var tests: [ComponentTest] {
-        ComponentTest("Happy", .init(name: "john", data: .empty), steps: [
-            .sendAction(.updateDetail),
-            .setBinding(\.text, "yeah"),
-            .validateState("text is set") { state in
+        ComponentTest("Happy New style", State(name: "john", data: .empty)) {
+            Step.sendAction(.updateDetail)
+            Step.setBinding(\.text, "yeah")
+            Step.validateState("text is set") { state in
                 state.text == "yeah"
-            },
-            .expectState { state in
+            }
+            Step.expectState { state in
                 state.name = "yeah"
             }
-        ])
+        }
     }
 }
