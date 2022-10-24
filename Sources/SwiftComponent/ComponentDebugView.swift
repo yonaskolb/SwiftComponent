@@ -41,15 +41,7 @@ struct ComponentDebugView<ComponentType: Component>: View {
 
                 Section(header: Text("State")) {
                     SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
-//                    NavigationLink(destination: SwiftView(value: viewModel.binding(\.self), config: Config(editing: true)), isActive: $showStateEditor) {
-//                        HStack {
-//                            Text("State")
-//                                .bold()
-//                            Spacer()
-//                            Text(dumpLine(viewModel.state))
-//                                .lineLimit(1)
-//                        }
-//                    }
+                        .showRootNavTitle(false)
                 }
                 Section(header: eventsHeader) {
                     Toggle("Show Children", isOn: $showChildEvents)

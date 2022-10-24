@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import SwiftGUI
+import SwiftPreview
 
 public protocol ComponentView: View {
 
@@ -57,25 +58,6 @@ struct ComponentViewContainer<C: Component, Content: View>: View {
                 ComponentDebugView(viewModel: model)
             }
         }
-        
-        //        .background {
-        //            NavigationLink(isActive: Binding(get: { model.route?.mode == .push }, set: { present in
-        //                if !present {
-        //                    model.route = nil
-        //                }
-        //            })) {
-        //                routeView()
-        //            } label: {
-        //                EmptyView()
-        //            }
-        //        }
-        //        .sheet(isPresented: Binding(get: { model.route?.mode == .sheet }, set: { present in
-        //            if !present {
-        //                model.route = nil
-        //            }
-        //        })) {
-        //            routeView()
-        //        }
     }
 }
 

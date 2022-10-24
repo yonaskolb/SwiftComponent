@@ -14,7 +14,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
-        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.43.0"),
+        .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.44.0"),
     ],
     targets: [
         .target(

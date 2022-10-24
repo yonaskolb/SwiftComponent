@@ -10,6 +10,8 @@ import SwiftComponent
 
 struct ItemComponent: Component {
 
+    @Dependency(\.continuousClock) var clock
+
     struct State {
         var name: String
         var text: String = "text"
@@ -32,7 +34,7 @@ struct ItemComponent: Component {
 
     func task(model: Model) async {
         await model.loadResource(\.data) {
-            try await Task.sleep(nanoseconds: 1_000_000_000 * 1)
+            try await clock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
         }
     }
@@ -40,7 +42,7 @@ struct ItemComponent: Component {
     func handle(action: Action, model: Model) async {
         switch action {
             case .calculate:
-                try? await Task.sleep(nanoseconds: 1_000_000_000 * 1)
+                try? await clock.sleep(for: .seconds(1))
                 model.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
                 model.present(.detail, as: .sheet, inNav: true, using: ItemDetailComponent.self) {

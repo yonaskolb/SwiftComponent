@@ -82,7 +82,6 @@ public struct Mutation<State>: Identifiable {
         self.keyPath = keyPath
         self.value = value
         self.property = keyPath.propertyName ?? "self"
-//        self.property = keyPath.fieldName ?? "self"
     }
 }
 
@@ -99,12 +98,12 @@ public class ViewModel<C: Component>: ObservableObject {
             ownedState ?? stateBinding!.wrappedValue
         }
         set {
+            guard !areMaybeEqual(state, newValue) else { return }
             if let stateBinding = stateBinding {
                 stateBinding.wrappedValue = newValue
             } else {
                 ownedState = newValue
             }
-
             objectWillChange.send()
         }
     }
@@ -120,11 +119,7 @@ public class ViewModel<C: Component>: ObservableObject {
     var mutationAnimation: Animation?
     var sendEvents = true
 
-    var stateDump: String {
-        var string = ""
-        customDump(state, to: &string)
-        return string
-    }
+    var stateDump: String { dumpToString(state) }
 
     @Published public var events: [Event<C>] = []
     var listeners: [(Event<C>) -> Void] = []
@@ -183,18 +178,25 @@ public class ViewModel<C: Component>: ObservableObject {
         }
     }
 
+    @MainActor
     func handleAction(_ action: C.Action, sourceLocation: SourceLocation) async {
         mutations = []
         await component.handle(action: action, model: componentModel)
         sendEvent(.action(action, mutations), sourceLocation: sourceLocation)
     }
 
-    func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, sourceLocation: SourceLocation) {
+    func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, sourceLocation: SourceLocation, animation: Animation? = nil) {
         // TODO: note that sourceLocation from dynamicMember keyPath is not correct
         let oldState = state
         let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
         self.mutations.append(mutation)
-        self.state[keyPath: keyPath] = value
+        if let animation {
+            withAnimation(animation) {
+                self.state[keyPath: keyPath] = value
+            }
+        } else {
+            self.state[keyPath: keyPath] = value
+        }
         //print(diff(oldState, self.state) ?? "  No state changes")
     }
 
@@ -202,23 +204,12 @@ public class ViewModel<C: Component>: ObservableObject {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
-                let oldState = self.state
-                var mutatedState = self.state
-                mutatedState[keyPath: keyPath] = value
 
                 // don't continue if change doesn't lead to state change
-                if value is any Equatable {
-                    func equals<A: Equatable>(_ lhs: A, _ rhs: Any) -> Bool {
-                        lhs == (rhs as? A)
-                    }
+                guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
 
-                    if let oldValue = oldState[keyPath: keyPath] as? any Equatable {
-                        if equals(oldValue, mutatedState[keyPath: keyPath]) {
-                            return
-                        }
-                    }
-                }
-                self.state = mutatedState
+//                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
+                self.state[keyPath: keyPath] = value
 
                 let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
                 self.sendEvent(.binding(mutation), sourceLocation: .capture(file: file, fileID: fileID, line: line))
@@ -261,10 +252,11 @@ public class ViewModel<C: Component>: ObservableObject {
     }
 
     @MainActor
-    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async {
+    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async -> R {
         let start = Date()
         let value = await task()
         sendEvent(.task(TaskResult(name: name, result: .success(value), start: start, end: Date())), sourceLocation: sourceLocation)
+        return value
     }
 
     @MainActor
@@ -295,8 +287,8 @@ public class ComponentModel<C: Component> {
 
     var state: C.State { viewModel.state }
 
-    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        viewModel.mutate(keyPath, value: value, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
+        viewModel.mutate(keyPath, value: value, sourceLocation: .capture(file: file, fileID: fileID, line: line), animation: animation)
     }
 
     public func present<PC: Component>(_ route: C.Route, as mode: PresentationMode, inNav: Bool, using component: PC.Type, create: () -> PC.State) {
@@ -328,16 +320,16 @@ public class ComponentModel<C: Component> {
 extension ComponentModel {
 
     @MainActor
-    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, load: @MainActor () async throws -> ResourceState) async {
-        mutate(keyPath.appending(path: \.isLoading), true)
-        let name = "get.\(keyPath.propertyName?.capitalized ?? "Resource")"
+    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, animation: Animation? = nil, load: @MainActor () async throws -> ResourceState) async {
+        mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
+        let name = "get \(keyPath.propertyName ?? "resource")"
         await task(name) {
             let content = try await load()
-            mutate(keyPath.appending(path: \.content), content)
+            mutate(keyPath.appending(path: \.content), content, animation: animation)
         } catch: { error in
-            mutate(keyPath.appending(path: \.error), error)
+            mutate(keyPath.appending(path: \.error), error, animation: animation)
         }
-        mutate(keyPath.appending(path: \.isLoading), false)
+        mutate(keyPath.appending(path: \.isLoading), false, animation: animation)
     }
 }
 

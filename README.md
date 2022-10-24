@@ -1,6 +1,11 @@
 # SwiftComponent
 
-An opinionated architecture that makes feature development easy.
+An opinionated SwiftUI architecture that makes feature development fun and easy.
+
+- Simple and easy to reason about data flow
+- Upgraded Xcode previews with state editing, view modes, tests and more
+- In-App debug menu for every component with state editing and events
+- Write tests next to your view and have them run on every change in the Xcode preview
 
 ### Parts
 - Component
