@@ -32,9 +32,9 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     @State var testState: [String: TestState] = [:]
     @State var runningTests = false
     @State var render = UUID()
-    @AppStorage("autoRunTests") var autoRunTests = true
+    @AppStorage("autoRunTests") var autoRunTests = false
     @AppStorage("previewTests") var previewTests = true
-    @AppStorage("showTestEvents") var showTestEvents = true
+    @AppStorage("showTestEvents") var showTestEvents = false
 
     var events: [AnyEvent] {
         componentEvents(for: viewModel.path, includeChildren: true)
@@ -121,10 +121,10 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .frame(minHeight: 0)
             }
-            Divider()
-            NavigationView {
-                SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
-            }
+//            Divider()
+//            NavigationView {
+//                SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+//            }
             .navigationViewStyle(.stack)
         }
         .task {
@@ -137,9 +137,12 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
 
     var form: some View {
         Form {
-            settingsSection
+            if !Preview.states.isEmpty {
+                statesSection
+            }
             stateSection
             if !Preview.tests.isEmpty {
+                testSettingsSection
                 testSection
             }
             eventsSection
@@ -148,15 +151,15 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         .animation(.default, value: testState)
     }
 
-    var settingsSection: some View {
-        Section(header: Text("Settings")) {
+    var testSettingsSection: some View {
+        Section(header: Text("Test Settings")) {
             Toggle("Auto Run Tests", isOn: $autoRunTests)
             Toggle("Preview Tests", isOn: $previewTests)
             Toggle("Show Test Events", isOn: $showTestEvents)
         }
     }
 
-    var stateSection: some View {
+    var statesSection: some View {
         Section(header: Text("States")) {
             ForEach(Preview.states, id: \.name) { state in
                 Button {
@@ -167,6 +170,13 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                     Text(state.name)
                 }
             }
+        }
+    }
+
+    var stateSection: some View {
+        Section(header: Text("State")) {
+            SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+                .showRootNavTitle(false)
         }
     }
 

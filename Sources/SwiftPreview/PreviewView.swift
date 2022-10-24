@@ -25,20 +25,22 @@ public struct ViewPreviewer<Content: View>: View {
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
-    let name: String
+    let name: String?
 
     public init(content: Content, name: String? = nil) {
         self.content = content
-        self.name = name ?? String(describing: type(of: content))
+        self.name = name
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                Text(name)
-                    .bold()
-                    .font(.title2)
-                    .padding(.bottom)
+                if let name {
+                    Text(name)
+                        .bold()
+                        .font(.title2)
+                        .padding(.bottom)
+                }
                 content
                     .environment(\.sizeCategory, sizeCategory)
                     .embedIn(device: device)
@@ -220,7 +222,7 @@ struct ViewPreviewer_Previews: PreviewProvider {
                 }
             }
         }
-        .preview(name: "My Cool View")
+        .preview()
         .previewDevice(.largestDevice)
     }
 }

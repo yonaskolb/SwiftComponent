@@ -18,8 +18,12 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
     public var suffix: String?
     public let path: [any Component.Type]
 
+    var pathString: String {
+        path.map { $0.name }.joined(separator: "/")
+    }
+
     public var string: String {
-        var string = path.map { $0.name }.joined(separator: "/")
+        var string = pathString
         if let suffix = suffix {
             string += "\(suffix)"
         }
@@ -37,7 +41,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
     }
 
     func contains(_ path: ComponentPath) -> Bool {
-        self.string.hasPrefix(path.string)
+        self.pathString.hasPrefix(path.pathString)
     }
 
     func appending(_ component: any Component.Type) -> ComponentPath {
