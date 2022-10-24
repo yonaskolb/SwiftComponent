@@ -31,28 +31,27 @@ struct ComponentDebugView<ComponentType: Component>: View {
     var body: some View {
         NavigationView {
             Form {
-                Section {
-                    if let parent = viewModel.path.parent {
-                        HStack {
-                            Text("Parent")
-                                .bold()
-                            Spacer()
-                            Text(parent.string)
-                                .lineLimit(2)
-                                .truncationMode(.head)
-                        }
-                    }
-                    NavigationLink(destination: SwiftView(value: viewModel.binding(\.self), config: Config(editing: true)), isActive: $showStateEditor) {
-                        HStack {
-                            Text("State")
-                                .bold()
-                            Spacer()
-                            Text(dumpLine(viewModel.state))
-                                .lineLimit(1)
-                        }
+                if let parent = viewModel.path.parent {
+                    Section(header: Text("Parent")) {
+                        Text(parent.string)
+                            .lineLimit(2)
+                            .truncationMode(.head)
                     }
                 }
-                Section(header: Text("Event filtering")) {
+
+                Section(header: Text("State")) {
+                    SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+//                    NavigationLink(destination: SwiftView(value: viewModel.binding(\.self), config: Config(editing: true)), isActive: $showStateEditor) {
+//                        HStack {
+//                            Text("State")
+//                                .bold()
+//                            Spacer()
+//                            Text(dumpLine(viewModel.state))
+//                                .lineLimit(1)
+//                        }
+//                    }
+                }
+                Section(header: eventsHeader) {
                     Toggle("Show Children", isOn: $showChildEvents)
                     Toggle("Show State Mutations", isOn: $showMutations)
                         HStack {
@@ -77,7 +76,7 @@ struct ComponentDebugView<ComponentType: Component>: View {
                     }
                     .buttonStyle(.plain)
                 }
-                Section(header: eventsHeader) {
+                Section {
                     ComponentEventList(
                         viewModel: viewModel,
                         events: events,
@@ -125,48 +124,9 @@ extension ComponentView {
 
 struct ComponentDebugView_Previews: PreviewProvider {
 
-    static let events: [AnyEvent] = [
-        AnyEvent(Event<ExampleComponent>(
-            .viewTask([
-                .init(keyPath: \.name, value: "new1"),
-                .init(keyPath: \.name, value: "new2"),
-            ]),
-            componentPath: .init([ExampleComponent.self]),
-            sourceLocation: .capture()
-        )),
-
-        AnyEvent(Event<ExampleComponent>(
-            .action(.tap(2), [
-                .init(keyPath: \.name, value: "new1"),
-                .init(keyPath: \.name, value: "new2"),
-            ]),
-            componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
-            sourceLocation: .capture()
-        )),
-
-        AnyEvent(Event<ExampleComponent>(
-            .binding(Mutation(keyPath: \.name, value: "Hello")),
-            componentPath: .init(ExampleComponent.self),
-            sourceLocation: .capture()
-        )),
-
-        AnyEvent(Event<ExampleComponent>(
-            .output(.finished),
-            componentPath: .init(ExampleComponent.self),
-            sourceLocation: .capture()
-        )),
-    ]
-    static func createTestEvents() {
-        viewModelEvents = events
-    }
     static var previews: some View {
-        Self.createTestEvents()
-        return Group {
-            ExampleView(model: .init(state: .init(name: "Hello")))
-                .debugView()
-            NavigationView {
-                EventView(viewModel: ViewModel<ExampleComponent>.init(state: .init(name: "Hello")), event: events[0])
-            }
-        }
+        viewModelEvents = previewEvents
+        return ExampleView(model: .init(state: .init(name: "Hello")))
+            .debugView()
     }
 }

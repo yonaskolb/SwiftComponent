@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct SourceLocation {
+public struct SourceLocation: Hashable {
     public let file: String
     public let fileID: String
     public let line: UInt

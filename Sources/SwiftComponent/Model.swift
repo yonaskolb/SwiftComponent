@@ -15,8 +15,17 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
         lhs.string == rhs.string
     }
 
+    public var suffix: String?
     public let path: [any Component.Type]
-    public var string: String { path.map { $0.name }.joined(separator: "/") }
+
+    public var string: String {
+        var string = path.map { $0.name }.joined(separator: "/")
+        if let suffix = suffix {
+            string += "\(suffix)"
+        }
+        return string
+    }
+
     public var description: String { string }
 
     init(_ component: any Component.Type) {
@@ -104,6 +113,8 @@ public class ViewModel<C: Component>: ObservableObject {
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation<C.State>] = []
     var handledTask = false
+    var mutationAnimation: Animation?
+    var sendEvents = true
 
     var stateDump: String {
         var string = ""
@@ -146,6 +157,7 @@ public class ViewModel<C: Component>: ObservableObject {
     }
 
     fileprivate func sendEvent(_ eventType: Event<C>.EventType, sourceLocation: SourceLocation) {
+        guard sendEvents else { return }
         let event = Event<C>(eventType, componentPath: path, sourceLocation: sourceLocation)
         events.append(event)
         viewModelEvents.append(AnyEvent(event))
@@ -156,21 +168,21 @@ public class ViewModel<C: Component>: ObservableObject {
     }
 
     public func send(_ action: C.Action, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        if let animation = animation {
-            withAnimation(animation) {
-                handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
-            }
-        } else {
-            handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
+        mutationAnimation = animation
+        handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+        mutationAnimation = nil
     }
 
     func handleAction(_ action: C.Action, sourceLocation: SourceLocation) {
         Task { @MainActor in
-            mutations = []
-            await component.handle(action: action, model: componentModel)
-            sendEvent(.action(action, mutations), sourceLocation: sourceLocation)
+            await handleAction(action, sourceLocation: sourceLocation)
         }
+    }
+
+    func handleAction(_ action: C.Action, sourceLocation: SourceLocation) async {
+        mutations = []
+        await component.handle(action: action, model: componentModel)
+        sendEvent(.action(action, mutations), sourceLocation: sourceLocation)
     }
 
     func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, sourceLocation: SourceLocation) {

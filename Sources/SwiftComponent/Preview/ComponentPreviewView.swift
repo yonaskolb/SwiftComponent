@@ -34,6 +34,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     @State var render = UUID()
     @AppStorage("autoRunTests") var autoRunTests = true
     @AppStorage("previewTests") var previewTests = true
+    @AppStorage("showTestEvents") var showTestEvents = true
 
     var events: [AnyEvent] {
         componentEvents(for: viewModel.path, includeChildren: true)
@@ -48,6 +49,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         case running
         case failed([TestError])
         case success
+        case pending
 
         var errors: [TestError]? {
             switch self {
@@ -64,6 +66,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                 case .running: return .gray
                 case .failed: return .red
                 case .success: return .green
+                case .pending: return .gray
             }
         }
     }
@@ -75,12 +78,13 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
 
     func runAllTests() {
         Task { @MainActor in
-            await runAllTests()
+            await runAllTestsOnMain()
         }
     }
 
     @MainActor
-    func runAllTests() async {
+    func runAllTestsOnMain() async {
+        Preview.tests.forEach { testState[$0.name] = .pending }
         for test in Preview.tests {
             await runTest(test)
         }
@@ -98,8 +102,9 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         } else {
             viewModel = ViewModel(state: test.initialState)
         }
-        let errors = await viewModel.runTest(test, delay: delay)
-
+        viewModel.path.suffix = " Test: \(test.name)"
+        let errors = await viewModel.runTest(test, delay: delay, sendEvents: showTestEvents)
+        viewModel.path.suffix = nil
         if errors.isEmpty {
             testState[test.name] = .success
         } else {
@@ -122,9 +127,9 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
             }
             .navigationViewStyle(.stack)
         }
-        .task { @MainActor in
+        .task {
             if autoRunTests {
-                await runAllTests()
+                runAllTests()
             }
         }
         .navigationViewStyle(.stack)
@@ -147,6 +152,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         Section(header: Text("Settings")) {
             Toggle("Auto Run Tests", isOn: $autoRunTests)
             Toggle("Preview Tests", isOn: $previewTests)
+            Toggle("Show Test Events", isOn: $showTestEvents)
         }
     }
 
@@ -185,9 +191,10 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                                         Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                                     case .notRun:
                                         Image(systemName: "circle")
+                                    case .pending:
+                                        Image(systemName: "play.circle").foregroundColor(.gray)
                                 }
                             }
-                            .animation(nil)
                             .foregroundColor(getTestState(test).color)
                             Text(test.name)
                             Spacer()
@@ -196,6 +203,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                                     .font(.title3)
                             }
                         }
+                        .animation(nil)
                     }
                     if let errors = getTestState(test).errors {
                         Divider()

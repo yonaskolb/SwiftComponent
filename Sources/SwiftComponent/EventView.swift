@@ -28,25 +28,24 @@ struct ComponentEventList<ComponentType: Component>: View {
                 HStack {
                     Text("\(event.type.emoji)")
                         .font(.footnote)
-                        .padding(.top, 8)
+                        .padding(.top, 12)
                     //                                Circle()
                     //                                    .fill(event.type.color)
                     //                                    .frame(width: 12)
                     //                                    .padding(.top, 8)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(event.componentPath.string)
-                            .font(.caption2)
+                            .font(.footnote)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        HStack {
-                            Text(event.type.title)
-                                .bold()
-                            +
-                            Text(event.type.details != "" ? ".\(event.type.details)" : "")
-                        }
-                        .font(.footnote)
+                        Text(event.type.title)
+                            .bold()
                     }
+                    .font(.footnote)
+                    Spacer()
+                    Text(event.type.details)
+                        .font(.footnote)
                 }
             }
         }
@@ -247,5 +246,57 @@ extension AnyEvent.EventType {
                     case .failure(let error): return error
                 }
         }
+    }
+}
+
+let previewEvents: [AnyEvent] = [
+    AnyEvent(Event<ExampleComponent>(
+        .viewTask([
+            .init(keyPath: \.name, value: "new1"),
+            .init(keyPath: \.name, value: "new2"),
+        ]),
+        componentPath: .init([ExampleComponent.self]),
+        sourceLocation: .capture()
+    )),
+
+    AnyEvent(Event<ExampleComponent>(
+        .action(.tap(2), [
+            .init(keyPath: \.name, value: "new1"),
+            .init(keyPath: \.name, value: "new2"),
+        ]),
+        componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
+        sourceLocation: .capture()
+    )),
+
+    AnyEvent(Event<ExampleComponent>(
+        .binding(Mutation(keyPath: \.name, value: "Hello")),
+        componentPath: .init(ExampleComponent.self),
+        sourceLocation: .capture()
+    )),
+
+    AnyEvent(Event<ExampleComponent>(
+        .task(TaskResult.init(name: "get item", result: .success(()), start: Date().addingTimeInterval(-2.3), end: Date())),
+        componentPath: .init(ExampleComponent.self),
+        sourceLocation: .capture()
+    )),
+
+    AnyEvent(Event<ExampleComponent>(
+        .output(.finished),
+        componentPath: .init(ExampleComponent.self),
+        sourceLocation: .capture()
+    )),
+]
+
+struct EventView_Previews: PreviewProvider {
+    static var previews: some View {
+        viewModelEvents = previewEvents
+        return Group {
+            NavigationView {
+                EventView(viewModel: ViewModel<ExampleComponent>.init(state: .init(name: "Hello")), event: previewEvents[0])
+            }
+            ExampleView(model: .init(state: .init(name: "Hello")))
+                .debugView()
+        }
+
     }
 }

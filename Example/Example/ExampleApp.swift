@@ -12,7 +12,8 @@ struct ExampleApp: App {
     @State var state = ItemComponent.State(name: "Bob", data: .empty)
     var body: some Scene {
         WindowGroup {
-            ItemView(model: .init(state: $state))
+//            ItemView(model: .init(state: $state))
+            ItemPreview.componentPreview
         }
     }
 }
