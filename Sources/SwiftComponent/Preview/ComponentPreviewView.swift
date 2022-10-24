@@ -31,6 +31,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     @ObservedObject var viewModel: ViewModel<Preview.ComponentType>
     @State var testState: [String: TestState] = [:]
     @State var runningTests = false
+    @State var render = UUID()
     @AppStorage("autoRunTests") var autoRunTests = true
     @AppStorage("previewTests") var previewTests = true
 
@@ -67,18 +68,25 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         }
     }
 
+    func clearEvents() {
+        viewModelEvents = []
+        render = UUID()
+    }
+
     func runAllTests() {
         Task { @MainActor in
             await runAllTests()
         }
     }
 
+    @MainActor
     func runAllTests() async {
         for test in Preview.tests {
             await runTest(test)
         }
     }
 
+    @MainActor
     func runTest(_ test: Test<Preview.ComponentType>) async {
         runningTests = true
         testState[test.name] = .running
@@ -222,8 +230,20 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     }
 
     var eventsSection: some View {
-        Section(header: Text("Events")) {
+        Section(header: eventsHeader) {
             ComponentEventList(viewModel: viewModel, events: events.reversed(), showMutations: false)
+            .id(render)
+        }
+    }
+
+    var eventsHeader: some View {
+        HStack {
+            Text("Events")
+            Spacer()
+            Button(action: clearEvents) {
+                Text("Clear")
+            }
+            .buttonStyle(.plain)
         }
     }
 }

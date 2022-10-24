@@ -244,6 +244,25 @@ public class ViewModel<C: Component>: ObservableObject {
         self.sendEvent(.output(event), sourceLocation: sourceLocation)
     }
 
+    @MainActor
+    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async {
+        let start = Date()
+        let value = await task()
+        sendEvent(.task(TaskResult(name: name, result: .success(value), start: start, end: Date())), sourceLocation: sourceLocation)
+    }
+
+    @MainActor
+    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+        let start = Date()
+        do {
+            let value = try await task()
+            sendEvent(.task(TaskResult(name: name, result: .success(value), start: start, end: Date())), sourceLocation: sourceLocation)
+        } catch {
+            catchError(error)
+            sendEvent(.task(TaskResult(name: name, result: .failure(error), start: start, end: Date())), sourceLocation: sourceLocation)
+        }
+    }
+
     public subscript<Value>(dynamicMember keyPath: KeyPath<C.State, Value>) -> Value {
       self.state[keyPath: keyPath]
     }
@@ -280,6 +299,14 @@ public class ComponentModel<C: Component> {
             viewModel.mutate(keyPath, value: newValue, sourceLocation: .capture(file: #file, fileID: #fileID, line: #line))
         }
     }
+
+    public func task(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ task: () async -> Void) async {
+        await viewModel.task(name, sourceLocation: .capture(file: file, fileID: fileID, line: line), task)
+    }
+
+    public func task<R>(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+        await viewModel.task(name, sourceLocation: .capture(file: file, fileID: fileID, line: line), task, catch: catchError)
+    }
 }
 
 extension ComponentModel {
@@ -287,13 +314,12 @@ extension ComponentModel {
     @MainActor
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, load: @MainActor () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true)
-        do {
+        let name = "get.\(keyPath.propertyName?.capitalized ?? "Resource")"
+        await task(name) {
             let content = try await load()
             mutate(keyPath.appending(path: \.content), content)
-            print("Loaded resource \(ResourceState.self):\n\(content)")
-        } catch {
+        } catch: { error in
             mutate(keyPath.appending(path: \.error), error)
-            print("Failed to load resource \(ResourceState.self)")
         }
         mutate(keyPath.appending(path: \.isLoading), false)
     }

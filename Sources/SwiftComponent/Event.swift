@@ -9,7 +9,7 @@ import Foundation
 import CustomDump
 import SwiftUI
 
-public var viewModelEvents: [AnyEvent] = []
+var viewModelEvents: [AnyEvent] = []
 
 public func componentEvents<C: Component>(for component: C.Type) -> [Event<C>] {
     viewModelEvents.compactMap { $0.asComponentEvent() }
@@ -44,6 +44,7 @@ public struct AnyEvent: Identifiable {
         case action(Any, [AnyMutation])
         case output(Any)
         case viewTask([AnyMutation])
+        case task(TaskResult)
 
         var type: EventSimpleType {
             switch self {
@@ -51,6 +52,7 @@ public struct AnyEvent: Identifiable {
                 case .binding: return .binding
                 case .output: return .output
                 case .viewTask: return .viewTask
+                case .task: return .task
             }
         }
     }
@@ -83,6 +85,8 @@ extension Event.EventType {
                 return .output(output)
             case .viewTask(let mutations):
                 return .viewTask(mutations.map(\.anyMutation))
+            case .task(let result):
+                return .task(result)
         }
     }
 }
@@ -92,6 +96,7 @@ public enum EventSimpleType: String, CaseIterable {
     case action
     case binding
     case output
+    case task
 
     static var set: Set<EventSimpleType> { Set(allCases) }
 
@@ -101,6 +106,7 @@ public enum EventSimpleType: String, CaseIterable {
             case .binding: return "Binding"
             case .output: return "Output"
             case .viewTask: return "View Task"
+            case .task: return "Task"
         }
     }
 
@@ -114,6 +120,8 @@ public enum EventSimpleType: String, CaseIterable {
                 return .purple
             case .viewTask:
                 return .orange
+            case .task:
+                return .red
         }
     }
 
@@ -122,11 +130,13 @@ public enum EventSimpleType: String, CaseIterable {
             case .action:
                 return "🔵"
             case .binding:
-                return "🟢"
+                return "🟡"
             case .output:
                 return "🟣"
             case .viewTask:
                 return "🟠"
+            case .task:
+                return "🟢"
         }
     }
 }
@@ -135,6 +145,18 @@ extension Mutation {
 
     var anyMutation: AnyMutation {
         AnyMutation(id: id, property: property, value: value)
+    }
+}
+
+public struct TaskResult {
+    public let name: String
+    public let result: Result<Any, Error>
+    public let start: Date
+    public let end: Date
+
+    public var duration: String {
+        let range = start ..< end
+        return range.formatted(.components(style: .condensedAbbreviated))
     }
 }
 
@@ -158,6 +180,7 @@ public struct Event<C: Component>: Identifiable {
         case action(C.Action, [Mutation<C.State>])
         case binding(Mutation<C.State>)
         case output(C.Output)
+        case task(TaskResult)
 
         public var title: String { type.title }
 
@@ -167,6 +190,7 @@ public struct Event<C: Component>: Identifiable {
                 case .binding: return .binding
                 case .output: return .output
                 case .viewTask: return .viewTask
+                case .task: return .task
             }
         }
 
@@ -180,6 +204,13 @@ public struct Event<C: Component>: Identifiable {
                     return getEnumCase(event).name
                 case .viewTask(let mutations):
                     return "\(mutations.count) mutation\(mutations.count == 1 ? "" : "s")"
+                case .task(let result):
+                    switch result.result {
+                        case .failure(let error):
+                            return "Failure \(result.duration)"
+                        case .success:
+                            return "Success \(result.duration)"
+                    }
             }
         }
     }
