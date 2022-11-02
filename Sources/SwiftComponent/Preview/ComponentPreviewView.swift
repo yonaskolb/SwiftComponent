@@ -96,7 +96,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         testState[test.name] = .running
 
         let viewModel: ViewModel<Preview.ComponentType>
-        let delay: TimeInterval = previewTests ? 0.2 : 0
+        let delay: TimeInterval = previewTests ? 0.4 : 0
         if delay > 0 {
             viewModel = self.viewModel
         } else {
@@ -219,11 +219,14 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                         Divider()
                             .padding(.horizontal, 20)
                         ForEach(Array(errors.enumerated()), id: \.1) { (index, error) in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("\(index + 1). \(error.error)")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("\(index + 1). \(error.error)\(error.errorDetail != nil ? ":" : "")")
                                     .foregroundColor(.red)
+                                    .bold()
                                 if let detail = error.errorDetail {
                                     Text(detail)
+                                        .padding(.leading, 15)
+                                        .foregroundColor(.red)
                                     //                                                .font(.footnote)
                                 }
                             }

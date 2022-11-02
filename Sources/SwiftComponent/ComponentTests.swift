@@ -31,7 +31,7 @@ public struct Test<C: Component> {
             case viewTask
             case setDependency((inout DependencyValues) -> Void)
             case action(C.Action)
-            case binding((inout C.State, Any) -> Void, Any)
+            case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, Any)
             case validateState(error: String, validateState: (C.State) -> Bool)
             case expectState((inout C.State) -> Void)
             case expectOutput(C.Output)
@@ -58,7 +58,7 @@ public struct Test<C: Component> {
         }
 
         public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, value), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+            .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, value), sourceLocation: .capture(file: file, fileID: fileID, line: line))
         }
 
         public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
@@ -99,6 +99,7 @@ struct TestError: CustomStringConvertible, Identifiable, Hashable {
 
 extension ViewModel {
 
+    @MainActor
     func runTest(_ test: Test<C>, delay: TimeInterval, sendEvents: Bool) async -> [TestError] where C.Output: Equatable {
 
         // setup dependencies
@@ -121,21 +122,28 @@ extension ViewModel {
         }
         
         var errors: [TestError] = []
+        let sleepDelay = 1_000_000_000.0 * delay
         for step in test.steps {
-            let sleepDelay = 1_000_000_000.0 * delay
-            if delay > 0 {
-                try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-            }
             switch step.type {
                 case .viewTask:
-                    await task()
+                    await DependencyValues.withValues { dependencyValues in
+                        dependencyValues = testDependencyValues
+                    } operation: {
+                        await task()
+                    }
                 case .action(let action):
+                    if delay > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+                    }
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
                     } operation: {
                         await handleAction(action, sourceLocation: step.sourceLocation)
                     }
-                case .binding(let mutate, let value):
+                case .binding(let mutate, let keyPath, let value):
+                    if delay > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+                    }
                     if let string = value as? String, string.count > 1, string != "", sleepDelay > 0 {
                         let sleepTime = sleepDelay/(Double(string.count))
                         var currentString = ""
@@ -146,13 +154,33 @@ extension ViewModel {
                                 try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                             }
                         }
+//                    } else if let date = value as? Date, sleepDelay > 0 {
+//                        if delay > 0 {
+//                            try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+//                        }
+//                        //TODO: fix. Preview not showing steps
+//                        let oldDate = state[keyPath: keyPath] as? Date ?? Date()
+//                        var currentDate = oldDate
+//                        let calendar = Calendar.current
+//                        let components: [Calendar.Component] = [.year, .day, .hour, .minute]
+//                        for component in components {
+//                            let newComponentValue = calendar.component(component, from: date)
+//                            let oldComponentValue = calendar.component(component, from: currentDate)
+//                            if oldComponentValue != newComponentValue, let modifiedDate = calendar.date(bySetting: component, value: newComponentValue, of: currentDate) {
+//                                currentDate = modifiedDate
+//                                mutate(&state, currentDate)
+//                                try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+//                            }
+//                        }
+//                        mutate(&state, value)
                     } else {
+
                         mutate(&state, value)
                     }
                 case .validateState(let error, let validateState):
                     let valid = validateState(state)
                     if !valid {
-                        errors.append(TestError(error: error, sourceLocation: step.sourceLocation))
+                        errors.append(TestError(error: "State validation failed", errorDetail: error, sourceLocation: step.sourceLocation))
                     }
                 case .expectState(let modify):
                     let currentState = state

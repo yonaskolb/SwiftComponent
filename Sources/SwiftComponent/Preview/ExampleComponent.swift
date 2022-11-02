@@ -98,6 +98,7 @@ struct ExamplePreview: PreviewProvider, ComponentPreview {
 
         ComponentTest("Fill out", State(name: "Main"), runViewTask: true) {
             Step.setBinding(\.name, "test")
+            Step.validateState("Name is correct") { $0.name == "invalid" }
         }
     }
 }

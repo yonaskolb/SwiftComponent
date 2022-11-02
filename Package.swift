@@ -15,6 +15,8 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.44.0"),
+        .package(url: "https://github.com/Sherlouk/AccessibilitySnapshot", branch: "update-snapshot-testing"),
+
     ],
     targets: [
         .target(
@@ -27,7 +29,9 @@ let package = Package(
             ]),
         .target(
             name: "SwiftPreview",
-            dependencies: []),
+            dependencies: [
+                .product(name: "AccessibilitySnapshotCore", package: "AccessibilitySnapshot"),
+            ]),
         .testTarget(
             name: "SwiftComponentTests",
             dependencies: ["SwiftComponent"]),

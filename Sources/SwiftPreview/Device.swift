@@ -71,11 +71,11 @@ public struct Device: Equatable {
     ]
 
     public static let iPads: [Device] = [
-        iPadAir,
         iPadMini,
-        //        iPad,
-        iPadPro12,
+        iPadAir,
+        iPad,
         iPadPro11,
+        iPadPro12,
     ]
 
     public static let all: [Device] = iPhones + iPads
@@ -100,6 +100,6 @@ public struct Device: Equatable {
 extension PreviewDevice {
 
     public static var largestDevice: PreviewDevice {
-        PreviewDevice(rawValue: "iPad Pro (12.9-inch) (5th generation)")
+        PreviewDevice(rawValue: "iPad Pro (12.9-inch) (6th generation)")
     }
 }

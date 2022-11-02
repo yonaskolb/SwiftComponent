@@ -22,6 +22,8 @@ public struct ViewPreviewer<Content: View>: View {
     @State var buttonScale: CGFloat = 0.20
     @State var device = Device.iPhone14
     @State var colorScheme: ColorScheme?
+    @State var showDevicePicker = false
+    @State var showAccessibilityPreview = false
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
@@ -41,14 +43,30 @@ public struct ViewPreviewer<Content: View>: View {
                         .font(.title2)
                         .padding(.bottom)
                 }
-                content
-                    .environment(\.sizeCategory, sizeCategory)
-                    .embedIn(device: device)
-                    .colorScheme(colorScheme ?? systemColorScheme)
-                    .shadow(radius: 10)
-                    .scaleEffect(device.contentScale)
-                    .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
-                    .padding()
+                Spacer()
+                if showAccessibilityPreview {
+                    content.accessibilityPreview()
+                } else {
+                    content
+                        .environment(\.sizeCategory, sizeCategory)
+                        .embedIn(device: device)
+                        .colorScheme(colorScheme ?? systemColorScheme)
+                        .shadow(radius: 10)
+                        .scaleEffect(device.contentScale)
+                        .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
+                        .padding()
+                    Button {
+                        showDevicePicker = true
+                    } label: {
+                        Text(device.name).bold().font(.title2)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showDevicePicker) {
+                        deviceSelector
+                            .padding(20)
+                    }
+                }
+                Spacer()
             }
             Spacer()
             HStack(spacing: 40) {
@@ -56,8 +74,6 @@ public struct ViewPreviewer<Content: View>: View {
                 colorSchemeSelector
             }
             .padding()
-            //                .padding(.bottom, 20)
-            //                deviceSelector
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
@@ -121,30 +137,36 @@ public struct ViewPreviewer<Content: View>: View {
     }
 
     var deviceSelector: some View {
-        ScrollView(.horizontal) {
+        VStack(spacing: 40) {
             HStack {
-                ForEach(devices, id: \.name) { device in
-                    Button(action: { withAnimation { self.device = device } }) {
-                        VStack(spacing: 2) {
-                            device.icon
-                                .font(.system(size: 80, weight: .ultraLight))
-                            //                            .scaleEffect(device.scale * device.contentScale, anchor: .bottom)
-                            var nameParts = device.name.components(separatedBy: " ")
-                            let deviceType = nameParts.removeFirst()
-                            let name = "\(deviceType)\n\(nameParts.joined(separator: " "))"
-                            Text(name)
-                                .bold()
-                                .font(.footnote)
-                                .multilineTextAlignment(.center)
-                            Image(systemName: self.device == device ? "checkmark.circle.fill" : "circle")
-                                .padding(.top, 2)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+                ForEach(Device.iPhones, id: \.name, content: deviceView)
             }
-            .foregroundColor(.blue)
+            HStack {
+                ForEach(Device.iPads, id: \.name, content: deviceView)
+            }
         }
+        .foregroundColor(.accentColor)
+    }
+
+    func deviceView(_ device: Device) -> some View {
+        Button(action: { withAnimation { self.device = device } }) {
+            VStack(spacing: 2) {
+                device.icon
+                    .font(.system(size: 100, weight: .ultraLight))
+                //.scaleEffect(device.scale * device.contentScale, anchor: .bottom)
+                var nameParts = device.name.components(separatedBy: " ")
+                let deviceType = nameParts.removeFirst()
+                let name = "\(deviceType)\n\(nameParts.joined(separator: " "))"
+                Text(name)
+                    .bold()
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                Image(systemName: self.device == device ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 30))
+                    .padding(.top, 2)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

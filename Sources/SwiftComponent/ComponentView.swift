@@ -45,6 +45,7 @@ struct ComponentViewContainer<C: Component, Content: View>: View {
                 await model.task()
             }
         }
+#if DEBUG
         .frame(maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
@@ -58,6 +59,7 @@ struct ComponentViewContainer<C: Component, Content: View>: View {
                 ComponentDebugView(viewModel: model)
             }
         }
+#endif
     }
 }
 
