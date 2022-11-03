@@ -70,19 +70,6 @@ public extension ComponentView {
         ComponentViewContainer(model: model, view: view)
     }
 
-    @ViewBuilder
-    func routeView() -> some View {
-        if let route = model.route {
-            if route.inNav {
-                NavigationView { route.component }
-            } else {
-                route.component
-            }
-        } else {
-            EmptyView()
-        }
-    }
-
     func task() async {
 
     }

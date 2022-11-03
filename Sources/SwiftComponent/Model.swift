@@ -108,7 +108,6 @@ public class ViewModel<C: Component>: ObservableObject {
         }
     }
 
-    @Published public var route: PresentedRoute<C.Route>?
     let id = UUID()
     
     var componentModel: ComponentModel<C>!
@@ -207,16 +206,6 @@ public class ViewModel<C: Component>: ObservableObject {
         )
     }
 
-    fileprivate func present<PC: Component>(_ route: C.Route, as mode: PresentationMode, inNav: Bool, using component: PC.Type, create: () -> PC.State) {
-        let state = create()
-//        let component: PC = PC(viewModel: ViewModel<PC>(state: state))
-//        self.route = PresentedRoute(route: route, mode: mode, inNav: inNav, component: AnyView(component))
-    }
-
-    public func dismiss() {
-        self.route = nil
-    }
-
     @MainActor
     func task() async {
         mutations = []
@@ -269,10 +258,6 @@ public class ComponentModel<C: Component> {
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
         viewModel.mutate(keyPath, value: value, sourceLocation: .capture(file: file, fileID: fileID, line: line), animation: animation)
-    }
-
-    public func present<PC: Component>(_ route: C.Route, as mode: PresentationMode, inNav: Bool, using component: PC.Type, create: () -> PC.State) {
-        viewModel.present(route, as: mode, inNav: inNav, using: component, create: create)
     }
 
     public func output(_ event: C.Output, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {

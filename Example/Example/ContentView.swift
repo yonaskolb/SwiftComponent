@@ -20,10 +20,6 @@ struct ItemComponent: Component {
         var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
     }
 
-    enum Route {
-        case detail
-    }
-
     enum Action {
         case calculate
         case openDetail
@@ -45,14 +41,9 @@ struct ItemComponent: Component {
                 try? await clock.sleep(for: .seconds(1))
                 model.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
-                model.present(.detail, as: .sheet, inNav: true, using: ItemDetailComponent.self) {
-                    model.detail
-                }
                 model.presentDetail = model.detail
             case .pushItem:
-                model.present(.detail, as: .push, inNav: false, using: ItemDetailComponent.self) {
-                    ItemDetailComponent.State(id: model.data.content?.description ?? "1", name: model.name)
-                }
+               break
             case .detail(.finished(let name)):
                 model.detail.name = name
                 model.name = name
@@ -80,9 +71,6 @@ struct ItemView: ComponentView {
         NavigationView {
             VStack {
                 Text(model.state.name)
-                if let route = model.route {
-                    Text("\(String(describing: route.mode)): \(String(describing: route.route))")
-                }
                 ResourceView(model.state.data) { state in
                     Text(state.description)
                 }
