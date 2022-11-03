@@ -59,7 +59,8 @@ public struct ComponentInfo: Identifiable {
         var testByName: [String: (TimeInterval) async -> Void] = [:]
         for test in tests {
             testByName[test.name] = { delay in
-                _ = await viewModel.runTest(test, delay: delay, sendEvents: false)
+                //TODO: handle stateName
+                _ = await viewModel.runTest(test, initialState: test.state!, delay: delay, sendEvents: false)
             }
         }
 

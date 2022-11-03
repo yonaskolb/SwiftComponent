@@ -11,17 +11,28 @@ import Dependencies
 
 public struct Test<C: Component> {
 
-    public init(_ name: String, _ initialState: C.State, runViewTask: Bool = false, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
+    public init(_ name: String, _ state: C.State, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
         self.name = name
-        self.initialState = initialState
+        self.state = state
         self.runViewTask = runViewTask
+        self.sourceLocation = .init(file: file, fileID: fileID, line: line)
         self.steps = steps()
     }
 
-    var name: String
-    var initialState: C.State
-    var steps: [Step]
-    var runViewTask: Bool
+    public init(_ name: String, stateName: String, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
+        self.name = name
+        self.stateName = stateName
+        self.runViewTask = runViewTask
+        self.sourceLocation = .init(file: file, fileID: fileID, line: line)
+        self.steps = steps()
+    }
+
+    public var name: String
+    public var state: C.State?
+    public var stateName: String?
+    public var steps: [Step]
+    public var runViewTask: Bool
+    public let sourceLocation: SourceLocation
 
     public struct Step {
         let type: StepType
@@ -35,6 +46,7 @@ public struct Test<C: Component> {
             case validateState(error: String, validateState: (C.State) -> Bool)
             case expectState((inout C.State) -> Void)
             case expectOutput(C.Output)
+            case validateDependency(error: String, validateDependency: (DependencyValues) -> Bool)
         }
 
         public static func runViewTask(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
@@ -64,6 +76,10 @@ public struct Test<C: Component> {
         public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
             .init(type: .setDependency { $0[keyPath: keyPath] = dependency }, sourceLocation: .capture(file: file, fileID: fileID, line: line))
         }
+
+        public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+            .init(type: .validateDependency(error: error, validateDependency: { validateDependency($0[keyPath: keyPath]) }), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+        }
     }
 }
 
@@ -82,13 +98,13 @@ public struct TestStepBuilder {
     public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>.Step]) -> [Test<ComponentType>.Step] { tests }
 }
 
-struct TestError: CustomStringConvertible, Identifiable, Hashable {
-    var error: String
-    var errorDetail: String?
-    let sourceLocation: SourceLocation
-    let id = UUID()
+public struct TestError: CustomStringConvertible, Identifiable, Hashable {
+    public var error: String
+    public var errorDetail: String?
+    public let sourceLocation: SourceLocation
+    public let id = UUID()
 
-    var description: String {
+    public var description: String {
         var string = error
         if let errorDetail {
             string += ":\n\(errorDetail)"
@@ -100,13 +116,18 @@ struct TestError: CustomStringConvertible, Identifiable, Hashable {
 extension ViewModel {
 
     @MainActor
-    func runTest(_ test: Test<C>, delay: TimeInterval, sendEvents: Bool) async -> [TestError] where C.Output: Equatable {
+    public func runTest(_ test: Test<C>, initialState: C.State, delay: TimeInterval = 0, sendEvents: Bool = false) async -> [TestError] where C.Output: Equatable {
 
         // setup dependencies
         var testDependencyValues = DependencyValues._current
-        testDependencyValues.context = .test
+        testDependencyValues.context = .preview
 
         // handle events
+        var events: [Event<C>] = []
+        let eventSubscriber = self.events.sink { event in
+            events.append(event)
+        }
+
         let sendEventsValue = self.sendEvents
         self.sendEvents = sendEvents
         defer {
@@ -114,13 +135,14 @@ extension ViewModel {
         }
 
         // setup state
-        state = test.initialState
+        state = initialState
 
         // run task
         if test.runViewTask {
             await task()
         }
-        
+
+
         var errors: [TestError] = []
         let sleepDelay = 1_000_000_000.0 * delay
         for step in test.steps {
@@ -181,6 +203,11 @@ extension ViewModel {
                     let valid = validateState(state)
                     if !valid {
                         errors.append(TestError(error: "State validation failed", errorDetail: error, sourceLocation: step.sourceLocation))
+                    }
+                case .validateDependency(let error, let validateDependency):
+                    let valid = validateDependency(testDependencyValues)
+                    if !valid {
+                        errors.append(TestError(error: "Dependency validation failed", errorDetail: error, sourceLocation: step.sourceLocation))
                     }
                 case .expectState(let modify):
                     let currentState = state

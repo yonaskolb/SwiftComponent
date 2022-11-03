@@ -96,14 +96,30 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         testState[test.name] = .running
 
         let viewModel: ViewModel<Preview.ComponentType>
+        let state: Preview.ComponentType.State
+        if let testState = test.state {
+            state = testState
+        } else if let stateName = test.stateName {
+            if let namedState = Preview.state(name: stateName) {
+                state = namedState
+            } else {
+                testState[test.name] = .failed([TestError(error: "Could not find state \"\(stateName)\"", sourceLocation: test.sourceLocation)])
+                return
+            }
+        } else {
+            testState[test.name] = .failed([TestError(error: "Could not find state", sourceLocation: test.sourceLocation)])
+            return
+        }
+
         let delay: TimeInterval = previewTests ? 0.4 : 0
+
         if delay > 0 {
             viewModel = self.viewModel
         } else {
-            viewModel = ViewModel(state: test.initialState)
+            viewModel = ViewModel(state: state)
         }
         viewModel.path.suffix = " Test: \(test.name)"
-        let errors = await viewModel.runTest(test, delay: delay, sendEvents: showTestEvents)
+        let errors = await viewModel.runTest(test, initialState: state, delay: delay, sendEvents: showTestEvents)
         viewModel.path.suffix = nil
         if errors.isEmpty {
             testState[test.name] = .success

@@ -70,6 +70,10 @@ extension ComponentPreview {
     public static var componentPreview: some View {
         ComponentPreviewView<Self>()
     }
+
+    public static func state(name: String) -> ComponentType.State? {
+        states.first { $0.name == name }?.state
+    }
 }
 
 public struct PreviewConfig {

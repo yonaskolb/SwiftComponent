@@ -16,7 +16,7 @@ public protocol Component<State, Action> {
 
 extension Component {
 
-    static var name: String {
+    public static var name: String {
         var name = String(describing: Self.self)
         if name.hasSuffix("Component") {
             name = String(name.dropLast(9))
