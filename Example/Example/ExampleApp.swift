@@ -9,7 +9,8 @@ import SwiftUI
 
 @main
 struct ExampleApp: App {
-    @State var state = ItemComponent.State(name: "Bob", data: .empty)
+    @State var state = ItemComponent.State(name: "Bob", data: .loading)
+
     var body: some Scene {
         WindowGroup {
 //            ItemView(model: .init(state: $state))

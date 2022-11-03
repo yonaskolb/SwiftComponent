@@ -73,6 +73,8 @@ struct ItemView: ComponentView {
                 Text(model.state.name)
                 ResourceView(model.state.data) { state in
                     Text(state.description)
+                } error: { error in
+                    Text(error.localizedDescription)
                 }
                 .frame(height: 30)
                 HStack {
@@ -172,7 +174,7 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
 
     static var states: [ComponentState] {
         ComponentState {
-            State(name: "start", data: .empty)
+            State(name: "start", data: .loading)
         }
 
         ComponentState("Loaded") {
@@ -181,7 +183,7 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
     }
 
     static var tests: [ComponentTest] {
-        ComponentTest("Happy New style", State(name: "john", data: .empty)) {
+        ComponentTest("Happy New style", State(name: "john", data: .loading)) {
             Step.sendAction(.updateDetail)
             Step.setBinding(\.text, "yeah")
             Step.validateState("text is set") { state in

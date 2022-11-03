@@ -16,7 +16,7 @@ let package = Package(
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.44.0"),
         .package(url: "https://github.com/Sherlouk/AccessibilitySnapshot", branch: "update-snapshot-testing"),
-
+        .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.4"),
     ],
     targets: [
         .target(
@@ -26,6 +26,7 @@ let package = Package(
                 .product(name: "Dependencies", package: "swift-composable-architecture"),
                 "SwiftGUI",
                 "SwiftPreview",
+                "Runtime",
             ]),
         .target(
             name: "SwiftPreview",
