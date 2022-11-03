@@ -39,7 +39,7 @@ public struct ComponentInfo: Identifiable {
         self.view = view
         var stateDictionary: [String: ComponentPreviewState<Any>] = [:]
         for state in states {
-            stateDictionary[state.name] = ComponentPreviewState(state.name) { state.state }
+            stateDictionary[state.name] = ComponentPreviewState(state.name, state.state)
         }
         self.statesByName = stateDictionary
         self.states = states.map { $0.name }

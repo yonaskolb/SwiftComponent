@@ -98,9 +98,13 @@ public struct ComponentPreviewState<State> {
     public let size: CGSize?
 
     public init(_ name: String? = nil, size: CGSize? = nil, _ state: () -> State) {
+        self.init(name, size: size, state())
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, _ state: State) {
         self.name = name ?? "Default"
         self.size = size
-        self.state = state()
+        self.state = state
     }
 }
 
