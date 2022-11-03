@@ -118,18 +118,15 @@ public class ViewModel<C: Component>: ObservableObject {
     var handledTask = false
     var mutationAnimation: Animation?
     var sendEvents = true
-
+    public var events = PassthroughSubject<Event<C>, Never>()
+    private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
-
-    @Published public var events: [Event<C>] = []
-    var listeners: [(Event<C>) -> Void] = []
 
     public init(state: C.State) {
         self.ownedState = state
         self.component = C()
         self.path = .init(C.self)
         self.componentModel = ComponentModel(viewModel: self)
-        events = componentEvents(for: C.self)
     }
 
     public init(state: Binding<C.State>, path: ComponentPath? = nil) {
@@ -137,33 +134,16 @@ public class ViewModel<C: Component>: ObservableObject {
         self.component = C()
         self.path = path?.appending(C.self) ?? ComponentPath(C.self)
         self.componentModel = ComponentModel(viewModel: self)
-        events = componentEvents(for: C.self)
-    }
-
-    func listen(_ event: @escaping (Event<C>) -> Void) {
-        listeners.append(event)
-    }
-
-    public func output(output: @escaping (C.Output) -> Void) -> Self {
-        listen { event in
-            switch event.type {
-                case .output(let event):
-                    output(event)
-                default: break
-            }
-        }
-        return self
     }
 
     fileprivate func sendEvent(_ eventType: Event<C>.EventType, sourceLocation: SourceLocation) {
-        guard sendEvents else { return }
         let event = Event<C>(eventType, componentPath: path, sourceLocation: sourceLocation)
-        events.append(event)
-        viewModelEvents.append(AnyEvent(event))
         print("\(event.type.anyEvent.emoji) \(path) \(event.type.title): \(event.type.details)")
-        for listener in listeners {
-            listener(event)
-        }
+        events.send(event)
+
+        guard sendEvents else { return }
+
+        viewModelEvents.append(AnyEvent(event))
     }
 
     public func send(_ action: C.Action, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
@@ -358,7 +338,8 @@ extension ViewModel {
 
     public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State>, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, event toAction: @escaping (Child.Output) -> C.Action) -> ViewModel<Child> where Child.State: Equatable {
         let viewModel = _scope(state: stateKeyPath) as ViewModel<Child>
-        viewModel.listen { event in
+        viewModel.events.sink { [weak self] event in
+            guard let self else { return }
             switch event.type {
                 case .output(let output):
                     let action = toAction(output)
@@ -367,12 +348,14 @@ extension ViewModel {
                     break
             }
         }
+        .store(in: &viewModel.subscriptions)
         return viewModel
     }
 
     public func scope<Child: Component>(state stateKeyPath: WritableKeyPath<C.State, Child.State?>, value: Child.State, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, event toAction: @escaping (Child.Output) -> C.Action) -> ViewModel<Child> where Child.State: Equatable {
         let viewModel = _scope(state: stateKeyPath, value: value) as ViewModel<Child>
-        viewModel.listen { event in
+        viewModel.events.sink { [weak self] event in
+            guard let self else { return }
             switch event.type {
                 case .output(let output):
                     let action = toAction(output)
@@ -381,6 +364,7 @@ extension ViewModel {
                     break
             }
         }
+        .store(in: &viewModel.subscriptions)
         return viewModel
     }
 
