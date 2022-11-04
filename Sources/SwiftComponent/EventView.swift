@@ -12,18 +12,18 @@ import SwiftGUI
 struct ComponentEventList<ComponentType: Component>: View {
 
     let viewModel: ViewModel<ComponentType>
-    let events: [AnyEvent]
+    let events: [ComponentEvent]
     let showMutations: Bool
     @State var showEvent: UUID?
     @State var showMutation: UUID?
 
     var body: some View {
         ForEach(events) { event in
-            if showMutations, let mutations = event.type.mutations, !mutations.isEmpty {
+            if showMutations, let mutations = event.mutations, !mutations.isEmpty {
                 mutationsList(mutations.reversed())
             }
             NavigationLink(tag: event.id, selection: $showEvent, destination: {
-                EventView(viewModel: viewModel, event: event)
+                EventView(event: event)
             }) {
                 HStack {
                     Text("\(event.type.emoji)")
@@ -51,7 +51,7 @@ struct ComponentEventList<ComponentType: Component>: View {
         }
     }
 
-    func mutationsList(_ mutations: [AnyMutation]) -> some View {
+    func mutationsList(_ mutations: [Mutation]) -> some View {
         ForEach(mutations) { mutation in
             NavigationLink(tag: mutation.id, selection: $showMutation, destination: {
                 SwiftView(value: .constant(mutation.value), config: Config(editing: false))
@@ -59,39 +59,50 @@ struct ComponentEventList<ComponentType: Component>: View {
                 HStack {
                     Text("🟡")
                         .font(.footnote)
-                    Text("State").bold() + Text(".\(mutation.property)")
+                        .hidden()
+//                    Text("Mutate State").bold() + Text(": \(mutation.property)")
+                    Text("\(mutation.property): \(mutation.valueType)")
                     //                    Text(mutation.property + ": ") + Text(mutation.valueType).bold()
                     Spacer()
                     Text(dumpLine(mutation.value))
                         .lineLimit(1)
                 }
-                .font(.footnote)
-                //                .padding(.leading, 25)
+                .font(.caption)
+//                .padding(.leading, 25)
             }
         }
     }
 }
 
 
-struct EventView<ComponentType: Component>: View {
+struct EventView: View {
 
-    let viewModel: ViewModel<ComponentType>
-    let event: AnyEvent
+    let event: ComponentEvent
     @State var showValue = false
     @State var showMutation: UUID?
 
     var body: some View {
-        Text("")
         Form {
-            if viewModel.path != event.componentPath {
+            if let path = event.componentPath.parent {
                 line("Path") {
-                    Text(event.componentPath.relative(to: viewModel.path).string)
+                    Text(path.string)
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
             }
             line("Component") {
                 Text(event.componentName)
+            }
+            line("Started") {
+                Text(event.start.formatted())
+            }
+            line("Duration") {
+                Text(event.duration)
+            }
+            line("Location") {
+                Text(verbatim: "\(event.sourceLocation.fileID)#\(event.sourceLocation.line.formatted())")
+                    .lineLimit(1)
+                    .truncationMode(.head)
             }
             if !event.type.detailsTitle.isEmpty || !event.type.details.isEmpty {
                 line(event.type.detailsTitle) {
@@ -108,15 +119,7 @@ struct EventView<ComponentType: Component>: View {
                     }
                 }
             }
-            line("Time") {
-                Text(event.date.formatted())
-            }
-            line("Location") {
-                Text(verbatim: "\(event.sourceLocation.fileID)#\(event.sourceLocation.line.formatted())")
-                    .lineLimit(1)
-                    .truncationMode(.head)
-            }
-            if let mutations = event.type.mutations, !mutations.isEmpty {
+            if let mutations = event.mutations, !mutations.isEmpty {
                 Section(header: Text("State Mutations")) {
                     ForEach(mutations) { mutation in
                         NavigationLink(tag: mutation.id, selection: $showMutation, destination: {
@@ -148,7 +151,19 @@ struct EventView<ComponentType: Component>: View {
     }
 }
 
-extension AnyEvent.EventType {
+extension ComponentEvent {
+
+    var duration: String {
+        let seconds = end.timeIntervalSince1970 - start.timeIntervalSince1970
+        if seconds < 2 {
+            return Int(seconds*1000).formatted(.number) + " ms"
+        } else {
+            return (start ..< end).formatted(.components(style: .abbreviated))
+        }
+    }
+}
+
+extension EventType {
 
     var title: String { type.title }
     var color: Color {
@@ -161,6 +176,7 @@ extension AnyEvent.EventType {
             default: return type.color
         }
     }
+
     var emoji: String {
         switch self {
             case .task(let result):
@@ -172,6 +188,7 @@ extension AnyEvent.EventType {
                 return type.emoji
         }
     }
+    
     var detailsTitle: String {
         switch self {
             case .action:
@@ -207,7 +224,7 @@ extension AnyEvent.EventType {
 
     public var details: String {
         switch self {
-            case .action(let action, _):
+            case .action(let action):
                 return getEnumCase(action).name
             case .binding(let mutation):
                 return mutation.property
@@ -220,19 +237,9 @@ extension AnyEvent.EventType {
         }
     }
 
-    var mutations: [AnyMutation]? {
-        switch self {
-            case .action(_, let mutations): return mutations
-            case .binding(let mutation): return [mutation]
-            case .viewTask(let mutations): return mutations
-            case .task: return nil
-            case .output: return nil
-        }
-    }
-
     public var value: Any {
         switch self {
-            case .action(let action, _):
+            case .action(let action):
                 return action
             case .binding(let mutation):
                 return mutation.value
@@ -249,50 +256,65 @@ extension AnyEvent.EventType {
     }
 }
 
-let previewEvents: [AnyEvent] = [
-    AnyEvent(Event<ExampleComponent>(
-        .viewTask([
-            .init(keyPath: \.name, value: "new1"),
-            .init(keyPath: \.name, value: "new2"),
-        ]),
-        componentPath: .init([ExampleComponent.self]),
-        sourceLocation: .capture()
-    )),
+let previewEvents: [ComponentEvent] = [
+        ComponentEvent(
+            type: .viewTask,
+            componentPath: .init([ExampleComponent.self]),
+            start: Date().addingTimeInterval(-1.05),
+            end: Date(),
+            mutations: [
+                Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
+                Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
+            ],
+            sourceLocation: .capture()
+        ),
 
-    AnyEvent(Event<ExampleComponent>(
-        .action(.tap(2), [
-            .init(keyPath: \.name, value: "new1"),
-            .init(keyPath: \.name, value: "new2"),
-        ]),
-        componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
-        sourceLocation: .capture()
-    )),
+        ComponentEvent(
+            type: .action(ExampleComponent.Action.tap(2)),
+            componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
+            start: Date(),
+            end: Date(),
+            mutations: [
+                Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
+                Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
+            ],
+            sourceLocation: .capture()
+        ),
 
-    AnyEvent(Event<ExampleComponent>(
-        .binding(Mutation(keyPath: \.name, value: "Hello")),
-        componentPath: .init(ExampleComponent.self),
-        sourceLocation: .capture()
-    )),
+        ComponentEvent(
+            type: .binding(Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")),
+            componentPath: .init(ExampleComponent.self),
+            start: Date(),
+            end: Date(),
+            mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
+            sourceLocation: .capture()
+        ),
 
-    AnyEvent(Event<ExampleComponent>(
-        .task(TaskResult.init(name: "get item", result: .success(()), start: Date().addingTimeInterval(-2.3), end: Date())),
-        componentPath: .init(ExampleComponent.self),
-        sourceLocation: .capture()
-    )),
+        ComponentEvent(
+            type: .task(TaskResult.init(name: "get item", result: .success(()))),
+            componentPath: .init(ExampleComponent.self),
+            start: Date().addingTimeInterval(-2.3),
+            end: Date(),
+            mutations: [],
+            sourceLocation: .capture()
+        ),
 
-    AnyEvent(Event<ExampleComponent>(
-        .output(.finished),
-        componentPath: .init(ExampleComponent.self),
-        sourceLocation: .capture()
-    )),
-]
+        ComponentEvent(
+            type: .output(ExampleComponent.Output.finished),
+            componentPath: .init(ExampleComponent.self),
+            start: Date(),
+            end: Date(),
+            mutations: [],
+            sourceLocation: .capture()
+        ),
+    ]
 
 struct EventView_Previews: PreviewProvider {
     static var previews: some View {
         viewModelEvents = previewEvents
         return Group {
             NavigationView {
-                EventView(viewModel: ViewModel<ExampleComponent>.init(state: .init(name: "Hello")), event: previewEvents[0])
+                EventView(event: previewEvents[1])
             }
             ExampleView(model: .init(state: .init(name: "Hello")))
                 .debugView()

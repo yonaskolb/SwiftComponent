@@ -123,15 +123,15 @@ extension ViewModel {
         testDependencyValues.context = .preview
 
         // handle events
-        var events: [Event<C>] = []
+        var events: [ComponentEvent] = []
         let eventSubscriber = self.events.sink { event in
             events.append(event)
         }
 
-        let sendEventsValue = self.sendEvents
-        self.sendEvents = sendEvents
+        let sendEventsValue = self.sendGlobalEvents
+        self.sendGlobalEvents = sendEvents
         defer {
-            self.sendEvents = sendEventsValue
+            self.sendGlobalEvents = sendEventsValue
         }
 
         // setup state
@@ -221,7 +221,9 @@ extension ViewModel {
                     for event in events.reversed() {
                         switch event.type {
                             case .output(let outputEvent):
-                                foundOutput = outputEvent
+                                if let ouput = outputEvent as? C.Output {
+                                    foundOutput = ouput
+                                }
                                 break
                             default: break
                         }

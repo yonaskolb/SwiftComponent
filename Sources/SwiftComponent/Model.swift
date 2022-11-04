@@ -71,15 +71,13 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
     }
 }
 
-public struct Mutation<State>: Identifiable {
-    public let keyPath: PartialKeyPath<State>
+public struct Mutation: Identifiable {
     public let value: Any
     public let property: String
     public var valueType: String { String(describing: type(of: value)) }
     public let id = UUID()
 
-    init<T>(keyPath: KeyPath<State, T>, value: T) {
-        self.keyPath = keyPath
+    init<State, T>(keyPath: KeyPath<State, T>, value: T) {
         self.value = value
         self.property = keyPath.propertyName ?? "self"
     }
@@ -113,11 +111,11 @@ public class ViewModel<C: Component>: ObservableObject {
     var componentModel: ComponentModel<C>!
     var component: C
     var cancellables: Set<AnyCancellable> = []
-    private var mutations: [Mutation<C.State>] = []
+    private var mutations: [Mutation] = []
     var handledTask = false
     var mutationAnimation: Animation?
-    var sendEvents = true
-    public var events = PassthroughSubject<Event<C>, Never>()
+    var sendGlobalEvents = true
+    public var events = PassthroughSubject<ComponentEvent, Never>()
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
 
@@ -135,14 +133,14 @@ public class ViewModel<C: Component>: ObservableObject {
         self.componentModel = ComponentModel(viewModel: self)
     }
 
-    fileprivate func sendEvent(_ eventType: Event<C>.EventType, sourceLocation: SourceLocation) {
-        let event = Event<C>(eventType, componentPath: path, sourceLocation: sourceLocation)
-        print("\(event.type.anyEvent.emoji) \(path) \(event.type.title): \(event.type.details)")
+    fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], sourceLocation: SourceLocation) {
+        let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, sourceLocation: sourceLocation)
+        print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
         events.send(event)
 
-        guard sendEvents else { return }
+        guard sendGlobalEvents else { return }
 
-        viewModelEvents.append(AnyEvent(event))
+        viewModelEvents.append(event)
     }
 
     public func send(_ action: C.Action, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
@@ -159,15 +157,16 @@ public class ViewModel<C: Component>: ObservableObject {
 
     @MainActor
     func handleAction(_ action: C.Action, sourceLocation: SourceLocation) async {
+        let eventStart = Date()
         mutations = []
         await component.handle(action: action, model: componentModel)
-        sendEvent(.action(action, mutations), sourceLocation: sourceLocation)
+        sendEvent(type: .action(action), start: eventStart, mutations: mutations, sourceLocation: sourceLocation)
     }
 
     func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, value: Value, sourceLocation: SourceLocation, animation: Animation? = nil) {
         // TODO: note that sourceLocation from dynamicMember keyPath is not correct
         let oldState = state
-        let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
+        let mutation = Mutation(keyPath: keyPath, value: value)
         self.mutations.append(mutation)
         if let animation {
             withAnimation(animation) {
@@ -183,15 +182,15 @@ public class ViewModel<C: Component>: ObservableObject {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
-
+                let start = Date()
                 // don't continue if change doesn't lead to state change
                 guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
 
 //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
                 self.state[keyPath: keyPath] = value
 
-                let mutation = Mutation<C.State>(keyPath: keyPath, value: value)
-                self.sendEvent(.binding(mutation), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                let mutation = Mutation(keyPath: keyPath, value: value)
+                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], sourceLocation: .capture(file: file, fileID: fileID, line: line))
 
                 //print(diff(oldState, self.state) ?? "  No state changes")
 
@@ -208,36 +207,42 @@ public class ViewModel<C: Component>: ObservableObject {
 
     @MainActor
     func task() async {
+        let start = Date()
         mutations = []
         handledTask = true
         await component.task(model: componentModel)
         if handledTask {
-            self.sendEvent(.viewTask(mutations), sourceLocation: .capture())
+            self.sendEvent(type: .viewTask, start: start, mutations: mutations, sourceLocation: .capture())
         }
     }
 
     func output(_ event: C.Output, sourceLocation: SourceLocation) {
-        self.sendEvent(.output(event), sourceLocation: sourceLocation)
+        self.sendEvent(type: .output(event), start: Date(), mutations: [], sourceLocation: sourceLocation)
     }
 
     @MainActor
     func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async -> R {
         let start = Date()
+        mutations = []
         let value = await task()
-        sendEvent(.task(TaskResult(name: name, result: .success(value), start: start, end: Date())), sourceLocation: sourceLocation)
+        let result = TaskResult(name: name, result: .success(value))
+        sendEvent(type: .task(result), start: start, mutations: mutations, sourceLocation: sourceLocation)
         return value
     }
 
     @MainActor
     func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
         let start = Date()
+        mutations = []
+        let result: TaskResult
         do {
             let value = try await task()
-            sendEvent(.task(TaskResult(name: name, result: .success(value), start: start, end: Date())), sourceLocation: sourceLocation)
+            result = TaskResult(name: name, result: .success(value))
         } catch {
             catchError(error)
-            sendEvent(.task(TaskResult(name: name, result: .failure(error), start: start, end: Date())), sourceLocation: sourceLocation)
+            result = TaskResult(name: name, result: .failure(error))
         }
+        sendEvent(type: .task(result), start: start, mutations: mutations, sourceLocation: sourceLocation)
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<C.State, Value>) -> Value {
@@ -327,8 +332,10 @@ extension ViewModel {
             guard let self else { return }
             switch event.type {
                 case .output(let output):
-                    let action = toAction(output)
-                    self.handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                    if let output = output as? Child.Output {
+                        let action = toAction(output)
+                        self.handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                    }
                 default:
                     break
             }
@@ -343,8 +350,10 @@ extension ViewModel {
             guard let self else { return }
             switch event.type {
                 case .output(let output):
-                    let action = toAction(output)
-                    self.handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                    if let output = output as? Child.Output {
+                        let action = toAction(output)
+                        self.handleAction(action, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                    }
                 default:
                     break
             }

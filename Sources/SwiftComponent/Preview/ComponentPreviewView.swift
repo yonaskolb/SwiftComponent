@@ -36,7 +36,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     @AppStorage("previewTests") var previewTests = true
     @AppStorage("showTestEvents") var showTestEvents = false
 
-    var events: [AnyEvent] {
+    var events: [ComponentEvent] {
         componentEvents(for: viewModel.path, includeChildren: true)
     }
 

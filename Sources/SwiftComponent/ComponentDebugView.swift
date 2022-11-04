@@ -22,7 +22,7 @@ struct ComponentDebugView<ComponentType: Component>: View {
     @AppStorage("showBindings") var showBindings = true
     @AppStorage("showChildEvents") var showChildEvents = true
 
-    var events: [AnyEvent] {
+    var events: [ComponentEvent] {
         componentEvents(for: viewModel.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
             .reversed()
