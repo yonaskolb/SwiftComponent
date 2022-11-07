@@ -45,7 +45,11 @@ public struct ViewPreviewer<Content: View>: View {
                 }
                 Spacer()
                 if showAccessibilityPreview {
+#if canImport(UIKit)
                     content.accessibilityPreview()
+#else
+                    content
+#endif
                 } else {
                     content
                         .environment(\.sizeCategory, sizeCategory)
@@ -75,7 +79,9 @@ public struct ViewPreviewer<Content: View>: View {
             }
             .padding()
         }
+        #if os(iOS)
         .navigationViewStyle(StackNavigationViewStyle())
+        #endif
     }
 
     var sizeCategorySelector: some View {
@@ -239,7 +245,7 @@ struct ViewPreviewer_Previews: PreviewProvider {
             }
             .navigationTitle(Text("My App"))
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigation) {
                     Image(systemName: "plus")
                 }
             }

@@ -7,8 +7,10 @@
 
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
 import AccessibilitySnapshotCore
 import UIKit
+
 
 private let accessibilityHierarchyParser = AccessibilityHierarchyParser()
 
@@ -30,13 +32,15 @@ struct AccessibilityHeirarchyView: View {
         if markers.isEmpty {
             Text("Accessibility hierarchy not found")
         } else {
-            List {
-                ForEach(Array(markers.enumerated()), id: \.offset) { index, marker in
-                    HStack {
-                        markerView(marker)
-                        Spacer()
-                    }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(markers.enumerated()), id: \.offset) { index, marker in
+                        HStack {
+                            markerView(marker)
+                            Spacer()
+                        }
 
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -46,23 +50,19 @@ struct AccessibilityHeirarchyView: View {
     @ViewBuilder
     func markerView(_ marker: AccessibilityMarker) -> some View {
         if let type = marker.type {
-            HStack {
             switch type.type {
                 case .button:
+                    Button(action: {}) {
                         Text(type.content)
-                            .underline()
                         .bold()
+                    }
                 case .heading:
                     Text(type.content)
                         .bold()
                         .font(.title2)
+                        .padding(.bottom, 8)
                 case .image:
                     Text("🌅 " + marker.description)
-            }
-                Spacer()
-                Text(type.type.rawValue)
-                    .foregroundColor(.secondary)
-                    .font(.caption)
             }
         } else {
             Text(marker.description)
@@ -129,9 +129,14 @@ struct A11yPreviewProvider_Previews: PreviewProvider {
                 Text("My Title")
                     .font(.title)
                     .accessibilityAddTraits(.isHeader)
-                    .accessibilityHeading(.h1)
+                    .accessibilityHeading(.h2)
                 Text("Hello, world!")
-                Button("Do thing", action: {})
+                Picker("Option", selection: .constant(true)) {
+                    Text("On").tag(true)
+                    Text("Off").tag(false)
+                }
+                .pickerStyle(.segmented)
+                Button("Login", action: {})
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -141,5 +146,7 @@ struct A11yPreviewProvider_Previews: PreviewProvider {
             }
 //        }
         .accessibilityPreview()
+        .padding()
     }
 }
+#endif
