@@ -13,8 +13,10 @@ struct ExampleApp: App {
 
     var body: some Scene {
         WindowGroup {
-//            ItemView(model: .init(state: $state))
-            ItemPreview.componentPreview
+            NavigationView {
+                ItemView(model: .init(state: $state))
+            }
+//            ItemPreview.componentPreview
         }
     }
 }

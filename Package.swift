@@ -15,6 +15,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", from: "0.44.0"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "0.10.0"),
         .package(url: "https://github.com/Sherlouk/AccessibilitySnapshot", branch: "update-snapshot-testing"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.4"),
     ],
@@ -24,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "CustomDump", package: "swift-custom-dump"),
                 .product(name: "Dependencies", package: "swift-composable-architecture"),
+                .product(name: "CasePaths", package: "swift-case-paths"),
                 "SwiftGUI",
                 "SwiftPreview",
                 "Runtime",

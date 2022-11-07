@@ -11,6 +11,7 @@ A SwiftUI architecture that makes feature development fun and easy.
 - In-App debug menu for every component
 - All events that flow through the app can be tracked
 - Write tests next to your component and have them run on every change in Xcode preview, as well as on CI
+- Use at the root of your application, just leaf views, or anything in between
 
 ### Parts
 - Component

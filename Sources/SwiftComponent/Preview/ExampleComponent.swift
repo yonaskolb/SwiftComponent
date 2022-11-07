@@ -20,9 +20,11 @@ struct ExampleComponent: ComponentModel {
         var loading: Bool = false
         var date = Date()
     }
+
     enum Input: Equatable {
         case tap(Int)
     }
+
     enum Output {
         case finished
     }

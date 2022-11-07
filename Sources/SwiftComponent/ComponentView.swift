@@ -13,10 +13,26 @@ import SwiftPreview
 public protocol ComponentView: View {
 
     associatedtype Model: ComponentModel
-    associatedtype ComponentView : View
+    associatedtype ComponentView: View
+    associatedtype DestinationView: View
     var model: ViewModel<Model> { get }
     init(model: ViewModel<Model>)
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
+    @ViewBuilder @MainActor func destinationView(_ destination: Model.Destination) -> DestinationView
+    @MainActor func presentation(_ destination: Model.Destination) -> Presentation
+}
+
+public extension ComponentView {
+
+    func presentation(_ destination: Model.Destination) -> Presentation {
+        .sheet
+    }
+}
+
+public extension ComponentView where Model.Destination == Never {
+    func destinationView(_ destination: Model.Destination) -> EmptyView {
+        EmptyView()
+    }
 }
 
 struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
@@ -65,9 +81,44 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
 public extension ComponentView {
 
+    private func dismiss() {
+        model.destination = nil
+    }
+
+    private var currentPresentation: Presentation? {
+        model.destination.map(presentation)
+    }
+
+    private func presentationBinding(_ presentation: Presentation) -> Binding<Bool> {
+        Binding(
+            get: {
+                currentPresentation == presentation
+            },
+            set: { present in
+                if !present {
+                    self.dismiss()
+                }
+            }
+        )
+    }
+
     @MainActor
     var body: some View {
         ComponentViewContainer(model: model, view: view)
+            .background {
+                NavigationLink(isActive: presentationBinding(.push) ) {
+                    if let destination = model.destination {
+                        destinationView(destination)
+                    }
+                } label: {
+                    EmptyView()
+                }
+            }
+            .sheet(isPresented: presentationBinding(.sheet)) {
+                if let destination = model.destination {
+                    destinationView(destination)
+                }
+            }
     }
 
     func task() async {

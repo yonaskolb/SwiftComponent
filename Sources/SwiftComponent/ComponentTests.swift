@@ -46,6 +46,7 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         case input(C.Input)
         case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, path: String, value: Any)
         case validateState(error: String, validateState: (C.State) -> Bool)
+        case validateDestination(C.Destination?)
         case expectState((inout C.State) -> Void)
         case expectOutput(C.Output)
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
@@ -82,6 +83,16 @@ public struct TestStep<C: ComponentModel>: Identifiable {
     public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
         .init(type: .validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), sourceLocation: .capture(file: file, fileID: fileID, line: line))
     }
+
+    public static func validateDestination(_ destination: C.Destination?, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .validateDestination(destination), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+}
+
+extension TestStep {
+
+
 }
 
 extension TestStep {
@@ -98,6 +109,8 @@ extension TestStep {
                 return "Binding"
             case .validateState:
                 return "Validate State"
+            case .validateDestination:
+                return "Validate Destination"
             case .expectState:
                 return "Expect State"
             case .expectOutput:
@@ -133,6 +146,12 @@ extension TestStep {
                 return "\(getEnumCase(output).name)"
             case .validateDependency(_, let path, _ ):
                 return "\(path)"
+            case .validateDestination(let destination):
+                if let destination {
+                    return getEnumCase(destination).name
+                } else {
+                    return "none"
+                }
         }
     }
 }
@@ -233,9 +252,9 @@ extension ViewModel {
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
                     } operation: {
-                        await processInput(input, sourceLocation: step.sourceLocation)
+                        await processInput(input, sourceLocation: step.sourceLocation, sendEvents: true)
                     }
-                case .binding(let mutate, let keyPath, _, let value):
+                case .binding(let mutate, _, _, let value):
                     if delay > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
                     }
@@ -310,6 +329,10 @@ extension ViewModel {
                     }
                 case .setDependency(_, let modify):
                     modify(&testDependencyValues)
+                case .validateDestination(let destination):
+                    if let difference = diff(destination, self.destination) {
+                        stepErrors.append(TestError(error: "Unexpected Destination", diff: difference, sourceLocation: step.sourceLocation))
+                    }
             }
             let result = TestStepResult(step: step, events: stepEvents, errors: stepErrors)
             stepComplete?(result)

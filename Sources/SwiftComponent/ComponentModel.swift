@@ -5,6 +5,7 @@ public protocol ComponentModel<State, Input> {
     associatedtype State = Void
     associatedtype Input = Never
     associatedtype Output: Equatable = Never
+    associatedtype Destination = Never
     @MainActor func viewTask(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(input: Input, model: Model) async

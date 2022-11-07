@@ -12,12 +12,17 @@ struct ItemComponent: ComponentModel {
 
     @Dependency(\.continuousClock) var clock
 
-    struct State {
+    struct State: NavigationState {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
         var presentDetail: ItemDetailComponent.State?
         var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
+        var route: Route<Destination>?
+    }
+
+    enum Destination {
+        case detail(ItemDetailComponent.State)
     }
 
     enum Input {
@@ -43,7 +48,7 @@ struct ItemComponent: ComponentModel {
             case .openDetail:
                 model.presentDetail = model.detail
             case .pushItem:
-               break
+                model.route = .push(.detail(model.detail))
             case .detail(.finished(let name)):
                 model.detail.name = name
                 model.name = name
@@ -67,39 +72,44 @@ struct ItemView: ComponentView {
 
     @ObservedObject var model: ViewModel<ItemComponent>
 
-    var view: some View {
-        NavigationView {
-            VStack {
-                Text(model.state.name)
-                ResourceView(model.state.data) { state in
-                    Text(state.description)
-                } error: { error in
-                    Text(error.localizedDescription)
-                }
-                .frame(height: 30)
-                HStack {
-                    Text("Detail name: \(model.state.detail.name)")
-                    model.inputButton(.updateDetail, "Update")
-                }
-                ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Input.detail))
-                    .fixedSize()
-                TextField("Field", text: model.binding(\.text))
-                    .textFieldStyle(.roundedBorder)
-
-                model.inputButton(.calculate, "Calculate")
-                model.inputButton(.openDetail, "Item")
-                model.inputButton(.pushItem, "Push Item")
-                Spacer()
-            }
-            .padding()
-            .sheet(item: model.binding(\.presentDetail)) { state in
-                NavigationView {
-                    ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Input.detail))
-                }
-            }
-            .navigationBarTitleDisplayMode(.large)
-            .navigationTitle(Text("Item"))
+    func destinationView(_ destination: ItemComponent.Destination) -> some View {
+        switch destination {
+            case .detail(let state):
+                ItemDetailView(model: model.scope(casePath: /ItemComponent.Destination.detail, value: state, event: ItemComponent.Input.detail))
         }
+    }
+
+    var view: some View {
+        VStack {
+            Text(model.state.name)
+            ResourceView(model.state.data) { state in
+                Text(state.description)
+            } error: { error in
+                Text(error.localizedDescription)
+            }
+            .frame(height: 30)
+            HStack {
+                Text("Detail name: \(model.state.detail.name)")
+                model.inputButton(.updateDetail, "Update")
+            }
+            ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Input.detail))
+                .fixedSize()
+            TextField("Field", text: model.binding(\.text))
+                .textFieldStyle(.roundedBorder)
+
+            model.inputButton(.calculate, "Calculate")
+            model.inputButton(.openDetail, "Item")
+            model.inputButton(.pushItem, "Push Item")
+            Spacer()
+        }
+        .padding()
+        .sheet(item: model.binding(\.presentDetail)) { state in
+            NavigationView {
+                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Input.detail))
+            }
+        }
+        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle(Text("Item"))
     }
 }
 
