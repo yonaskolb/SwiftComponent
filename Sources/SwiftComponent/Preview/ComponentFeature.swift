@@ -9,34 +9,39 @@ import Foundation
 import SwiftUI
 
 #if DEBUG
-public protocol ComponentPreview<ComponentType, ComponentViewType>: PreviewProvider {
-    associatedtype ComponentType: Component
-    associatedtype ComponentViewType: ComponentView where ComponentType == ComponentViewType.C
-    typealias ComponentState = ComponentPreviewState<ComponentType.State>
-    typealias ComponentTest = Test<ComponentType>
-    typealias Step = ComponentTest.Step
-    typealias State = ComponentType.State
+public protocol ComponentFeature: PreviewProvider {
+    associatedtype ModelType: ComponentModel
+    associatedtype ViewType: View
+    typealias ComponentState = ComponentPreviewState<ModelType.State>
+    typealias ComponentTest = Test<ModelType>
+    typealias Step = TestStep<ModelType>
+    typealias State = ModelType.State
 
     @StateBuilder static var states: [ComponentState] { get }
     @TestBuilder static var tests: [ComponentTest] { get }
+    static func createView(model: ViewModel<ModelType>) -> ViewType
     static var embedInNav: Bool { get }
 }
+    
+extension ComponentFeature where ViewType: ComponentView, ViewType.Model == ModelType {
 
-extension ComponentPreview {
-
-    public static var tests: [ComponentTest] { [] }
-    static func createComponentView(state: ComponentType.State) -> ComponentViewType {
-        ComponentViewType(model: ViewModel<ComponentType>(state: state))
+    public static func createView(model: ViewModel<ModelType>) -> ViewType {
+        ViewType(model: model)
     }
+}
 
-    static func createView(_ componentView: ComponentViewType) -> AnyView {
-        var view: AnyView
+extension ComponentFeature {
+
+    public static var tests: [Test<ModelType>] { [] }
+
+    static func embedView(state: ModelType.State) -> AnyView {
+        let viewModel = ViewModel<ModelType>(state: state)
+        let view = createView(model: viewModel)
         if config.embedInNav {
-            view = NavigationView { componentView }.eraseToAnyView()
+            return NavigationView { view }.eraseToAnyView()
         } else {
-            view = componentView.eraseToAnyView()
+            return view.eraseToAnyView()
         }
-        return view
     }
 
     static var config: PreviewConfig { PreviewConfig(embedInNav: embedInNav) }
@@ -44,26 +49,13 @@ extension ComponentPreview {
     public static var previews: some View {
         Group {
             componentPreview
+                .previewDisplayName(ModelType.baseName + " Component")
             ForEach(states, id: \.name) { state in
-                createView(createComponentView(state: state.state))
-                    .previewDisplayName("\(String(describing: ComponentViewType.self).replacingOccurrences(of: "View", with: "")) \(state.name)" )
+                embedView(state: state.state)
+                    .previewDisplayName("State: \(state.name)")
+                    .environment(\.isPreviewReference, true)
                     .previewLayout(state.size.flatMap { PreviewLayout.fixed(width: $0.width, height: $0.height) } ?? PreviewLayout.device)
             }
-        }
-    }
-
-    public static var componentInfo: ComponentInfo {
-        let state = states.first!.state
-        let component = createComponentView(state: state)
-        let viewModel = component.model
-        let view = createView(component)
-        return ComponentInfo(
-            component: ComponentType.self,
-            componentView: ComponentViewType.self,
-            view: view,
-            viewModel: viewModel,
-            states: states, tests: tests) { state in
-            createView(createComponentView(state: state))
         }
     }
 
@@ -71,7 +63,7 @@ extension ComponentPreview {
         ComponentPreviewView<Self>()
     }
 
-    public static func state(name: String) -> ComponentType.State? {
+    public static func state(name: String) -> ModelType.State? {
         states.first { $0.name == name }?.state
     }
 }

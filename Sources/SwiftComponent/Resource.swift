@@ -53,6 +53,26 @@ extension Resource: Equatable where State: Equatable {
     }
 }
 
+extension Resource where State: Collection, State: ExpressibleByArrayLiteral {
+
+    public var list: State {
+        get {
+            if let content = content {
+                return content
+            } else {
+                return []
+            }
+        }
+        set {
+            content = newValue
+        }
+    }
+
+    public static var empty: Self {
+        self.content([])
+    }
+}
+
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
 public struct ResourceView<State: Equatable, Content: View, ErrorView: View>: View {
 

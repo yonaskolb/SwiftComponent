@@ -9,27 +9,233 @@ import SwiftUI
 import SwiftPreview
 import SwiftGUI
 
-struct ComponentPreviewView<Preview: ComponentPreview>: View {
+struct ComponentPreviewView<Preview: ComponentFeature>: View {
 
-    @StateObject var viewModel = ViewModel<Preview.ComponentType>.init(state: Preview.states[0].state)
+    @StateObject var viewModel = ViewModel<Preview.ModelType>.init(state: Preview.states[0].state)
+    @AppStorage("componentPreview.showView") var showView = true
+    @AppStorage("componentPreview.showComponent") var showComponent = true
+    @AppStorage("componentPreview.viewState") var viewState: ViewState = .component
+
+    enum ViewState: String, CaseIterable {
+        case view = "View"
+        case component = "Component"
+        case tests = "Tests"
+
+    }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Preview.ComponentViewType(model: viewModel)
-                .preview()
-                .padding()
-            Divider()
-            ComponentPreviewMenuView<Preview>(viewModel: viewModel)
+        NavigationView {
+            Group {
+                switch viewState {
+                    case .component:
+                        component
+                    case .view:
+                        Preview.createView(model: viewModel)
+                            .preview()
+                            .padding()
+                    case .tests:
+                        tests
+//                        NavigationView {
+//                            ComponentPreviewMenuView<Preview>(viewModel: viewModel)
+//                                .navigationTitle(Text(String(describing: Preview.ComponentType.self)))
+//                                .navigationBarTitleDisplayMode(.inline)
+//                        }
+//                        .navigationViewStyle(.stack)
+
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker(selection: $viewState) {
+                        ForEach(ViewState.allCases, id: \.rawValue) { viewState in
+                            Text(viewState.rawValue).tag(viewState)
+                        }
+                    } label: {
+                        Text("Mode")
+                    }
+                    .pickerStyle(.segmented)
+
+                }
+            }
         }
+        .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)
         .edgesIgnoringSafeArea(.all)
     }
-}
 
-struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
+    var component: some View {
+        HStack(spacing: 0) {
+            if showView {
+                //NavigationView {
+                Preview.createView(model: viewModel)
+                    .preview()
+                    .padding()
+                    .navigationTitle(Text(String(describing: Preview.ViewType.self)))
+                    .navigationBarTitleDisplayMode(.inline)
+//                    .toolbar {
+//                        ToolbarItem(placement: .navigationBarTrailing) {
+//                            Button(action: { withAnimation { showComponent = !showComponent }}) {
+//                                Image(systemName: showComponent ? "rectangle.trailinghalf.inset.filled.arrow.trailing" : "rectangle.trailinghalf.filled")
+//                            }
+//                        }
+//                    }
+//                //}
+//                    .transition(.move(edge: .leading))
+//                    .animation(.default, value: showView)
+            }
+            //            Divider()
+            if showComponent {
+                NavigationView {
+                    menuView
+                        .navigationTitle(Text(String(describing: Preview.ModelType.self)))
+                        .navigationBarTitleDisplayMode(.inline)
+//                        .toolbar {
+//                            ToolbarItem(placement: .navigationBarLeading) {
+//                                Button(action: { withAnimation { showView = !showView }}) {
+//                                    Image(systemName: showView ? "rectangle.leadinghalf.inset.filled.arrow.leading" : "rectangle.leadinghalf.filled")
+//                                }
+//                            }
+//                        }
+                }
+                .navigationViewStyle(.stack)
+//                .transition(.move(edge: .leading))
+//                .animation(.default, value: showComponent)
+            }
+        }
+    }
 
-    @ObservedObject var viewModel: ViewModel<Preview.ComponentType>
+    var menuView: some View {
+        form
+            .task {
+                if autoRunTests {
+                    runAllTests()
+                }
+            }
+    }
+
+    var tests: some View {
+        ScrollView {
+            LazyVStack(spacing: 30) {
+                ForEach(Preview.tests, id: \.name) { test in
+                    testRow(test)
+                    Divider()
+                }
+            }
+//            .animation(.default)
+            .padding(.horizontal, 20)
+        }
+        .task {
+            runAllTests()
+        }
+    }
+
+    func testRow(_ test: Test<Preview.ModelType>) -> some View {
+        VStack(alignment: .leading) {
+            testHeader(test)
+                .padding(.bottom, 8)
+            if let steps = testResults[test.name] {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(steps, id: \.self) { step in
+                        if let stepResult = testStepResults[step] {
+                            stepResultRow(stepResult)
+                        }
+                    }
+                }
+                .padding(.leading, 30)
+            }
+        }
+    }
+
+    func stepResultRow(_ stepResult: TestStepResult<Preview.ModelType>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                if stepResult.success {
+                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                } else {
+                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                }
+                HStack(spacing: 0) {
+                    Text(stepResult.step.title)
+                        .bold()
+                    if let details = stepResult.step.details {
+                        Text(": \(details)")
+                    }
+                }
+                .foregroundColor(stepResult.success ? .green : .red)
+            }
+            if !stepResult.events.isEmpty {
+                VStack(alignment: .leading, spacing:8) {
+                    ForEach(stepResult.events.sorted { $0.start < $1.start }) { event in
+                        HStack {
+                            Text(event.type.emoji)
+                            Text(event.type.title)
+                                .bold()
+                            Text(event.type.details)
+                        }
+                    }
+                    .padding(.leading, 30)
+                }
+                .padding(.vertical, 6)
+            }
+            if !stepResult.errors.isEmpty {
+                ForEach(stepResult.errors, id: \.id) { error in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(error.error)
+                            .foregroundColor(.red)
+                        if let diff = error.diff {
+                            VStack(alignment: .leading, spacing: 4) {
+                                diff.diffText()
+                            }
+                        }
+                    }
+                }
+                .padding(.leading, 30)
+            }
+        }
+    }
+
+    func testHeader(_ test: Test<Preview.ModelType>) -> some View {
+        Button {
+            Task { @MainActor in
+                await runTest(test)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                ZStack {
+                    ProgressView().hidden()
+                    switch getTestState(test) {
+                        case .running:
+                            ProgressView().progressViewStyle(CircularProgressViewStyle())
+                        case .failed:
+                            Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                        case .success:
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        case .notRun:
+                            Image(systemName: "circle")
+                        case .pending:
+                            Image(systemName: "play.circle").foregroundColor(.gray)
+                    }
+                }
+                .foregroundColor(getTestState(test).color)
+                Text(test.name)
+                    .bold()
+                    .foregroundColor(getTestState(test).color)
+                Spacer()
+//                if !runningTests {
+//                    Image(systemName: "play.circle")
+//                        .font(.title3)
+//                }
+            }
+            .animation(nil)
+            .font(.title3)
+        }
+        .buttonStyle(.plain)
+    }
+
+
     @State var testState: [String: TestState] = [:]
+    @State var testResults: [String: [TestStep<Preview.ModelType>.ID]] = [:]
+    @State var testStepResults: [TestStep<Preview.ModelType>.ID: TestStepResult<Preview.ModelType>] = [:]
     @State var runningTests = false
     @State var render = UUID()
     @AppStorage("autoRunTests") var autoRunTests = false
@@ -40,7 +246,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
         componentEvents(for: viewModel.path, includeChildren: true)
     }
 
-    func getTestState(_ test: Test<Preview.ComponentType>) -> TestState {
+    func getTestState(_ test: Test<Preview.ModelType>) -> TestState {
         testState[test.name] ?? .notRun
     }
 
@@ -91,12 +297,12 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
     }
 
     @MainActor
-    func runTest(_ test: Test<Preview.ComponentType>) async {
+    func runTest(_ test: Test<Preview.ModelType>) async {
         runningTests = true
         testState[test.name] = .running
 
-        let viewModel: ViewModel<Preview.ComponentType>
-        let state: Preview.ComponentType.State
+        let viewModel: ViewModel<Preview.ModelType>
+        let state: Preview.ModelType.State
         if let testState = test.state {
             state = testState
         } else if let stateName = test.stateName {
@@ -111,7 +317,7 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
             return
         }
 
-        let delay: TimeInterval = previewTests ? 0.4 : 0
+        let delay: TimeInterval = previewTests ? 0.3 : 0
 
         if delay > 0 {
             viewModel = self.viewModel
@@ -119,36 +325,20 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
             viewModel = ViewModel(state: state)
         }
         viewModel.path.suffix = " Test: \(test.name)"
-        let errors = await viewModel.runTest(test, initialState: state, delay: delay, sendEvents: showTestEvents)
+        testResults[test.name] = []
+        let result = await viewModel.runTest(test, initialState: state, delay: delay, sendEvents: showTestEvents) { result in
+            Task { @MainActor in
+                testResults[test.name, default: []].append(result.id)
+                testStepResults[result.id] = result
+            }
+        }
         viewModel.path.suffix = nil
-        if errors.isEmpty {
+        if result.success {
             testState[test.name] = .success
         } else {
-            testState[test.name] = .failed(errors)
+            testState[test.name] = .failed(result.errors)
         }
         runningTests = false
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            NavigationView {
-                form
-                    .navigationTitle(Text("\(Preview.ComponentType.name) Component"))
-                    .navigationBarTitleDisplayMode(.inline)
-                    .frame(minHeight: 0)
-            }
-//            Divider()
-//            NavigationView {
-//                SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
-//            }
-            .navigationViewStyle(.stack)
-        }
-        .task {
-            if autoRunTests {
-                runAllTests()
-            }
-        }
-        .navigationViewStyle(.stack)
     }
 
     var form: some View {
@@ -231,23 +421,6 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                         }
                         .animation(nil)
                     }
-                    if let errors = getTestState(test).errors {
-                        Divider()
-                            .padding(.horizontal, 20)
-                        ForEach(Array(errors.enumerated()), id: \.1) { (index, error) in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(index + 1). \(error.error)\(error.errorDetail != nil ? ":" : "")")
-                                    .foregroundColor(.red)
-                                    .bold()
-                                if let detail = error.errorDetail {
-                                    Text(detail)
-                                        .padding(.leading, 15)
-                                        .foregroundColor(.red)
-                                    //                                                .font(.footnote)
-                                }
-                            }
-                        }
-                    }
                 }
 
             }
@@ -268,8 +441,8 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
 
     var eventsSection: some View {
         Section(header: eventsHeader) {
-            ComponentEventList(viewModel: viewModel, events: events.reversed(), showMutations: false)
-            .id(render)
+            ComponentEventList(viewModel: viewModel, events: events.sorted { $0.start > $1.start }, showMutations: false)
+                .id(render)
         }
     }
 
@@ -281,6 +454,30 @@ struct ComponentPreviewMenuView<Preview: ComponentPreview>: View {
                 Text("Clear")
             }
             .buttonStyle(.plain)
+        }
+    }
+}
+
+extension String {
+
+    private func getLine(_ line: String) -> (String, Color) {
+        var line = String(line)
+        var color = Color.gray
+        if line.hasPrefix("+") {
+            line = " " + String(line.dropFirst(1))
+            color = .green
+        } else if line.hasPrefix("-") {
+            line = " " + String(line.dropFirst(1))
+            color = .red
+        }
+        return (line, color)
+    }
+
+    func diffText() -> some View {
+        ForEach(Array(self.components(separatedBy: "\n").enumerated()), id: \.0) { _, line in
+            let line = getLine(line)
+            Text(line.0)
+                .foregroundColor(line.1)
         }
     }
 }

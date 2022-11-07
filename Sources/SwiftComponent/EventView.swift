@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftGUI
 
-struct ComponentEventList<ComponentType: Component>: View {
+struct ComponentEventList<ComponentType: ComponentModel>: View {
 
     let viewModel: ViewModel<ComponentType>
     let events: [ComponentEvent]
@@ -191,24 +191,28 @@ extension EventType {
     
     var detailsTitle: String {
         switch self {
-            case .action:
+            case .input:
                 return "Action Name"
             case .binding:
-                return "Property"
+                return "Path"
             case .output:
                 return "Output Name"
             case .viewTask:
                 return ""
             case .task:
                 return "Name"
+            case .mutation:
+                return "Path"
         }
     }
 
     var valueTitle: String {
         switch self {
-            case .action:
+            case .input:
                 return "Action"
             case .binding:
+                return "Value"
+            case .mutation:
                 return "Value"
             case .output:
                 return "Output"
@@ -224,9 +228,11 @@ extension EventType {
 
     public var details: String {
         switch self {
-            case .action(let action):
+            case .input(let action):
                 return getEnumCase(action).name
             case .binding(let mutation):
+                return mutation.property
+            case .mutation(let mutation):
                 return mutation.property
             case .output(let event):
                 return getEnumCase(event).name
@@ -239,9 +245,11 @@ extension EventType {
 
     public var value: Any {
         switch self {
-            case .action(let action):
+            case .input(let action):
                 return action
             case .binding(let mutation):
+                return mutation.value
+            case .mutation(let mutation):
                 return mutation.value
             case .output(let output):
                 return output
@@ -270,7 +278,7 @@ let previewEvents: [ComponentEvent] = [
         ),
 
         ComponentEvent(
-            type: .action(ExampleComponent.Action.tap(2)),
+            type: .input(ExampleComponent.Input.tap(2)),
             componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
             start: Date(),
             end: Date(),
@@ -316,8 +324,10 @@ struct EventView_Previews: PreviewProvider {
             NavigationView {
                 EventView(event: previewEvents[1])
             }
+            .navigationViewStyle(.stack)
             ExampleView(model: .init(state: .init(name: "Hello")))
                 .debugView()
+                .navigationViewStyle(.stack)
         }
 
     }

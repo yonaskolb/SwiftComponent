@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftGUI
 import CustomDump
 
-struct ComponentDebugView<ComponentType: Component>: View {
+struct ComponentDebugView<ComponentType: ComponentModel>: View {
 
     let viewModel: ViewModel<ComponentType>
     @Environment(\.dismiss) var dismiss
@@ -109,7 +109,7 @@ struct ComponentDebugView<ComponentType: Component>: View {
 
 extension ComponentView {
 
-    func debugView() -> ComponentDebugView<C> {
+    func debugView() -> ComponentDebugView<Model> {
         ComponentDebugView(viewModel: model)
     }
 }

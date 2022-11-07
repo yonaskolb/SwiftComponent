@@ -9,9 +9,9 @@ import Foundation
 import CustomDump
 import Dependencies
 
-public struct Test<C: Component> {
+public struct Test<C: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
+    public init(_ name: String, _ state: C.State, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.state = state
         self.runViewTask = runViewTask
@@ -19,7 +19,7 @@ public struct Test<C: Component> {
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [Test<C>.Step]) {
+    public init(_ name: String, stateName: String, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.stateName = stateName
         self.runViewTask = runViewTask
@@ -30,55 +30,109 @@ public struct Test<C: Component> {
     public var name: String
     public var state: C.State?
     public var stateName: String?
-    public var steps: [Step]
+    public var steps: [TestStep<C>]
     public var runViewTask: Bool
     public let sourceLocation: SourceLocation
+}
 
-    public struct Step {
-        let type: StepType
-        var sourceLocation: SourceLocation
+public struct TestStep<C: ComponentModel>: Identifiable {
+    let type: StepType
+    var sourceLocation: SourceLocation
+    public let id = UUID()
 
-        public enum StepType {
-            case viewTask
-            case setDependency((inout DependencyValues) -> Void)
-            case action(C.Action)
-            case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, Any)
-            case validateState(error: String, validateState: (C.State) -> Bool)
-            case expectState((inout C.State) -> Void)
-            case expectOutput(C.Output)
-            case validateDependency(error: String, validateDependency: (DependencyValues) -> Bool)
+    public enum StepType {
+        case viewTask
+        case setDependency(Any, (inout DependencyValues) -> Void)
+        case input(C.Input)
+        case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, path: String, value: Any)
+        case validateState(error: String, validateState: (C.State) -> Bool)
+        case expectState((inout C.State) -> Void)
+        case expectOutput(C.Output)
+        case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
+    }
+
+    public static func runViewTask(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .viewTask, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func input(_ input: C.Input, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .input(input), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func expectOutput(_ output: C.Output, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .expectOutput(output), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func validateState(_ error: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
+        .init(type: .validateState(error: error, validateState: validateState), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func expectState(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
+        .init(type: .expectState(modify), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .setDependency(dependency) { $0[keyPath: keyPath] = dependency }, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+
+    public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    }
+}
+
+extension TestStep {
+
+    public var title: String {
+        switch type {
+            case .viewTask:
+                return "View task"
+            case .setDependency:
+                return "Set Dependency"
+            case .input:
+                return "Input"
+            case .binding:
+                return "Binding"
+            case .validateState:
+                return "Validate State"
+            case .expectState:
+                return "Expect State"
+            case .expectOutput:
+                return "Expect Output"
+            case .validateDependency:
+                return "Validate Dependency"
         }
+    }
 
-        public static func runViewTask(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .viewTask, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public var description: String {
+        var string = title
+        if let details = details {
+            string += ": \(details)"
         }
+        return string
+    }
 
-        public static func sendAction(_ action: C.Action, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .action(action), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func expectOutput(_ output: C.Output, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .expectOutput(output), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func validateState(_ error: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
-            .init(type: .validateState(error: error, validateState: validateState), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func expectState(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
-            .init(type: .expectState(modify), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, value), sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .setDependency { $0[keyPath: keyPath] = dependency }, sourceLocation: .capture(file: file, fileID: fileID, line: line))
-        }
-
-        public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-            .init(type: .validateDependency(error: error, validateDependency: { validateDependency($0[keyPath: keyPath]) }), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public var details: String? {
+        switch type {
+            case .viewTask:
+                return nil
+            case .setDependency(let dependency, _):
+                return "\(String(describing: Swift.type(of: dependency)))"
+            case .input(let input):
+                return "\(getEnumCase(input).name)"
+            case .binding(_, _, let path, let value):
+                return "\(path) = \(value)"
+            case .validateState(let name, _ ):
+                return "\(name)"
+            case .expectState(_):
+                return nil
+            case .expectOutput(let output):
+                return "\(getEnumCase(output).name)"
+            case .validateDependency(_, let path, _ ):
+                return "\(path)"
         }
     }
 }
@@ -86,37 +140,51 @@ public struct Test<C: Component> {
 
 @resultBuilder
 public struct TestBuilder {
-    public static func buildBlock<ComponentType: Component>() -> [Test<ComponentType>] { [] }
-    public static func buildBlock<ComponentType: Component>(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { tests }
-    public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
+    public static func buildBlock<ComponentType: ComponentModel>() -> [Test<ComponentType>] { [] }
+    public static func buildBlock<ComponentType: ComponentModel>(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { tests }
+    public static func buildBlock<ComponentType: ComponentModel>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
 }
 
 @resultBuilder
 public struct TestStepBuilder {
-    public static func buildBlock<ComponentType: Component>() -> [Test<ComponentType>.Step] { [] }
-    public static func buildBlock<ComponentType: Component>(_ tests: Test<ComponentType>.Step...) -> [Test<ComponentType>.Step] { tests }
-    public static func buildBlock<ComponentType: Component>(_ tests: [Test<ComponentType>.Step]) -> [Test<ComponentType>.Step] { tests }
+    public static func buildBlock<C: ComponentModel>() -> [TestStep<C>] { [] }
+    public static func buildBlock<C: ComponentModel>(_ tests: TestStep<C>...) -> [TestStep<C>] { tests }
+    public static func buildBlock<C: ComponentModel>(_ tests: [TestStep<C>]) -> [TestStep<C>] { tests }
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     public var error: String
-    public var errorDetail: String?
+    public var diff: String?
     public let sourceLocation: SourceLocation
     public let id = UUID()
 
     public var description: String {
         var string = error
-        if let errorDetail {
-            string += ":\n\(errorDetail)"
+        if let diff {
+            string += ":\n\(diff)"
         }
         return string
     }
 }
 
+public struct TestStepResult<C: ComponentModel>: Identifiable {
+    public var id: UUID { step.id }
+    public var step: TestStep<C>
+    public var events: [ComponentEvent]
+    public var errors: [TestError]
+    public var success: Bool { errors.isEmpty }
+}
+
+public struct TestResult<C: ComponentModel> {
+    public let steps: [TestStepResult<C>]
+    public var success: Bool { steps.allSatisfy(\.success) }
+    public var errors: [TestError] { steps.reduce([]) { $0 + $1.errors } }
+}
+
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<C>, initialState: C.State, delay: TimeInterval = 0, sendEvents: Bool = false) async -> [TestError] where C.Output: Equatable {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> where Model.Output: Equatable {
 
         // setup dependencies
         var testDependencyValues = DependencyValues._current
@@ -124,7 +192,7 @@ extension ViewModel {
 
         // handle events
         var events: [ComponentEvent] = []
-        let eventSubscriber = self.events.sink { event in
+        let eventsSubscription = self.events.sink { event in
             events.append(event)
         }
 
@@ -143,9 +211,14 @@ extension ViewModel {
         }
 
 
-        var errors: [TestError] = []
+        var stepResults: [TestStepResult<Model>] = []
         let sleepDelay = 1_000_000_000.0 * delay
         for step in test.steps {
+            var stepEvents: [ComponentEvent] = []
+            let stepEventsSubscription = self.events.sink { event in
+                stepEvents.append(event)
+            }
+            var stepErrors: [TestError] = []
             switch step.type {
                 case .viewTask:
                     await DependencyValues.withValues { dependencyValues in
@@ -153,16 +226,16 @@ extension ViewModel {
                     } operation: {
                         await task()
                     }
-                case .action(let action):
+                case .input(let input):
                     if delay > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
                     }
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
                     } operation: {
-                        await handleAction(action, sourceLocation: step.sourceLocation)
+                        await processInput(input, sourceLocation: step.sourceLocation)
                     }
-                case .binding(let mutate, let keyPath, let value):
+                case .binding(let mutate, let keyPath, _, let value):
                     if delay > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
                     }
@@ -199,29 +272,29 @@ extension ViewModel {
 
                         mutate(&state, value)
                     }
-                case .validateState(let error, let validateState):
+                case .validateState(_, let validateState):
                     let valid = validateState(state)
                     if !valid {
-                        errors.append(TestError(error: "State validation failed", errorDetail: error, sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Invalid State", sourceLocation: step.sourceLocation))
                     }
-                case .validateDependency(let error, let validateDependency):
+                case .validateDependency(let error, let dependency, let validateDependency):
                     let valid = validateDependency(testDependencyValues)
                     if !valid {
-                        errors.append(TestError(error: "Dependency validation failed", errorDetail: error, sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", sourceLocation: step.sourceLocation))
                     }
                 case .expectState(let modify):
                     let currentState = state
-                    var modifiedState = state
-                    modify(&modifiedState)
-                    if let difference = diff(modifiedState, currentState) {
-                        errors.append(TestError(error: "Unexpected State", errorDetail: difference, sourceLocation: step.sourceLocation))
+                    var expectedState = state
+                    modify(&expectedState)
+                    if let difference = diff(expectedState, currentState) {
+                        stepErrors.append(TestError(error: "Unexpected State", diff: difference, sourceLocation: step.sourceLocation))
                     }
                 case .expectOutput(let output):
-                    var foundOutput: C.Output?
+                    var foundOutput: Model.Output?
                     for event in events.reversed() {
                         switch event.type {
                             case .output(let outputEvent):
-                                if let ouput = outputEvent as? C.Output {
+                                if let ouput = outputEvent as? Model.Output {
                                     foundOutput = ouput
                                 }
                                 break
@@ -230,15 +303,18 @@ extension ViewModel {
                     }
                     if let foundOutput {
                         if let difference = diff(foundOutput, output) {
-                            errors.append(TestError(error: "Unexpected Output.\(getEnumCase(output).name) value", errorDetail: difference, sourceLocation: step.sourceLocation))
+                            stepErrors.append(TestError(error: "Unexpected value \(getEnumCase(foundOutput).name)", diff: difference, sourceLocation: step.sourceLocation))
                         }
                     } else {
-                        errors.append(TestError(error: "Expected Output.\(getEnumCase(output).name)", sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Not Found", sourceLocation: step.sourceLocation))
                     }
-                case .setDependency(let modify):
+                case .setDependency(_, let modify):
                     modify(&testDependencyValues)
             }
+            let result = TestStepResult(step: step, events: stepEvents, errors: stepErrors)
+            stepComplete?(result)
+            stepResults.append(result)
         }
-        return errors
+        return TestResult(steps: stepResults)
     }
 }

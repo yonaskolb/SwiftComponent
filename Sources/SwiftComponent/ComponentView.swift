@@ -12,16 +12,16 @@ import SwiftPreview
 
 public protocol ComponentView: View {
 
-    associatedtype C: Component
+    associatedtype Model: ComponentModel
     associatedtype ComponentView : View
-    var model: ViewModel<C> { get }
-    init(model: ViewModel<C>)
+    var model: ViewModel<Model> { get }
+    init(model: ViewModel<Model>)
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
 }
 
-struct ComponentViewContainer<C: Component, Content: View>: View {
+struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
-    let model: ViewModel<C>
+    let model: ViewModel<Model>
     let view: Content
     @State var showDebug = false
     @State var viewModes: [ComponentViewMode] = [.view]
@@ -74,9 +74,9 @@ public extension ComponentView {
 
     }
 
-    func binding<Value>(_ keyPath: WritableKeyPath<C.State, Value>) -> Binding<Value> {
+    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
         model.binding(keyPath)
     }
 
-    var state: C.State { model.state }
+    var state: Model.State { model.state }
 }

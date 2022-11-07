@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftComponent
 
-struct ItemComponent: Component {
+struct ItemComponent: ComponentModel {
 
     @Dependency(\.continuousClock) var clock
 
@@ -20,7 +20,7 @@ struct ItemComponent: Component {
         var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
     }
 
-    enum Action {
+    enum Input {
         case calculate
         case openDetail
         case pushItem
@@ -35,8 +35,8 @@ struct ItemComponent: Component {
         }
     }
 
-    func handle(action: Action, model: Model) async {
-        switch action {
+    func handle(input: Input, model: Model) async {
+        switch input {
             case .calculate:
                 try? await clock.sleep(for: .seconds(1))
                 model.name = String(UUID().uuidString.prefix(6))
@@ -79,24 +79,22 @@ struct ItemView: ComponentView {
                 .frame(height: 30)
                 HStack {
                     Text("Detail name: \(model.state.detail.name)")
-                    Button(action: { model.send(.updateDetail)}) {
-                        Text("Update")
-                    }
+                    model.inputButton(.updateDetail, "Update")
                 }
-                ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Action.detail))
+                ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Input.detail))
                     .fixedSize()
                 TextField("Field", text: model.binding(\.text))
                     .textFieldStyle(.roundedBorder)
 
-                model.actionButton(.calculate, "Calculate")
-                model.actionButton(.openDetail, "Item")
-                model.actionButton(.pushItem, "Push Item")
+                model.inputButton(.calculate, "Calculate")
+                model.inputButton(.openDetail, "Item")
+                model.inputButton(.pushItem, "Push Item")
                 Spacer()
             }
             .padding()
             .sheet(item: model.binding(\.presentDetail)) { state in
                 NavigationView {
-                    ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Action.detail))
+                    ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Input.detail))
                 }
             }
             .navigationBarTitleDisplayMode(.large)
@@ -105,14 +103,14 @@ struct ItemView: ComponentView {
     }
 }
 
-struct ItemDetailComponent: Component {
+struct ItemDetailComponent: ComponentModel {
 
     struct State: Identifiable, Equatable {
         var id: String
         var name: String
     }
 
-    enum Action {
+    enum Input {
         case close
         case updateName
     }
@@ -129,8 +127,8 @@ struct ItemDetailComponent: Component {
 
     }
 
-    func handle(action: Action, model: Model) async {
-        switch action {
+    func handle(input: Input, model: Model) async {
+        switch input {
             case .close:
                 model.output(.finished(model.name))
             case .updateName:
@@ -168,9 +166,9 @@ struct ItemDetailView: ComponentView {
 //    }
 //}
 
-struct ItemPreview: PreviewProvider, ComponentPreview {
-    typealias ComponentType = ItemComponent
-    typealias ComponentViewType = ItemView
+struct ItemPreview: PreviewProvider, ComponentFeature {
+    typealias ModelType = ItemComponent
+    typealias ViewType = ItemView
 
     static var states: [ComponentState] {
         ComponentState {
@@ -184,7 +182,7 @@ struct ItemPreview: PreviewProvider, ComponentPreview {
 
     static var tests: [ComponentTest] {
         ComponentTest("Happy New style", State(name: "john", data: .loading)) {
-            Step.sendAction(.updateDetail)
+            Step.input(.updateDetail)
             Step.setBinding(\.text, "yeah")
             Step.validateState("text is set") { state in
                 state.text == "yeah"

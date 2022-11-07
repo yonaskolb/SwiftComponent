@@ -21,8 +21,8 @@ public struct ComponentEvent: Identifiable {
     public let end: Date
     public let type: EventType
     public let sourceLocation: SourceLocation
-    public let componentType: any Component.Type
-    public var componentName: String { componentPath.path.last?.name ?? "" }
+    public let componentType: any ComponentModel.Type
+    public var componentName: String { componentPath.path.last?.baseName ?? "" }
     public var componentPath: ComponentPath
     public var mutations: [Mutation]
 
@@ -36,21 +36,23 @@ public struct ComponentEvent: Identifiable {
         self.sourceLocation = sourceLocation
     }
 
-    func isComponent<C: Component>(_ type: C.Type) -> Bool {
+    func isComponent<C: ComponentModel>(_ type: C.Type) -> Bool {
         componentType == type
     }
 }
 
 public enum EventType {
+    case mutation(Mutation)
     case binding(Mutation)
-    case action(Any)
+    case input(Any)
     case output(Any)
     case viewTask
     case task(TaskResult)
 
     var type: EventSimpleType {
         switch self {
-            case .action: return .action
+            case .mutation: return .mutation
+            case .input: return .input
             case .binding: return .binding
             case .output: return .output
             case .viewTask: return .viewTask
@@ -61,26 +63,28 @@ public enum EventType {
 
 enum EventSimpleType: String, CaseIterable {
     case viewTask
-    case action
+    case input
     case binding
     case output
     case task
+    case mutation
 
     static var set: Set<EventSimpleType> { Set(allCases) }
 
     var title: String {
         switch self {
-            case .action: return "Action"
+            case .input: return "Input"
             case .binding: return "Binding"
             case .output: return "Output"
             case .viewTask: return "View Task"
             case .task: return "Task"
+            case .mutation: return "Mutation"
         }
     }
 
     var color: Color {
         switch self {
-            case .action:
+            case .input:
                 return .blue
             case .binding:
                 return .green
@@ -90,12 +94,14 @@ enum EventSimpleType: String, CaseIterable {
                 return .orange
             case .task:
                 return .red
+            case .mutation:
+                return .yellow
         }
     }
 
     var emoji: String {
         switch self {
-            case .action:
+            case .input:
                 return "🔵"
             case .binding:
                 return "🟡"
@@ -105,6 +111,8 @@ enum EventSimpleType: String, CaseIterable {
                 return "🟠"
             case .task:
                 return "🟢"
+            case .mutation:
+                return "🟡"
         }
     }
 }
