@@ -108,7 +108,7 @@ struct EventView: View {
                     Text(event.duration)
                 }
                 line("Location") {
-                    Text(verbatim: "\(event.sourceLocation.fileID)#\(event.sourceLocation.line.formatted())")
+                    Text(verbatim: "\(event.source.file)#\(event.source.line.formatted())")
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
@@ -265,7 +265,7 @@ let previewEvents: [ComponentEvent] = [
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
             ],
             depth: 0,
-            sourceLocation: .capture()
+            source: .capture()
         ),
 
         ComponentEvent(
@@ -278,7 +278,7 @@ let previewEvents: [ComponentEvent] = [
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
             ],
             depth: 0,
-            sourceLocation: .capture()
+            source: .capture()
         ),
 
         ComponentEvent(
@@ -288,7 +288,7 @@ let previewEvents: [ComponentEvent] = [
             end: Date(),
             mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
             depth: 1,
-            sourceLocation: .capture()
+            source: .capture()
         ),
 
         ComponentEvent(
@@ -298,7 +298,7 @@ let previewEvents: [ComponentEvent] = [
             end: Date(),
             mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
             depth: 2,
-            sourceLocation: .capture()
+            source: .capture()
         ),
 
         ComponentEvent(
@@ -308,7 +308,7 @@ let previewEvents: [ComponentEvent] = [
             end: Date(),
             mutations: [],
             depth: 0,
-            sourceLocation: .capture()
+            source: .capture()
         ),
 
         ComponentEvent(
@@ -318,7 +318,7 @@ let previewEvents: [ComponentEvent] = [
             end: Date(),
             mutations: [],
             depth: 2,
-            sourceLocation: .capture()
+            source: .capture()
         ),
     ]
 

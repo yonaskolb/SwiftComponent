@@ -331,11 +331,11 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
             if let namedState = Preview.state(name: stateName) {
                 state = namedState
             } else {
-                testState[test.name] = .failed([TestError(error: "Could not find state \"\(stateName)\"", sourceLocation: test.sourceLocation)])
+                testState[test.name] = .failed([TestError(error: "Could not find state \"\(stateName)\"", source: test.source)])
                 return
             }
         } else {
-            testState[test.name] = .failed([TestError(error: "Could not find state", sourceLocation: test.sourceLocation)])
+            testState[test.name] = .failed([TestError(error: "Could not find state", source: test.source)])
             return
         }
 

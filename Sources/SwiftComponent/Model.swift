@@ -141,12 +141,12 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         eventsInProgress += 1
     }
 
-    fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], sourceLocation: SourceLocation) {
+    fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], source: SourceLocation) {
         eventsInProgress -= 1
         if eventsInProgress < 0 {
             assertionFailure("Parent count is \(eventsInProgress), but should only be 0 or more")
         }
-        let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, sourceLocation: sourceLocation)
+        let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, source: source)
         print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
         events.send(event)
 
@@ -155,33 +155,33 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         viewModelEvents.append(event)
     }
 
-    public func send(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
+    public func send(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         mutationAnimation = animation
-        processInput(input, sourceLocation: .capture(file: file, fileID: fileID, line: line), sendEvents: true)
+        processInput(input, source: .capture(file: file, line: line), sendEvents: true)
         mutationAnimation = nil
     }
 
-    func processInput(_ input: Model.Input, sourceLocation: SourceLocation, sendEvents: Bool) {
+    func processInput(_ input: Model.Input, source: SourceLocation, sendEvents: Bool) {
         Task { @MainActor in
-            await processInput(input, sourceLocation: sourceLocation, sendEvents: sendEvents)
+            await processInput(input, source: source, sendEvents: sendEvents)
         }
     }
 
     @MainActor
-    func processInput(_ input: Model.Input, sourceLocation: SourceLocation, sendEvents: Bool) async {
+    func processInput(_ input: Model.Input, source: SourceLocation, sendEvents: Bool) async {
         let eventStart = Date()
         startEvent()
         mutations = []
         await model.handle(input: input, model: componentModel)
         if sendEvents {
-            sendEvent(type: .input(input), start: eventStart, mutations: mutations, sourceLocation: sourceLocation)
+            sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
         }
     }
 
-    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, sourceLocation: SourceLocation, animation: Animation? = nil) {
+    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, source: SourceLocation, animation: Animation? = nil) {
         let start = Date()
         startEvent()
-        // TODO: note that sourceLocation from dynamicMember keyPath is not correct
+        // TODO: note that source from dynamicMember keyPath is not correct
         let oldState = state
         let mutation = Mutation(keyPath: keyPath, value: value)
         self.mutations.append(mutation)
@@ -192,11 +192,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         } else {
             self.state[keyPath: keyPath] = value
         }
-        sendEvent(type: .mutation(mutation), start: start, mutations: [mutation], sourceLocation: sourceLocation)
+        sendEvent(type: .mutation(mutation), start: start, mutations: [mutation], source: source)
         //print(diff(oldState, self.state) ?? "  No state changes")
     }
 
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, onSet: ((Value) -> Model.Input?)? = nil) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Input?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
@@ -209,7 +209,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
                 self.state[keyPath: keyPath] = value
 
                 let mutation = Mutation(keyPath: keyPath, value: value)
-                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], sourceLocation: .capture(file: file, fileID: fileID, line: line))
+                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
 
                 //print(diff(oldState, self.state) ?? "  No state changes")
 
@@ -218,7 +218,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
                 }
 
                 if let onSet = onSet, let action = onSet(value) {
-                    self.send(action, file: file, fileID: fileID, line: line)
+                    self.send(action, file: file, line: line)
                 }
             }
         )
@@ -231,27 +231,27 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         mutations = []
         handledAppear = true
         await model.appear(model: componentModel)
-        self.sendEvent(type: .appear, start: start, mutations: mutations, sourceLocation: .capture())
+        self.sendEvent(type: .appear, start: start, mutations: mutations, source: .capture())
     }
 
-    func output(_ event: Model.Output, sourceLocation: SourceLocation) {
+    func output(_ event: Model.Output, source: SourceLocation) {
         startEvent()
-        self.sendEvent(type: .output(event), start: Date(), mutations: [], sourceLocation: sourceLocation)
+        self.sendEvent(type: .output(event), start: Date(), mutations: [], source: source)
     }
 
     @MainActor
-    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async -> R {
+    func task<R>(_ name: String, source: SourceLocation, _ task: () async -> R) async -> R {
         let start = Date()
         startEvent()
         mutations = []
         let value = await task()
         let result = TaskResult(name: name, result: .success(value))
-        sendEvent(type: .task(result), start: start, mutations: mutations, sourceLocation: sourceLocation)
+        sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
         return value
     }
 
     @MainActor
-    func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+    func task<R>(_ name: String, source: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
         let start = Date()
         startEvent()
         mutations = []
@@ -263,16 +263,16 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
             catchError(error)
             result = TaskResult(name: name, result: .failure(error))
         }
-        sendEvent(type: .task(result), start: start, mutations: mutations, sourceLocation: sourceLocation)
+        sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
 
-    public func present(_ destination: Model.Destination, sourceLocation: SourceLocation) {
+    public func present(_ destination: Model.Destination, source: SourceLocation) {
         self.destination = destination
         startEvent()
-        sendEvent(type: .present(destination), start: Date(), mutations: [], sourceLocation: sourceLocation)
+        sendEvent(type: .present(destination), start: Date(), mutations: [], source: source)
     }
 
-    public func dismissDestination(sourceLocation: SourceLocation) {
+    public func dismissDestination(source: SourceLocation) {
         //TODO: send event
         self.destination = nil
     }
@@ -293,12 +293,12 @@ public class ComponentModelModel<C: ComponentModel> {
 
     var state: C.State { viewModel.state }
 
-    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        viewModel.mutate(keyPath, value: value, sourceLocation: .capture(file: file, fileID: fileID, line: line), animation: animation)
+    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+        viewModel.mutate(keyPath, value: value, source: .capture(file: file, line: line), animation: animation)
     }
 
-    public func output(_ event: C.Output, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        viewModel.output(event, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func output(_ event: C.Output, file: StaticString = #file, line: UInt = #line) {
+        viewModel.output(event, source: .capture(file: file, line: line))
     }
 
     public subscript<Value>(dynamicMember keyPath: WritableKeyPath<C.State, Value>) -> Value {
@@ -306,24 +306,24 @@ public class ComponentModelModel<C: ComponentModel> {
         set {
             // TODO: can't capture source location
             // https://forums.swift.org/t/add-default-parameter-support-e-g-file-to-dynamic-member-lookup/58490/2
-            viewModel.mutate(keyPath, value: newValue, sourceLocation: .capture(file: #file, fileID: #fileID, line: #line))
+            viewModel.mutate(keyPath, value: newValue, source: .capture(file: #file, line: #line))
         }
     }
 
-    public func task(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ task: () async -> Void) async {
-        await viewModel.task(name, sourceLocation: .capture(file: file, fileID: fileID, line: line), task)
+    public func task(_ name: String, file: StaticString = #file, line: UInt = #line, _ task: () async -> Void) async {
+        await viewModel.task(name, source: .capture(file: file, line: line), task)
     }
 
-    public func task<R>(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
-        await viewModel.task(name, sourceLocation: .capture(file: file, fileID: fileID, line: line), task, catch: catchError)
+    public func task<R>(_ name: String, file: StaticString = #file, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+        await viewModel.task(name, source: .capture(file: file, line: line), task, catch: catchError)
     }
 
-    public func present(_ destination: C.Destination, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        viewModel.present(destination, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func present(_ destination: C.Destination, file: StaticString = #file, line: UInt = #line) {
+        viewModel.present(destination, source: .capture(file: file, line: line))
     }
 
-    public func dismissDestination(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) {
-        viewModel.dismissDestination(sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func dismissDestination(file: StaticString = #file, line: UInt = #line) {
+        viewModel.dismissDestination(source: .capture(file: file, line: line))
     }
 }
 
@@ -361,7 +361,7 @@ extension ViewModel {
         }
     }
 
-    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, sourceLocation: SourceLocation) -> ViewModel<Child> {
+    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, source: SourceLocation) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
@@ -370,7 +370,7 @@ extension ViewModel {
                 case .output(let output):
                     if let output = output as? Child.Output {
                         let action = toInput(output)
-                        self.processInput(action, sourceLocation: sourceLocation, sendEvents: false)
+                        self.processInput(action, source: source, sendEvents: false)
                     }
                 default:
                     break
@@ -391,13 +391,13 @@ extension ViewModel {
     }
 
     // statePath and output
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        scopedViewModel(keyPathBinding(statePath), output: toInput, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        scopedViewModel(keyPathBinding(statePath), output: toInput, source: .capture(file: file, line: line))
     }
 
     // optional statePath and output
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        scopedViewModel(optionalBinding(state: statePath, value: value), output: toInput, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        scopedViewModel(optionalBinding(state: statePath, value: value), output: toInput, source: .capture(file: file, line: line))
     }
 
     // optional statePath
@@ -422,7 +422,7 @@ extension ViewModel {
     }
 
     // state and output
-    public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: state, path: self.path)
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
@@ -432,7 +432,7 @@ extension ViewModel {
                 case .output(let output):
                     if let output = output as? Child.Output {
                         let action = toInput(output)
-                        self.processInput(action, sourceLocation: .capture(file: file, fileID: fileID, line: line), sendEvents: false)
+                        self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
                     }
                 default:
                     break

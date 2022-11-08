@@ -10,20 +10,20 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func inputButton<Label: View>(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+    public func inputButton<Label: View>(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         Button(action: {
             if let animation = animation {
                 withAnimation(animation) {
-                    self.send(input, file: file, fileID: fileID, line: line)
+                    self.send(input, file: file, line: line)
                 }
             } else {
-                self.send(input, file: file, fileID: fileID, line: line)
+                self.send(input, file: file, line: line)
             }
         }) { label() }
     }
 
-    public func inputButton(_ input: Model.Input, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> some View {
-        inputButton(input, animation: animation, file: file, fileID: fileID, line: line) { Text(text) }
+    public func inputButton(_ input: Model.Input, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
+        inputButton(input, animation: animation, file: file, line: line) { Text(text) }
     }
 }
 

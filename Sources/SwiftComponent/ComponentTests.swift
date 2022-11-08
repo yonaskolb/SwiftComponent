@@ -11,19 +11,19 @@ import Dependencies
 
 public struct Test<C: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, appear: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, _ state: C.State, appear: Bool = false, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.state = state
         self.appear = appear
-        self.sourceLocation = .init(file: file, fileID: fileID, line: line)
+        self.source = .capture(file: file, line: line)
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
-        self.sourceLocation = .init(file: file, fileID: fileID, line: line)
+        self.source = .capture(file: file, line: line)
         self.steps = steps()
     }
 
@@ -32,12 +32,12 @@ public struct Test<C: ComponentModel> {
     public var stateName: String?
     public var steps: [TestStep<C>]
     public var appear: Bool
-    public let sourceLocation: SourceLocation
+    public let source: SourceLocation
 }
 
 public struct TestStep<C: ComponentModel>: Identifiable {
     let type: StepType
-    var sourceLocation: SourceLocation
+    var source: SourceLocation
     public let id = UUID()
 
     public enum StepType {
@@ -52,42 +52,42 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
     }
 
-    public static func appear(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .appear, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func appear(file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .appear, source: .capture(file: file, line: line))
     }
 
-    public static func input(_ input: C.Input, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .input(input), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func input(_ input: C.Input, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .input(input), source: .capture(file: file, line: line))
     }
 
-    public static func expectOutput(_ output: C.Output, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .expectOutput(output), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func expectOutput(_ output: C.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .expectOutput(output), source: .capture(file: file, line: line))
     }
 
     /// validate some properties on state by returning a boolean
-    public static func validateState(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
-        .init(type: .validateState(name: name, validateState: validateState), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
+        .init(type: .validateState(name: name, validateState: validateState), source: .capture(file: file, line: line))
     }
 
     /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
-    public static func expectState(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
-        .init(type: .expectState(modify), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
+        .init(type: .expectState(modify), source: .capture(file: file, line: line))
     }
 
-    public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), source: .capture(file: file, line: line))
     }
 
-    public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .setDependency(dependency) { $0[keyPath: keyPath] = dependency }, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .setDependency(dependency) { $0[keyPath: keyPath] = dependency }, source: .capture(file: file, line: line))
     }
 
-    public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), source: .capture(file: file, line: line))
     }
 
-    public static func validateDestination(_ destination: C.Destination?, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .validateDestination(destination), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func validateDestination(_ destination: C.Destination?, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .validateDestination(destination), source: .capture(file: file, line: line))
     }
 
 }
@@ -176,7 +176,7 @@ public struct TestStepBuilder {
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     public var error: String
     public var diff: String?
-    public let sourceLocation: SourceLocation
+    public let source: SourceLocation
     public let id = UUID()
 
     public var description: String {
@@ -254,7 +254,7 @@ extension ViewModel {
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
                     } operation: {
-                        await processInput(input, sourceLocation: step.sourceLocation, sendEvents: true)
+                        await processInput(input, source: step.source, sendEvents: true)
                     }
                 case .binding(let mutate, _, _, let value):
                     if delay > 0 {
@@ -296,19 +296,19 @@ extension ViewModel {
                 case .validateState(_, let validateState):
                     let valid = validateState(state)
                     if !valid {
-                        stepErrors.append(TestError(error: "Invalid State", sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Invalid State", source: step.source))
                     }
                 case .validateDependency(let error, let dependency, let validateDependency):
                     let valid = validateDependency(testDependencyValues)
                     if !valid {
-                        stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", source: step.source))
                     }
                 case .expectState(let modify):
                     let currentState = state
                     var expectedState = state
                     modify(&expectedState)
                     if let difference = diff(expectedState, currentState) {
-                        stepErrors.append(TestError(error: "Unexpected State", diff: difference, sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Unexpected State", diff: difference, source: step.source))
                     }
                 case .expectOutput(let output):
                     var foundOutput: Model.Output?
@@ -324,10 +324,10 @@ extension ViewModel {
                     }
                     if let foundOutput {
                         if let difference = diff(foundOutput, output) {
-                            stepErrors.append(TestError(error: "Unexpected value \(getEnumCase(foundOutput).name)", diff: difference, sourceLocation: step.sourceLocation))
+                            stepErrors.append(TestError(error: "Unexpected value \(getEnumCase(foundOutput).name)", diff: difference, source: step.source))
                         }
                     } else {
-                        stepErrors.append(TestError(error: "Not Found", sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Not Found", source: step.source))
                     }
                 case .setDependency(_, let modify):
                     modify(&testDependencyValues)
@@ -337,7 +337,7 @@ extension ViewModel {
                         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // usual presentation animation duration
                     }
                     if let difference = diff(destination, self.destination) {
-                        stepErrors.append(TestError(error: "Unexpected Destination", diff: difference, sourceLocation: step.sourceLocation))
+                        stepErrors.append(TestError(error: "Unexpected Destination", diff: difference, source: step.source))
                     }
             }
             let result = TestStepResult(step: step, events: stepEvents, errors: stepErrors)
