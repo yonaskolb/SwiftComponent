@@ -9,131 +9,121 @@ import Foundation
 import SwiftUI
 import SwiftGUI
 
-struct ComponentEventList<ComponentType: ComponentModel>: View {
+struct ComponentEventList: View {
 
-    let viewModel: ViewModel<ComponentType>
     let events: [ComponentEvent]
-    let showMutations: Bool
+    let allEvents: [ComponentEvent]
+    var depth: Int = 0
     @State var showEvent: UUID?
     @State var showMutation: UUID?
 
+    func eventDepth(_ event: ComponentEvent) -> Int {
+        max(0, event.depth - depth)
+    }
+
     var body: some View {
         ForEach(events) { event in
-            if showMutations, let mutations = event.mutations, !mutations.isEmpty {
-                mutationsList(mutations.reversed())
-            }
             NavigationLink(tag: event.id, selection: $showEvent, destination: {
-                EventView(event: event)
+                EventView(event: event, allEvents: allEvents)
             }) {
                 HStack {
-                    Text("\(event.type.emoji)")
-                        .font(.footnote)
-                        .padding(.top, 12)
-                    //                                Circle()
-                    //                                    .fill(event.type.color)
-                    //                                    .frame(width: 12)
-                    //                                    .padding(.top, 8)
+//                    if eventDepth(event) > 0 {
+//                        Image(systemName: "arrow.turn.down.right")
+//                            .opacity(0.3)
+//                            .font(.system(size: 14))
+//                            .padding(.top, 14)
+//                    }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(event.componentPath.string)
-                            .font(.footnote)
+                            .font(.caption2)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        Text(event.type.title)
-                            .bold()
+                            .padding(.leading, 18)
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(event.type.color)
+                                .frame(width: 12)
+                            Text(event.type.title)
+                                .bold()
+                        }
                     }
                     .font(.footnote)
                     Spacer()
                     Text(event.type.details)
                         .font(.footnote)
                 }
-            }
-        }
-    }
-
-    func mutationsList(_ mutations: [Mutation]) -> some View {
-        ForEach(mutations) { mutation in
-            NavigationLink(tag: mutation.id, selection: $showMutation, destination: {
-                SwiftView(value: .constant(mutation.value), config: Config(editing: false))
-            }) {
-                HStack {
-                    Text("🟡")
-                        .font(.footnote)
-                        .hidden()
-//                    Text("Mutate State").bold() + Text(": \(mutation.property)")
-                    Text("\(mutation.property): \(mutation.valueType)")
-                    //                    Text(mutation.property + ": ") + Text(mutation.valueType).bold()
-                    Spacer()
-                    Text(dumpLine(mutation.value))
-                        .lineLimit(1)
-                }
-                .font(.caption)
-//                .padding(.leading, 25)
+                .padding(.leading, 16*Double(max(0, eventDepth(event)))) // inset children
             }
         }
     }
 }
 
-
 struct EventView: View {
 
     let event: ComponentEvent
+    var allEvents: [ComponentEvent]
+    var childEvents: [ComponentEvent] { allEvents.filter { $0.start > event.start && $0.end < event.end } }
+    var parentEvents: [ComponentEvent] { allEvents.filter { $0.start < event.start && $0.end > event.end } }
     @State var showValue = false
     @State var showMutation: UUID?
 
     var body: some View {
         Form {
-            if let path = event.componentPath.parent {
-                line("Path") {
-                    Text(path.string)
+            if !event.type.detailsTitle.isEmpty || !event.type.details.isEmpty || !event.type.valueTitle.isEmpty {
+                Section {
+                    if !event.type.detailsTitle.isEmpty || !event.type.details.isEmpty {
+                        line(event.type.detailsTitle) {
+                            Text(event.type.details)
+                        }
+                    }
+                    if !event.type.valueTitle.isEmpty {
+                        NavigationLink(isActive: $showValue) {
+                            SwiftView(value: .constant(event.type.value), config: Config(editing: false))
+                        } label: {
+                            line(event.type.valueTitle) {
+                                Text(dumpLine(event.type.value))
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section {
+                if let path = event.componentPath.parent {
+                    line("Path") {
+                        Text(path.string)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    }
+                }
+                line("Component") {
+                    Text(event.componentName)
+                }
+                line("Started") {
+                    Text(event.start.formatted())
+                }
+                line("Duration") {
+                    Text(event.duration)
+                }
+                line("Location") {
+                    Text(verbatim: "\(event.sourceLocation.fileID)#\(event.sourceLocation.line.formatted())")
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
-            }
-            line("Component") {
-                Text(event.componentName)
-            }
-            line("Started") {
-                Text(event.start.formatted())
-            }
-            line("Duration") {
-                Text(event.duration)
-            }
-            line("Location") {
-                Text(verbatim: "\(event.sourceLocation.fileID)#\(event.sourceLocation.line.formatted())")
-                    .lineLimit(1)
-                    .truncationMode(.head)
-            }
-            if !event.type.detailsTitle.isEmpty || !event.type.details.isEmpty {
-                line(event.type.detailsTitle) {
-                    Text(event.type.details)
+                line("Depth") {
+                    Text(event.depth.formatted())
                 }
             }
-            if !event.type.valueTitle.isEmpty {
-                NavigationLink(isActive: $showValue) {
-                    SwiftView(value: .constant(event.type.value), config: Config(editing: false))
-                } label: {
-                    line(event.type.valueTitle) {
-                        Text(dumpLine(event.type.value))
-                            .lineLimit(1)
-                    }
+            if !parentEvents.isEmpty {
+                Section("Parents") {
+                    ComponentEventList(events: parentEvents, allEvents: allEvents, depth: 0)
                 }
             }
-            if let mutations = event.mutations, !mutations.isEmpty {
-                Section(header: Text("State Mutations")) {
-                    ForEach(mutations) { mutation in
-                        NavigationLink(tag: mutation.id, selection: $showMutation, destination: {
-                            SwiftView(value: .constant(mutation.value), config: Config(editing: false))
-                        }) {
-                            HStack {
-                                Text(mutation.property + ": ") + Text(mutation.valueType).bold()
-                                Spacer()
-                                Text(dumpLine(mutation.value))
-                            }
-                            .lineLimit(1)
-                        }
-
-                    }
+            if !childEvents.isEmpty {
+                Section("Children") {
+                    ComponentEventList(events: childEvents, allEvents: allEvents, depth: event.depth + 1)
                 }
             }
         }
@@ -178,15 +168,7 @@ extension EventType {
     }
 
     var emoji: String {
-        switch self {
-            case .task(let result):
-                switch result.result {
-                    case .success: return "🟢"
-                    case .failure: return "🔴"
-                }
-            default:
-                return type.emoji
-        }
+        color.circleEmoji
     }
     
     var detailsTitle: String {
@@ -282,6 +264,7 @@ let previewEvents: [ComponentEvent] = [
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
             ],
+            depth: 0,
             sourceLocation: .capture()
         ),
 
@@ -294,6 +277,7 @@ let previewEvents: [ComponentEvent] = [
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
                 Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
             ],
+            depth: 0,
             sourceLocation: .capture()
         ),
 
@@ -303,6 +287,17 @@ let previewEvents: [ComponentEvent] = [
             start: Date(),
             end: Date(),
             mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
+            depth: 1,
+            sourceLocation: .capture()
+        ),
+
+        ComponentEvent(
+            type: .mutation(Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")),
+            componentPath: .init(ExampleComponent.self),
+            start: Date(),
+            end: Date(),
+            mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
+            depth: 2,
             sourceLocation: .capture()
         ),
 
@@ -312,6 +307,7 @@ let previewEvents: [ComponentEvent] = [
             start: Date().addingTimeInterval(-2.3),
             end: Date(),
             mutations: [],
+            depth: 0,
             sourceLocation: .capture()
         ),
 
@@ -321,6 +317,7 @@ let previewEvents: [ComponentEvent] = [
             start: Date(),
             end: Date(),
             mutations: [],
+            depth: 2,
             sourceLocation: .capture()
         ),
     ]
@@ -330,7 +327,7 @@ struct EventView_Previews: PreviewProvider {
         viewModelEvents = previewEvents
         return Group {
             NavigationView {
-                EventView(event: previewEvents[1])
+                EventView(event: previewEvents[1], allEvents: previewEvents)
             }
             .navigationViewStyle(.stack)
             ExampleView(model: .init(state: .init(name: "Hello")))

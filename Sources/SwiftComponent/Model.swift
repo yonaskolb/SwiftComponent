@@ -91,6 +91,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     private var ownedState: Model.State?
     public var path: ComponentPath
     public var componentName: String { Model.baseName }
+    private var eventsInProgress = 0
 
     public internal(set) var state: Model.State {
         get {
@@ -136,8 +137,16 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         self.componentModel = ComponentModelModel(viewModel: self)
     }
 
+    private func startEvent() {
+        eventsInProgress += 1
+    }
+
     fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], sourceLocation: SourceLocation) {
-        let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, sourceLocation: sourceLocation)
+        eventsInProgress -= 1
+        if eventsInProgress < 0 {
+            assertionFailure("Parent count is \(eventsInProgress), but should only be 0 or more")
+        }
+        let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, sourceLocation: sourceLocation)
         print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
         events.send(event)
 
@@ -161,6 +170,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     @MainActor
     func processInput(_ input: Model.Input, sourceLocation: SourceLocation, sendEvents: Bool) async {
         let eventStart = Date()
+        startEvent()
         mutations = []
         await model.handle(input: input, model: componentModel)
         if sendEvents {
@@ -170,6 +180,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, sourceLocation: SourceLocation, animation: Animation? = nil) {
         let start = Date()
+        startEvent()
         // TODO: note that sourceLocation from dynamicMember keyPath is not correct
         let oldState = state
         let mutation = Mutation(keyPath: keyPath, value: value)
@@ -190,6 +201,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
             get: { self.state[keyPath: keyPath] },
             set: { value in
                 let start = Date()
+                self.startEvent()
                 // don't continue if change doesn't lead to state change
                 guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
 
@@ -215,6 +227,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     @MainActor
     func task() async {
         let start = Date()
+        startEvent()
         mutations = []
         handledTask = true
         await model.viewTask(model: componentModel)
@@ -224,12 +237,14 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     func output(_ event: Model.Output, sourceLocation: SourceLocation) {
+        startEvent()
         self.sendEvent(type: .output(event), start: Date(), mutations: [], sourceLocation: sourceLocation)
     }
 
     @MainActor
     func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async -> R) async -> R {
         let start = Date()
+        startEvent()
         mutations = []
         let value = await task()
         let result = TaskResult(name: name, result: .success(value))
@@ -240,6 +255,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     @MainActor
     func task<R>(_ name: String, sourceLocation: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
         let start = Date()
+        startEvent()
         mutations = []
         let result: TaskResult
         do {
@@ -254,6 +270,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     public func present(_ destination: Model.Destination, sourceLocation: SourceLocation) {
         self.destination = destination
+        startEvent()
         sendEvent(type: .present(destination), start: Date(), mutations: [], sourceLocation: sourceLocation)
     }
 

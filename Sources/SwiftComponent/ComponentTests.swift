@@ -45,7 +45,7 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         case setDependency(Any, (inout DependencyValues) -> Void)
         case input(C.Input)
         case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, path: String, value: Any)
-        case validateState(error: String, validateState: (C.State) -> Bool)
+        case validateState(name: String, validateState: (C.State) -> Bool)
         case validateDestination(C.Destination?)
         case expectState((inout C.State) -> Void)
         case expectOutput(C.Output)
@@ -64,10 +64,12 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         .init(type: .expectOutput(output), sourceLocation: .capture(file: file, fileID: fileID, line: line))
     }
 
-    public static func validateState(_ error: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
-        .init(type: .validateState(error: error, validateState: validateState), sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    /// validate some properties on state by returning a boolean
+    public static func validateState(_ name: String, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
+        .init(type: .validateState(name: name, validateState: validateState), sourceLocation: .capture(file: file, fileID: fileID, line: line))
     }
 
+    /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
     public static func expectState(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
         .init(type: .expectState(modify), sourceLocation: .capture(file: file, fileID: fileID, line: line))
     }
@@ -330,6 +332,10 @@ extension ViewModel {
                 case .setDependency(_, let modify):
                     modify(&testDependencyValues)
                 case .validateDestination(let destination):
+                    if sleepDelay > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+                        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // usual presentation animation duration
+                    }
                     if let difference = diff(destination, self.destination) {
                         stepErrors.append(TestError(error: "Unexpected Destination", diff: difference, sourceLocation: step.sourceLocation))
                     }

@@ -20,19 +20,21 @@ public struct ComponentEvent: Identifiable {
     public let start: Date
     public let end: Date
     public let type: EventType
+    public let depth: Int
     public let sourceLocation: SourceLocation
     public let componentType: any ComponentModel.Type
     public var componentName: String { componentPath.path.last?.baseName ?? "" }
     public var componentPath: ComponentPath
     public var mutations: [Mutation]
 
-    init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], sourceLocation: SourceLocation) {
+    init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, sourceLocation: SourceLocation) {
         self.type = type
         self.start = start
         self.end = end
         self.mutations = mutations
         self.componentType = componentPath.path.last!
         self.componentPath = componentPath
+        self.depth = depth
         self.sourceLocation = sourceLocation
     }
 
@@ -91,36 +93,45 @@ enum EventSimpleType: String, CaseIterable {
             case .input:
                 return .blue
             case .binding:
-                return .green
+                return .white
             case .output:
-                return .purple
-            case .viewTask:
                 return .orange
+            case .viewTask:
+                return .purple
             case .task:
-                return .red
+                return .green
             case .mutation:
                 return .yellow
             case .present:
                 return .teal
         }
     }
+}
 
-    var emoji: String {
+extension Color {
+
+    var circleEmoji: String {
         switch self {
-            case .input:
+            case .blue, .teal:
                 return "🔵"
-            case .binding:
+            case .yellow:
                 return "🟡"
-            case .output:
+            case .purple:
                 return "🟣"
-            case .viewTask:
+            case .orange:
                 return "🟠"
-            case .task:
+            case .green:
                 return "🟢"
-            case .mutation:
-                return "🟡"
-            case .present:
-                return "🔵"
+            case .red:
+                return "🔴"
+            case .black:
+                return "⚫️"
+            case .white:
+                return "⚪️"
+            case .brown:
+                return "🟤"
+            default:
+                return "⚪️"
         }
     }
 }

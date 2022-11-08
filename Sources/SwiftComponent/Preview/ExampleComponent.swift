@@ -100,7 +100,7 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
 
         ComponentTest("Fill out", State(name: "Main"), runViewTask: true) {
             Step.setBinding(\.name, "test")
-            Step.validateState("Name is correct") { $0.name == "invalid" }
+            Step.expectState { $0.name = "invalid" }
             Step.expectState { $0.date = Date() }
         }
     }

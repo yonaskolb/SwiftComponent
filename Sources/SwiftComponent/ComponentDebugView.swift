@@ -18,14 +18,13 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
     @State var showStateOutput = false
     @State var showEvents = false
     @State var eventTypes = EventSimpleType.set
-    @AppStorage("showMutations") var showMutations = false
     @AppStorage("showBindings") var showBindings = true
     @AppStorage("showChildEvents") var showChildEvents = true
 
     var events: [ComponentEvent] {
         componentEvents(for: viewModel.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
-            .reversed()
+            .sorted { $0.start < $1.start }
     }
 
     var body: some View {
@@ -45,38 +44,33 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
                 }
                 Section(header: eventsHeader) {
                     Toggle("Show Children", isOn: $showChildEvents)
-                    Toggle("Show State Mutations", isOn: $showMutations)
-                        HStack {
-                            Text("Show Types")
-                            Spacer()
-                            ForEach(EventSimpleType.allCases, id: \.rawValue) { event in
-                                Button {
-                                    if eventTypes.contains(event) {
-                                        eventTypes.remove(event)
-                                    } else {
-                                        eventTypes.insert(event)
-                                    }
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Text(event.emoji)
-                                            .font(.system(size: 20))
-                                            .padding(2)
-                                    }
-                                    .opacity(eventTypes.contains(event) ? 1 : 0.2)
+                    HStack {
+                        Text("Show Types")
+                        Spacer()
+                        ForEach(EventSimpleType.allCases, id: \.rawValue) { event in
+                            Button {
+                                if eventTypes.contains(event) {
+                                    eventTypes.remove(event)
+                                } else {
+                                    eventTypes.insert(event)
                                 }
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Circle().fill(event.color)
+                                        .frame(width: 18)
+                                        .padding(2)
+                                }
+                                .opacity(eventTypes.contains(event) ? 1 : 0.2)
                             }
+                        }
                     }
                     .buttonStyle(.plain)
                 }
                 Section {
-                    ComponentEventList(
-                        viewModel: viewModel,
-                        events: events,
-                        showMutations: showMutations)
+                    ComponentEventList(events: events, allEvents: viewModelEvents.sorted { $0.start < $1.start })
                 }
             }
             .animation(.default, value: eventTypes)
-            .animation(.default, value: showMutations)
             .animation(.default, value: showChildEvents)
             .navigationTitle(viewModel.componentName + " Component")
             .navigationBarTitleDisplayMode(.inline)

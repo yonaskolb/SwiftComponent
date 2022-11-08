@@ -21,6 +21,18 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
         case component = "Component"
         case tests = "Tests"
 
+        var iconName: String {
+            switch self {
+                case .view: return "iphone"
+                case .component: return "puzzlepiece.extension"
+                case .tests: return "checkmark.circle"
+            }
+        }
+
+        var icon: Image {
+            Image(systemName: iconName)
+                .renderingMode(.original)
+        }
     }
 
     var body: some View {
@@ -159,6 +171,7 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
                         .bold()
                     if let details = stepResult.step.details {
                         Text(": \(details)")
+                            .lineLimit(1)
                     }
                 }
                 .foregroundColor(stepResult.success ? .green : .red)
@@ -167,15 +180,16 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
                 VStack(alignment: .leading, spacing:8) {
                     ForEach(stepResult.events.sorted { $0.start < $1.start }) { event in
                         HStack {
-                            Text(event.type.emoji)
-                            Text(event.type.title)
-                                .bold()
-                            Text(event.type.details)
+//                            Text(event.type.emoji)
+                            Text("Event: ") +
+                            Text(event.type.title).bold() +
+                            Text(" " + event.type.details)
                         }
+                        .foregroundColor(.secondary)
                     }
-                    .padding(.leading, 30)
                 }
-                .padding(.vertical, 6)
+                .padding(.leading, 28)
+                .padding(.top, 8)
             }
             if !stepResult.errors.isEmpty {
                 ForEach(stepResult.errors, id: \.id) { error in
@@ -185,6 +199,14 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
                         if let diff = error.diff {
                             VStack(alignment: .leading, spacing: 4) {
                                 diff.diffText()
+//                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(16)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1))
+                            }
+                            .background {
+                                RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2))
                             }
                         }
                     }
@@ -243,7 +265,7 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
     @AppStorage("showTestEvents") var showTestEvents = false
 
     var events: [ComponentEvent] {
-        componentEvents(for: viewModel.path, includeChildren: true)
+        viewModelEvents
     }
 
     func getTestState(_ test: Test<Preview.ModelType>) -> TestState {
@@ -441,7 +463,7 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
 
     var eventsSection: some View {
         Section(header: eventsHeader) {
-            ComponentEventList(viewModel: viewModel, events: events.sorted { $0.start > $1.start }, showMutations: false)
+            ComponentEventList(events: events.sorted { $0.start > $1.start }, allEvents: events.sorted { $0.start > $1.start })
                 .id(render)
         }
     }
@@ -460,24 +482,30 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
 
 extension String {
 
-    private func getLine(_ line: String) -> (String, Color) {
+    private func getLine(_ line: String) -> Text {
         var line = String(line)
-        var color = Color.gray
+        var color = Color.secondary
+        var change: Bool = false
         if line.hasPrefix("+") {
             line = " " + String(line.dropFirst(1))
             color = .green
+            change = true
         } else if line.hasPrefix("-") {
             line = " " + String(line.dropFirst(1))
             color = .red
+            change = true
         }
-        return (line, color)
+        var text = Text(line)
+            .foregroundColor(color)
+        if change {
+           // text = text.bold()
+        }
+        return text
     }
 
     func diffText() -> some View {
         ForEach(Array(self.components(separatedBy: "\n").enumerated()), id: \.0) { _, line in
-            let line = getLine(line)
-            Text(line.0)
-                .foregroundColor(line.1)
+            getLine(line)
         }
     }
 }

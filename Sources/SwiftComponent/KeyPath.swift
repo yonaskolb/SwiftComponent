@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Runtime
+@_implementationOnly import Runtime
 
 extension KeyPath {
 
