@@ -114,7 +114,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     var model: Model
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
-    var handledTask = false
+    var handledAppear = false
     var mutationAnimation: Animation?
     var sendGlobalEvents = true
     public var events = PassthroughSubject<ComponentEvent, Never>()
@@ -225,15 +225,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    func task() async {
+    func appear() async {
         let start = Date()
         startEvent()
         mutations = []
-        handledTask = true
-        await model.viewTask(model: componentModel)
-        if handledTask {
-            self.sendEvent(type: .viewTask, start: start, mutations: mutations, sourceLocation: .capture())
-        }
+        handledAppear = true
+        await model.appear(model: componentModel)
+        self.sendEvent(type: .appear, start: start, mutations: mutations, sourceLocation: .capture())
     }
 
     func output(_ event: Model.Output, sourceLocation: SourceLocation) {

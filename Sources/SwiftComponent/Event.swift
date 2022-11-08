@@ -48,7 +48,7 @@ public enum EventType {
     case binding(Mutation)
     case input(Any)
     case output(Any)
-    case viewTask
+    case appear
     case task(TaskResult)
     case present(Any)
 
@@ -58,7 +58,7 @@ public enum EventType {
             case .input: return .input
             case .binding: return .binding
             case .output: return .output
-            case .viewTask: return .viewTask
+            case .appear: return .appear
             case .task: return .task
             case .present: return .present
         }
@@ -66,7 +66,7 @@ public enum EventType {
 }
 
 enum EventSimpleType: String, CaseIterable {
-    case viewTask
+    case appear
     case input
     case binding
     case task
@@ -81,7 +81,7 @@ enum EventSimpleType: String, CaseIterable {
             case .input: return "Input"
             case .binding: return "Binding"
             case .output: return "Output"
-            case .viewTask: return "View Task"
+            case .appear: return "Appear"
             case .task: return "Task"
             case .mutation: return "Mutation"
             case .present: return "Present"
@@ -96,7 +96,7 @@ enum EventSimpleType: String, CaseIterable {
                 return .white
             case .output:
                 return .orange
-            case .viewTask:
+            case .appear:
                 return .purple
             case .task:
                 return .green

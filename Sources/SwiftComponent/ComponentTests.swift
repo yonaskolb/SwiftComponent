@@ -11,18 +11,18 @@ import Dependencies
 
 public struct Test<C: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, _ state: C.State, appear: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.state = state
-        self.runViewTask = runViewTask
+        self.appear = appear
         self.sourceLocation = .init(file: file, fileID: fileID, line: line)
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, runViewTask: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.stateName = stateName
-        self.runViewTask = runViewTask
+        self.appear = appear
         self.sourceLocation = .init(file: file, fileID: fileID, line: line)
         self.steps = steps()
     }
@@ -31,7 +31,7 @@ public struct Test<C: ComponentModel> {
     public var state: C.State?
     public var stateName: String?
     public var steps: [TestStep<C>]
-    public var runViewTask: Bool
+    public var appear: Bool
     public let sourceLocation: SourceLocation
 }
 
@@ -41,7 +41,7 @@ public struct TestStep<C: ComponentModel>: Identifiable {
     public let id = UUID()
 
     public enum StepType {
-        case viewTask
+        case appear
         case setDependency(Any, (inout DependencyValues) -> Void)
         case input(C.Input)
         case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, path: String, value: Any)
@@ -52,8 +52,8 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
     }
 
-    public static func runViewTask(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
-        .init(type: .viewTask, sourceLocation: .capture(file: file, fileID: fileID, line: line))
+    public static func appear(file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
+        .init(type: .appear, sourceLocation: .capture(file: file, fileID: fileID, line: line))
     }
 
     public static func input(_ input: C.Input, file: StaticString = #file, fileID: StaticString = #fileID, line: UInt = #line) -> Self {
@@ -101,8 +101,8 @@ extension TestStep {
 
     public var title: String {
         switch type {
-            case .viewTask:
-                return "View task"
+            case .appear:
+                return "Appear"
             case .setDependency:
                 return "Set Dependency"
             case .input:
@@ -132,7 +132,7 @@ extension TestStep {
 
     public var details: String? {
         switch type {
-            case .viewTask:
+            case .appear:
                 return nil
             case .setDependency(let dependency, _):
                 return "\(String(describing: Swift.type(of: dependency)))"
@@ -227,8 +227,8 @@ extension ViewModel {
         state = initialState
 
         // run task
-        if test.runViewTask {
-            await task()
+        if test.appear {
+            await appear()
         }
 
 
@@ -241,11 +241,11 @@ extension ViewModel {
             }
             var stepErrors: [TestError] = []
             switch step.type {
-                case .viewTask:
+                case .appear:
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
                     } operation: {
-                        await task()
+                        await appear()
                     }
                 case .input(let input):
                     if delay > 0 {

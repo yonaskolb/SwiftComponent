@@ -6,7 +6,7 @@ public protocol ComponentModel<State, Input> {
     associatedtype Input = Never
     associatedtype Output: Equatable = Never
     associatedtype Destination = Never
-    @MainActor func viewTask(model: Model) async
+    @MainActor func appear(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(input: Input, model: Model) async
     init()
@@ -37,5 +37,5 @@ extension ComponentModel {
 
 public extension ComponentModel {
     func binding(keyPath: PartialKeyPath<State>, model: Model) async { }
-    func viewTask(model: Model) async { model.viewModel.handledTask = false }
+    func appear(model: Model) async { model.viewModel.handledAppear = false }
 }

@@ -58,7 +58,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         .task { @MainActor in
             // don't call this for other reference views
             if !isPreviewReference {
-                await model.task()
+                await model.appear()
             }
         }
 #if DEBUG
@@ -85,10 +85,12 @@ public extension ComponentView {
         model.destination = nil
     }
 
+    @MainActor
     private var currentPresentation: Presentation? {
-        model.destination.map(presentation)
+        model.destination.map { presentation($0) }
     }
 
+    @MainActor
     private func presentationBinding(_ presentation: Presentation) -> Binding<Bool> {
         Binding(
             get: {

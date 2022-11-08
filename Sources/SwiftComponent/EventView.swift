@@ -179,7 +179,7 @@ extension EventType {
                 return "Path"
             case .output:
                 return "Output Name"
-            case .viewTask:
+            case .appear:
                 return ""
             case .task:
                 return "Name"
@@ -200,7 +200,7 @@ extension EventType {
                 return "Value"
             case .output:
                 return "Output"
-            case .viewTask:
+            case .appear:
                 return ""
             case .task(let result):
                 switch result.result {
@@ -222,7 +222,7 @@ extension EventType {
                 return mutation.property
             case .output(let event):
                 return getEnumCase(event).name
-            case .viewTask:
+            case .appear:
                 return ""
             case .task(let result):
                 return result.name
@@ -241,7 +241,7 @@ extension EventType {
                 return mutation.value
             case .output(let output):
                 return output
-            case .viewTask:
+            case .appear:
                 return ""
             case .task(let result):
                 switch result.result {
@@ -256,7 +256,7 @@ extension EventType {
 
 let previewEvents: [ComponentEvent] = [
         ComponentEvent(
-            type: .viewTask,
+            type: .appear,
             componentPath: .init([ExampleComponent.self]),
             start: Date().addingTimeInterval(-1.05),
             end: Date(),

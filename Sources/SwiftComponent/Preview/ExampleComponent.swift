@@ -29,7 +29,7 @@ struct ExampleComponent: ComponentModel {
         case finished
     }
 
-    func viewTask(model: Model) async {
+    func appear(model: Model) async {
         await model.task("get thing") {
             model.loading = false
         }
@@ -91,14 +91,14 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
     }
 
     static var tests: [ComponentTest] {
-        ComponentTest("Sets correct date", State(name: "Main"), runViewTask: false) {
+        ComponentTest("Sets correct date", State(name: "Main"), appear: false) {
             let date = Date().addingTimeInterval(10000)
             Step.setDependency(\.date, .constant(date))
             Step.input(.tap(2))
             Step.expectState { $0.date = date }
         }
 
-        ComponentTest("Fill out", State(name: "Main"), runViewTask: true) {
+        ComponentTest("Fill out", State(name: "Main"), appear: true) {
             Step.setBinding(\.name, "test")
             Step.expectState { $0.name = "invalid" }
             Step.expectState { $0.date = Date() }
