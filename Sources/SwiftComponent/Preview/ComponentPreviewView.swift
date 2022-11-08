@@ -14,32 +14,21 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
     @StateObject var viewModel = ViewModel<Preview.ModelType>.init(state: Preview.states[0].state)
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
-    @AppStorage("componentPreview.viewState") var viewState: ViewState = .component
+    @AppStorage("componentPreview.viewState") var viewState: ViewState = .dashboard
 
     enum ViewState: String, CaseIterable {
+        case dashboard = "Dashboard"
         case view = "View"
-        case component = "Component"
+        case model = "Model"
+        case code = "Code"
         case tests = "Tests"
-
-        var iconName: String {
-            switch self {
-                case .view: return "iphone"
-                case .component: return "puzzlepiece.extension"
-                case .tests: return "checkmark.circle"
-            }
-        }
-
-        var icon: Image {
-            Image(systemName: iconName)
-                .renderingMode(.original)
-        }
     }
 
     var body: some View {
         NavigationView {
             Group {
                 switch viewState {
-                    case .component:
+                    case .dashboard:
                         component
                     case .view:
                         Preview.createView(model: viewModel)
@@ -53,7 +42,12 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
 //                                .navigationBarTitleDisplayMode(.inline)
 //                        }
 //                        .navigationViewStyle(.stack)
-
+                    case .code:
+                        ComponentEditorView<Preview>()
+                    case .model:
+                        VStack {
+                            Text(Preview.ModelType.baseName).bold()
+                        }
                 }
             }
             .toolbar {
@@ -66,7 +60,7 @@ struct ComponentPreviewView<Preview: ComponentFeature>: View {
                         Text("Mode")
                     }
                     .pickerStyle(.segmented)
-
+                    .fixedSize()
                 }
             }
         }

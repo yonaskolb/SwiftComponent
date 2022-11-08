@@ -93,7 +93,7 @@ enum EventSimpleType: String, CaseIterable {
             case .input:
                 return .blue
             case .binding:
-                return .white
+                return .yellow
             case .output:
                 return .orange
             case .appear:
