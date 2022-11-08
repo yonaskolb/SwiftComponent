@@ -12,13 +12,12 @@ struct ItemComponent: ComponentModel {
 
     @Dependency(\.continuousClock) var clock
 
-    struct State: NavigationState {
+    struct State {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
         var presentDetail: ItemDetailComponent.State?
         var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
-        var route: Route<Destination>?
     }
 
     enum Destination {
@@ -33,7 +32,7 @@ struct ItemComponent: ComponentModel {
         case updateDetail
     }
 
-    func task(model: Model) async {
+    func appear(model: Model) async {
         await model.loadResource(\.data) {
             try await clock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
@@ -48,7 +47,7 @@ struct ItemComponent: ComponentModel {
             case .openDetail:
                 model.presentDetail = model.detail
             case .pushItem:
-                model.route = .push(.detail(model.detail))
+                model.present(.detail(model.detail))
             case .detail(.finished(let name)):
                 model.detail.name = name
                 model.name = name
@@ -72,10 +71,17 @@ struct ItemView: ComponentView {
 
     @ObservedObject var model: ViewModel<ItemComponent>
 
+    func presentation(_ destination: ItemComponent.Destination) -> Presentation {
+        switch destination {
+            case .detail:
+                return .push
+        }
+    }
+
     func destinationView(_ destination: ItemComponent.Destination) -> some View {
         switch destination {
             case .detail(let state):
-                ItemDetailView(model: model.scope(casePath: /ItemComponent.Destination.detail, value: state, event: ItemComponent.Input.detail))
+                ItemDetailView(model: model.scope(state: state, output: ItemComponent.Input.detail))
         }
     }
 
@@ -92,7 +98,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 model.inputButton(.updateDetail, "Update")
             }
-            ItemDetailView(model: model.scope(state: \.detail, event: ItemComponent.Input.detail))
+            ItemDetailView(model: model.scope(statePath: \.detail, output: ItemComponent.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
@@ -105,7 +111,7 @@ struct ItemView: ComponentView {
         .padding()
         .sheet(item: model.binding(\.presentDetail)) { state in
             NavigationView {
-                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, event: ItemComponent.Input.detail))
+                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: ItemComponent.Input.detail))
             }
         }
         .navigationBarTitleDisplayMode(.large)
@@ -129,7 +135,7 @@ struct ItemDetailComponent: ComponentModel {
         case finished(String)
     }
 
-    func task(model: Model) async {
+    func appear(model: Model) async {
 
     }
 
