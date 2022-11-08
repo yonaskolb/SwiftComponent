@@ -21,13 +21,13 @@ public struct ComponentEvent: Identifiable {
     public let end: Date
     public let type: EventType
     public let depth: Int
-    public let source: SourceLocation
+    public let source: Source
     public let componentType: any ComponentModel.Type
     public var componentName: String { componentPath.path.last?.baseName ?? "" }
     public var componentPath: ComponentPath
     public var mutations: [Mutation]
 
-    init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, source: SourceLocation) {
+    init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, source: Source) {
         self.type = type
         self.start = start
         self.end = end

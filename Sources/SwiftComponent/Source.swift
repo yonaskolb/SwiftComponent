@@ -7,8 +7,8 @@
 
 import Foundation
 
-public struct SourceLocation: Hashable {
-    public static func == (lhs: SourceLocation, rhs: SourceLocation) -> Bool {
+public struct Source: Hashable {
+    public static func == (lhs: Source, rhs: Source) -> Bool {
         lhs.file.description == rhs.file.description && lhs.line == rhs.line
     }
 
@@ -22,6 +22,6 @@ public struct SourceLocation: Hashable {
 
 
     public static func capture(file: StaticString = #file, line: UInt = #line) -> Self {
-        SourceLocation(file: file, line: line)
+        Source(file: file, line: line)
     }
 }

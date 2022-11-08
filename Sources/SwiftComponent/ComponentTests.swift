@@ -11,18 +11,20 @@ import Dependencies
 
 public struct Test<C: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, appear: Bool = false, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, _ state: C.State, appear: Bool = false, assertions: Set<Assertion> = Set(Assertion.allCases), file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.state = state
         self.appear = appear
+        self.assertions = assertions
         self.source = .capture(file: file, line: line)
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<Assertion> = Set(Assertion.allCases), file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
+        self.assertions = assertions
         self.source = .capture(file: file, line: line)
         self.steps = steps()
     }
@@ -32,12 +34,17 @@ public struct Test<C: ComponentModel> {
     public var stateName: String?
     public var steps: [TestStep<C>]
     public var appear: Bool
-    public let source: SourceLocation
+    public let source: Source
+    public let assertions: Set<Assertion>
+
+    public enum Assertion: String, CaseIterable {
+        case output
+    }
 }
 
 public struct TestStep<C: ComponentModel>: Identifiable {
     let type: StepType
-    var source: SourceLocation
+    var source: Source
     public let id = UUID()
 
     public enum StepType {
@@ -176,7 +183,7 @@ public struct TestStepBuilder {
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     public var error: String
     public var diff: String?
-    public let source: SourceLocation
+    public let source: Source
     public let id = UUID()
 
     public var description: String {
@@ -230,7 +237,6 @@ extension ViewModel {
         if test.appear {
             await appear()
         }
-
 
         var stepResults: [TestStepResult<Model>] = []
         let sleepDelay = 1_000_000_000.0 * delay
@@ -312,11 +318,14 @@ extension ViewModel {
                     }
                 case .expectOutput(let output):
                     var foundOutput: Model.Output?
-                    for event in events.reversed() {
+                    for (index, event) in events.enumerated() {
                         switch event.type {
                             case .output(let outputEvent):
-                                if let ouput = outputEvent as? Model.Output {
-                                    foundOutput = ouput
+                                if let outputEvent = outputEvent as? Model.Output {
+                                    foundOutput = outputEvent
+                                    if let difference = diff(outputEvent, output) {
+                                        stepErrors.append(TestError(error: "Unexpected value \(getEnumCase(foundOutput).name)", diff: difference, source: step.source))
+                                    }
                                 }
                                 break
                             default: break

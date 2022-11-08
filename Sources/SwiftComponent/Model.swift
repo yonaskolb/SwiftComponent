@@ -141,7 +141,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         eventsInProgress += 1
     }
 
-    fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], source: SourceLocation) {
+    fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], source: Source) {
         eventsInProgress -= 1
         if eventsInProgress < 0 {
             assertionFailure("Parent count is \(eventsInProgress), but should only be 0 or more")
@@ -161,14 +161,14 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         mutationAnimation = nil
     }
 
-    func processInput(_ input: Model.Input, source: SourceLocation, sendEvents: Bool) {
+    func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) {
         Task { @MainActor in
             await processInput(input, source: source, sendEvents: sendEvents)
         }
     }
 
     @MainActor
-    func processInput(_ input: Model.Input, source: SourceLocation, sendEvents: Bool) async {
+    func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) async {
         let eventStart = Date()
         startEvent()
         mutations = []
@@ -178,7 +178,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         }
     }
 
-    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, source: SourceLocation, animation: Animation? = nil) {
+    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, source: Source, animation: Animation? = nil) {
         let start = Date()
         startEvent()
         // TODO: note that source from dynamicMember keyPath is not correct
@@ -234,13 +234,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         self.sendEvent(type: .appear, start: start, mutations: mutations, source: .capture())
     }
 
-    func output(_ event: Model.Output, source: SourceLocation) {
+    func output(_ event: Model.Output, source: Source) {
         startEvent()
         self.sendEvent(type: .output(event), start: Date(), mutations: [], source: source)
     }
 
     @MainActor
-    func task<R>(_ name: String, source: SourceLocation, _ task: () async -> R) async -> R {
+    func task<R>(_ name: String, source: Source, _ task: () async -> R) async -> R {
         let start = Date()
         startEvent()
         mutations = []
@@ -251,7 +251,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    func task<R>(_ name: String, source: SourceLocation, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+    func task<R>(_ name: String, source: Source, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
         let start = Date()
         startEvent()
         mutations = []
@@ -266,13 +266,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
 
-    public func present(_ destination: Model.Destination, source: SourceLocation) {
+    public func present(_ destination: Model.Destination, source: Source) {
         self.destination = destination
         startEvent()
         sendEvent(type: .present(destination), start: Date(), mutations: [], source: source)
     }
 
-    public func dismissDestination(source: SourceLocation) {
+    public func dismissDestination(source: Source) {
         //TODO: send event
         self.destination = nil
     }
@@ -361,7 +361,7 @@ extension ViewModel {
         }
     }
 
-    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, source: SourceLocation) -> ViewModel<Child> {
+    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, source: Source) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
