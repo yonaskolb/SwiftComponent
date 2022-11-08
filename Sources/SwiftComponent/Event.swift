@@ -48,6 +48,7 @@ public enum EventType {
     case output(Any)
     case viewTask
     case task(TaskResult)
+    case present(Any)
 
     var type: EventSimpleType {
         switch self {
@@ -57,6 +58,7 @@ public enum EventType {
             case .output: return .output
             case .viewTask: return .viewTask
             case .task: return .task
+            case .present: return .present
         }
     }
 }
@@ -65,9 +67,10 @@ enum EventSimpleType: String, CaseIterable {
     case viewTask
     case input
     case binding
-    case output
     case task
     case mutation
+    case present
+    case output
 
     static var set: Set<EventSimpleType> { Set(allCases) }
 
@@ -79,6 +82,7 @@ enum EventSimpleType: String, CaseIterable {
             case .viewTask: return "View Task"
             case .task: return "Task"
             case .mutation: return "Mutation"
+            case .present: return "Present"
         }
     }
 
@@ -96,6 +100,8 @@ enum EventSimpleType: String, CaseIterable {
                 return .red
             case .mutation:
                 return .yellow
+            case .present:
+                return .teal
         }
     }
 
@@ -113,6 +119,8 @@ enum EventSimpleType: String, CaseIterable {
                 return "🟢"
             case .mutation:
                 return "🟡"
+            case .present:
+                return "🔵"
         }
     }
 }

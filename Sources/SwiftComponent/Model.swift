@@ -253,8 +253,8 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public func present(_ destination: Model.Destination, sourceLocation: SourceLocation) {
-        //TODO: send event
         self.destination = destination
+        sendEvent(type: .present(destination), start: Date(), mutations: [], sourceLocation: sourceLocation)
     }
 
     public func dismissDestination(sourceLocation: SourceLocation) {
