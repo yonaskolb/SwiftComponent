@@ -24,14 +24,16 @@ public struct ViewPreviewer<Content: View>: View {
     @State var colorScheme: ColorScheme?
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
+    @State var showEnvironmentPickers = false
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
     let name: String?
 
-    public init(content: Content, name: String? = nil) {
+    public init(content: Content, name: String? = nil, showEnvironmentPickers: Bool = true) {
         self.content = content
         self.name = name
+        self._showEnvironmentPickers = .init(initialValue: showEnvironmentPickers)
     }
 
     public var body: some View {
@@ -73,11 +75,13 @@ public struct ViewPreviewer<Content: View>: View {
                 Spacer()
             }
             Spacer()
-            HStack(spacing: 40) {
-                sizeCategorySelector
-                colorSchemeSelector
+            if showEnvironmentPickers {
+                HStack(spacing: 40) {
+                    sizeCategorySelector
+                    colorSchemeSelector
+                }
+                .padding()
             }
-            .padding()
         }
         #if os(iOS)
         .navigationViewStyle(StackNavigationViewStyle())

@@ -7,6 +7,7 @@
 A SwiftUI architecture that makes feature development fun and easy.
 
 - Simple and easy to reason about data flow using composable pieces
+- Built from the ground up with async await
 - Upgraded Xcode previews with state editing, view modes, runnable tests and more
 - In-App debug menu for every component
 - All events that flow through the app can be tracked

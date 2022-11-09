@@ -39,6 +39,7 @@ struct ExampleComponent: ComponentModel {
         switch input {
             case .tap(let int):
                 model.date = now()
+                model.output(.finished)
         }
     }
 }
@@ -78,7 +79,7 @@ struct ExampleView: ComponentView {
 }
 
 struct ExamplePreview: PreviewProvider, ComponentFeature {
-    typealias ModelType = ExampleComponent
+    typealias Model = ExampleComponent
     typealias ViewType = ExampleView
 
     static var states: [ComponentState] {

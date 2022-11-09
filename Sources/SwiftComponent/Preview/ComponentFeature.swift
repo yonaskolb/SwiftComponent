@@ -10,32 +10,32 @@ import SwiftUI
 
 #if DEBUG
 public protocol ComponentFeature: PreviewProvider {
-    associatedtype ModelType: ComponentModel
+    associatedtype Model: ComponentModel
     associatedtype ViewType: View
-    typealias ComponentState = ComponentPreviewState<ModelType.State>
-    typealias ComponentTest = Test<ModelType>
-    typealias Step = TestStep<ModelType>
-    typealias State = ModelType.State
+    typealias ComponentState = ComponentPreviewState<Model.State>
+    typealias ComponentTest = Test<Model>
+    typealias Step = TestStep<Model>
+    typealias State = Model.State
 
     @StateBuilder static var states: [ComponentState] { get }
     @TestBuilder static var tests: [ComponentTest] { get }
-    static func createView(model: ViewModel<ModelType>) -> ViewType
+    static func createView(model: ViewModel<Model>) -> ViewType
     static var embedInNav: Bool { get }
 }
     
-extension ComponentFeature where ViewType: ComponentView, ViewType.Model == ModelType {
+extension ComponentFeature where ViewType: ComponentView, ViewType.Model == Model {
 
-    public static func createView(model: ViewModel<ModelType>) -> ViewType {
+    public static func createView(model: ViewModel<Model>) -> ViewType {
         ViewType(model: model)
     }
 }
 
 extension ComponentFeature {
 
-    public static var tests: [Test<ModelType>] { [] }
+    public static var tests: [Test<Model>] { [] }
 
-    static func embedView(state: ModelType.State) -> AnyView {
-        let viewModel = ViewModel<ModelType>(state: state)
+    static func embedView(state: Model.State) -> AnyView {
+        let viewModel = ViewModel<Model>(state: state)
         let view = createView(model: viewModel)
         if config.embedInNav {
             return NavigationView { view }.eraseToAnyView()
@@ -49,7 +49,7 @@ extension ComponentFeature {
     public static var previews: some View {
         Group {
             componentPreview
-                .previewDisplayName(ModelType.baseName + " Component")
+                .previewDisplayName(Model.baseName + " Component")
             ForEach(states, id: \.name) { state in
                 embedView(state: state.state)
                     .previewDisplayName("State: \(state.name)")
@@ -60,11 +60,20 @@ extension ComponentFeature {
     }
 
     public static var componentPreview: some View {
-        ComponentPreviewView<Self>()
+        ComponentFeatureView<Self>()
     }
 
-    public static func state(name: String) -> ModelType.State? {
+    public static func state(name: String) -> Model.State? {
         states.first { $0.name == name }?.state
+    }
+
+    public static func state(for test: Test<Model>) -> Model.State? {
+        if let testState = test.state {
+            return testState
+        } else if let stateName = test.stateName, let namedState = Self.state(name: stateName) {
+            return namedState
+        }
+        return nil
     }
 }
 

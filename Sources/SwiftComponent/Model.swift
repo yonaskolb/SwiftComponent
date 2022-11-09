@@ -92,6 +92,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     public var path: ComponentPath
     public var componentName: String { Model.baseName }
     private var eventsInProgress = 0
+    var previewTaskDelay: TimeInterval = 0
 
     public internal(set) var state: Model.State {
         get {
@@ -246,6 +247,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         mutations = []
         let value = await task()
         let result = TaskResult(name: name, result: .success(value))
+        if previewTaskDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
+        }
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
         return value
     }
@@ -262,6 +266,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         } catch {
             catchError(error)
             result = TaskResult(name: name, result: .failure(error))
+        }
+        if previewTaskDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
         }
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
