@@ -14,7 +14,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
 
     public var string: String {
         var string = pathString
-        if let suffix = suffix {
+        if let suffix {
             string += "\(suffix)"
         }
         return string

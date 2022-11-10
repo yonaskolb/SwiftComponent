@@ -23,7 +23,7 @@ public struct Resource<State> {
     public var state: ResourceState {
         if let content {
             return .content(content)
-        } else if let error = error {
+        } else if let error {
             return .error(error)
         } else if isLoading {
             return .loading
@@ -50,7 +50,7 @@ extension Resource where State: Collection, State: ExpressibleByArrayLiteral {
 
     public var list: State {
         get {
-            if let content = content {
+            if let content {
                 return content
             } else {
                 return []

@@ -155,7 +155,7 @@ extension TestStep {
 
     public var description: String {
         var string = title
-        if let details = details {
+        if let details {
             string += ": \(details)"
         }
         return string

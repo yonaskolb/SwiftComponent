@@ -1,3 +1,4 @@
+--swiftversion 5.7
 --exclude .swiftpm
 
 --disable all
@@ -7,3 +8,4 @@
 
 --enable consecutiveBlankLines
 --enable consecutiveSpaces
+--enable redundantOptionalBinding

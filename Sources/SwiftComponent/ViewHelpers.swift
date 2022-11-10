@@ -5,7 +5,7 @@ extension ViewModel {
 
     public func inputButton<Label: View>(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         Button(action: {
-            if let animation = animation {
+            if let animation {
                 withAnimation(animation) {
                     self.send(input, file: file, line: line)
                 }

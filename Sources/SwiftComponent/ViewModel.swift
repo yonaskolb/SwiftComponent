@@ -18,7 +18,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         }
         set {
             guard !areMaybeEqual(state, newValue) else { return }
-            if let stateBinding = stateBinding {
+            if let stateBinding {
                 stateBinding.wrappedValue = newValue
             } else {
                 ownedState = newValue
@@ -127,7 +127,7 @@ extension ViewModel {
                     await self.model.binding(keyPath: keyPath, model: self.modelContext)
                 }
 
-                if let onSet = onSet, let action = onSet(value) {
+                if let onSet, let action = onSet(value) {
                     self.send(action, file: file, line: line)
                 }
             }
