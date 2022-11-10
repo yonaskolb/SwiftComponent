@@ -38,7 +38,6 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
 
     func setup() {
 
-
         guard let filePath = Preview.tests.first?.source.file.description else { return }
         self.filePath = filePath
         guard let data = fileManager.contents(atPath: filePath) else { return }

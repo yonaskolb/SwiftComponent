@@ -37,4 +37,3 @@ func areMaybeEqual(_ lhs: Any, _ rhs: Any) -> Bool {
 func areEqual<A: Equatable>(_ lhs: A, _ rhs: Any) -> Bool {
     lhs == (rhs as? A)
 }
-

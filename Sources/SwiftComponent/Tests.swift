@@ -122,7 +122,6 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 
 extension TestStep {
 
-
 }
 
 extension TestStep {
@@ -189,7 +188,6 @@ extension TestStep {
         }
     }
 }
-
 
 @resultBuilder
 public struct TestBuilder {

@@ -55,7 +55,6 @@ func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> St
 
 extension ModelContext {
 
-
     @MainActor
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, load: @MainActor () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
@@ -69,5 +68,3 @@ extension ModelContext {
         mutate(keyPath.appending(path: \.isLoading), false, animation: animation)
     }
 }
-
-

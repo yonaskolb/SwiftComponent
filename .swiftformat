@@ -4,3 +4,5 @@
 
 --enable fileHeader
 --header strip
+
+--enable consecutiveBlankLines
