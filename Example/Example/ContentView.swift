@@ -20,7 +20,7 @@ struct ItemComponent: ComponentModel {
         var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
     }
 
-    enum Destination {
+    enum Route {
         case detail(ItemDetailComponent.State)
     }
 
@@ -71,15 +71,15 @@ struct ItemView: ComponentView {
 
     @ObservedObject var model: ViewModel<ItemComponent>
 
-    func presentation(_ destination: ItemComponent.Destination) -> Presentation {
-        switch destination {
+    func presentation(for route: ItemComponent.Route) -> Presentation {
+        switch route {
             case .detail:
                 return .push
         }
     }
 
-    func destinationView(_ destination: ItemComponent.Destination) -> some View {
-        switch destination {
+    func routeView(_ route: ItemComponent.Route) -> some View {
+        switch route {
             case .detail(let state):
                 ItemDetailView(model: model.scope(state: state, output: ItemComponent.Input.detail))
         }

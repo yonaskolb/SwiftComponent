@@ -18,19 +18,19 @@ public protocol ComponentView: View {
     var model: ViewModel<Model> { get }
     init(model: ViewModel<Model>)
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
-    @ViewBuilder @MainActor func destinationView(_ destination: Model.Destination) -> DestinationView
-    @MainActor func presentation(_ destination: Model.Destination) -> Presentation
+    @ViewBuilder @MainActor func routeView(_ route: Model.Route) -> DestinationView
+    @MainActor func presentation(for route: Model.Route) -> Presentation
 }
 
 public extension ComponentView {
 
-    func presentation(_ destination: Model.Destination) -> Presentation {
+    func presentation(for route: Model.Route) -> Presentation {
         .sheet
     }
 }
 
-public extension ComponentView where Model.Destination == Never {
-    func destinationView(_ destination: Model.Destination) -> EmptyView {
+public extension ComponentView where Model.Route == Never {
+    func routeView(_ route: Model.Route) -> EmptyView {
         EmptyView()
     }
 }
@@ -82,12 +82,12 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 public extension ComponentView {
 
     private func dismiss() {
-        model.destination = nil
+        model.route = nil
     }
 
     @MainActor
     private var currentPresentation: Presentation? {
-        model.destination.map { presentation($0) }
+        model.route.map { presentation(for: $0) }
     }
 
     @MainActor
@@ -109,16 +109,16 @@ public extension ComponentView {
         ComponentViewContainer(model: model, view: view)
             .background {
                 NavigationLink(isActive: presentationBinding(.push) ) {
-                    if let destination = model.destination {
-                        destinationView(destination)
+                    if let route = model.route {
+                        routeView(route)
                     }
                 } label: {
                     EmptyView()
                 }
             }
             .sheet(isPresented: presentationBinding(.sheet)) {
-                if let destination = model.destination {
-                    destinationView(destination)
+                if let route = model.route {
+                    routeView(route)
                 }
             }
     }

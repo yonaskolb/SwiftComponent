@@ -185,7 +185,7 @@ extension EventType {
                 return "Name"
             case .mutation:
                 return "Path"
-            case .present:
+            case .route:
                 return "Destination"
         }
     }
@@ -207,7 +207,7 @@ extension EventType {
                     case .success: return "Success"
                     case .failure: return "Failure"
                 }
-            case .present:
+            case .route:
                 return "Destination"
         }
     }
@@ -226,8 +226,8 @@ extension EventType {
                 return ""
             case .task(let result):
                 return result.name
-            case .present(let destination):
-                return getEnumCase(destination).name
+            case .route(let route):
+                return getEnumCase(route).name
         }
     }
 
@@ -248,8 +248,8 @@ extension EventType {
                     case .success(let value): return value
                     case .failure(let error): return error
                 }
-            case .present(let destination):
-                return destination
+            case .route(let route):
+                return route
         }
     }
 }

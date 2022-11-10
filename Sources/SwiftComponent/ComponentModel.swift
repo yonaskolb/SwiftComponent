@@ -5,7 +5,7 @@ public protocol ComponentModel<State, Input> {
     associatedtype State = Void
     associatedtype Input = Never
     associatedtype Output = Never
-    associatedtype Destination = Never
+    associatedtype Route = Never
     @MainActor func appear(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(input: Input, model: Model) async

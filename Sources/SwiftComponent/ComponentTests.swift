@@ -57,7 +57,7 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         case validateState(name: String, validateState: (C.State) -> Bool)
         case validateEmptyRoute
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
-        case expectRoute(C.Destination)
+        case expectRoute(C.Route)
         case expectState((inout C.State) -> Void)
         case expectOutput(C.Output)
         case expectTask(String, successful: Bool = true)
@@ -105,7 +105,7 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         .init(type: .expectTask(name, successful: successful), source: .capture(file: file, line: line))
     }
 
-    public static func expectRoute(_ route: C.Destination, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func expectRoute(_ route: C.Route, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .expectRoute(route), source: .capture(file: file, line: line))
     }
 
@@ -345,11 +345,11 @@ extension ViewModel {
                         try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
                         try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
                     }
-                    var foundRoute: Model.Destination?
+                    var foundRoute: Model.Route?
                     for (index, event) in events.enumerated() {
                         switch event.type {
-                            case .present(let route):
-                                if foundRoute == nil, let route = route as? Model.Destination {
+                            case .route(let route):
+                                if foundRoute == nil, let route = route as? Model.Route {
                                     foundRoute = route
                                     events.remove(at: index)
                                     break
@@ -414,7 +414,7 @@ extension ViewModel {
                 case .setDependency(_, let modify):
                     modify(&testDependencyValues)
                 case .validateEmptyRoute:
-                    if let route = self.destination {
+                    if let route = self.route {
                         stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name)", source: step.source))
                     }
             }
@@ -444,7 +444,7 @@ extension ViewModel {
                 case .route:
                     for event in events {
                         switch event.type {
-                            case .present(let route):
+                            case .route(let route):
                                 assertionErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not handled", source: test.source))
                             default: break
                         }

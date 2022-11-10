@@ -108,7 +108,7 @@ struct ComponentFeatureGraphView<Feature: ComponentFeature>: View {
             name: String(describing: Feature.Model.self),
             state: try getType(Feature.Model.State.self),
             input: try getType(Feature.Model.Input.self),
-            route: try getType(Feature.Model.Destination.self),
+            route: try getType(Feature.Model.Route.self),
             output: try getType(Feature.Model.Output.self)
         )
         let view = ViewInfo(

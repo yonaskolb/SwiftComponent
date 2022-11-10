@@ -110,7 +110,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     let id = UUID()
-    @Published var destination: Model.Destination?
+    @Published var route: Model.Route?
     var componentModel: ComponentModelModel<Model>!
     var model: Model
     var cancellables: Set<AnyCancellable> = []
@@ -273,15 +273,15 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
 
-    public func present(_ destination: Model.Destination, source: Source) {
-        self.destination = destination
+    func present(_ route: Model.Route, source: Source) {
+        self.route = route
         startEvent()
-        sendEvent(type: .present(destination), start: Date(), mutations: [], source: source)
+        sendEvent(type: .route(route), start: Date(), mutations: [], source: source)
     }
 
-    public func dismissDestination(source: Source) {
+    func dismissRoute(source: Source) {
         //TODO: send event
-        self.destination = nil
+        self.route = nil
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
@@ -325,12 +325,12 @@ public class ComponentModelModel<C: ComponentModel> {
         await viewModel.task(name, source: .capture(file: file, line: line), task, catch: catchError)
     }
 
-    public func present(_ destination: C.Destination, file: StaticString = #file, line: UInt = #line) {
-        viewModel.present(destination, source: .capture(file: file, line: line))
+    public func present(_ route: C.Route, file: StaticString = #file, line: UInt = #line) {
+        viewModel.present(route, source: .capture(file: file, line: line))
     }
 
-    public func dismissDestination(file: StaticString = #file, line: UInt = #line) {
-        viewModel.dismissDestination(source: .capture(file: file, line: line))
+    public func dismissRoute(file: StaticString = #file, line: UInt = #line) {
+        viewModel.dismissRoute(source: .capture(file: file, line: line))
     }
 }
 
