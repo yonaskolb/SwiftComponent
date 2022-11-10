@@ -7,9 +7,7 @@ let package = Package(
     name: "SwiftComponent",
     platforms: [.iOS(.v15), .macOS(.v12)],
     products: [
-        .library(
-            name: "SwiftComponent",
-            targets: ["SwiftComponent"]),
+        .library(name: "SwiftComponent", targets: ["SwiftComponent"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),

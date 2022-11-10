@@ -111,8 +111,8 @@ struct ComponentFeatureTestsView<Feature: ComponentFeature>: View {
                             ForEach(result.assertionErrors, id: \.error) { error in
                                 HStack {
                                     Image(systemName: "x.circle.fill")
-                                    Text("Assertion")
-                                        .bold()
+                                    Text("Assertion: ")
+                                        .bold() +
                                     Text(error.error)
                                 }
                                 .foregroundColor(.red)

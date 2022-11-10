@@ -334,12 +334,17 @@ public class ComponentModelModel<C: ComponentModel> {
     }
 }
 
+func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> String {
+    "get \(keyPath.propertyName ?? "resource")"
+}
+
 extension ComponentModelModel {
+
 
     @MainActor
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, animation: Animation? = nil, load: @MainActor () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
-        let name = "get \(keyPath.propertyName ?? "resource")"
+        let name = getResourceTaskName(keyPath)
         await task(name) {
             let content = try await load()
             mutate(keyPath.appending(path: \.content), content, animation: animation)
