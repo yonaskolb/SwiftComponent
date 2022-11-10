@@ -11,7 +11,7 @@ import Dependencies
 
 public struct Test<C: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, appear: Bool = false, assertions: Set<Assertion> = Set(Assertion.allCases), file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, _ state: C.State, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.state = state
         self.appear = appear
@@ -20,7 +20,7 @@ public struct Test<C: ComponentModel> {
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<Assertion> = Set(Assertion.allCases), file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
@@ -35,21 +35,32 @@ public struct Test<C: ComponentModel> {
     public var steps: [TestStep<C>]
     public var appear: Bool
     public let source: Source
-    public let assertions: Set<Assertion>
+    public let assertions: Set<TestAssertion>
+}
 
-    public enum Assertion: String, CaseIterable {
-        case output
-        case task
-        case route
-    }
+public enum TestAssertion: String, CaseIterable {
+    case output
+    case task
+    case route
+    case mutation
+}
+
+extension Set where Element == TestAssertion {
+    public static var all: Self { Self(TestAssertion.allCases) }
+    public static var none: Self { Self([]) }
+    public static var normal: Self { Self([
+        .output,
+        .task,
+        .route,
+    ]) }
 }
 
 public struct TestStep<C: ComponentModel>: Identifiable {
     let type: StepType
-    var source: Source
+    public var source: Source
     public let id = UUID()
 
-    public enum StepType {
+    enum StepType {
         case appear
         case setDependency(Any, (inout DependencyValues) -> Void)
         case input(C.Input)
@@ -103,6 +114,11 @@ public struct TestStep<C: ComponentModel>: Identifiable {
 
     public static func expectTask(_ name: String, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .expectTask(name, successful: successful), source: .capture(file: file, line: line))
+    }
+
+    //TODO: also clear mutation assertions
+    public static func expectResourceTask<R>(_ keyPath: KeyPath<C.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(type: .expectTask(getResourceTaskName(keyPath), successful: successful), source: .capture(file: file, line: line))
     }
 
     public static func expectRoute(_ route: C.Route, file: StaticString = #file, line: UInt = #line) -> Self {
@@ -230,7 +246,7 @@ public struct TestResult<C: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>? = nil, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> {
 
         // setup dependencies
         var testDependencyValues = DependencyValues._current
@@ -254,6 +270,8 @@ extension ViewModel {
         defer {
             self.previewTaskDelay = 0
         }
+
+        let assertions = assertions ?? test.assertions
 
         // setup state
         state = initialState
@@ -423,7 +441,7 @@ extension ViewModel {
             stepResults.append(result)
         }
         var assertionErrors: [TestError] = []
-        for assertion in test.assertions {
+        for assertion in assertions {
             switch assertion {
                 case .output:
                     for event in events {
@@ -449,8 +467,29 @@ extension ViewModel {
                             default: break
                         }
                     }
+                case .mutation:
+                    for event in events {
+                        switch event.type {
+                            case .mutation(let mutation):
+                                assertionErrors.append(TestError(error: "Mutation of \(mutation.property) was not handled", source: test.source))
+                            default: break
+                        }
+                    }
             }
         }
         return TestResult(steps: stepResults, assertionErrors: assertionErrors)
+    }
+}
+
+extension ComponentFeature {
+
+    public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> [TestError] {
+        guard let state = Self.state(for: test) else {
+            return [TestError(error: "Could not find state", source: test.source)]
+        }
+
+        let viewModel = ViewModel<Model>(state: state)
+        let result = await viewModel.runTest(test, initialState: state, assertions: assertions)
+        return result.errors
     }
 }
