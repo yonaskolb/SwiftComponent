@@ -1,1 +1,6 @@
 --exclude .swiftpm
+
+--disable all
+
+--enable fileHeader
+--header strip

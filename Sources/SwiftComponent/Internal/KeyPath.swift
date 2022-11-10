@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Yonas Kolb on 18/10/2022.
-//
-
 import Foundation
 @_implementationOnly import Runtime
 

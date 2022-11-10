@@ -1,10 +1,3 @@
-//
-//  SwiftUIView.swift
-//  
-//
-//  Created by Yonas Kolb on 22/10/2022.
-//
-
 import SwiftUI
 import SwiftPreview
 

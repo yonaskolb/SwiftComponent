@@ -1,10 +1,3 @@
-//
-//  SwiftUIView.swift
-//  
-//
-//  Created by Yonas Kolb on 8/11/2022.
-//
-
 import SwiftUI
 import Parsing
 
