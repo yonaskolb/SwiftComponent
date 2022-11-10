@@ -49,7 +49,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
         runningTests = true
         testState[test.name] = .running
 
-        guard let state = Feature.state(for: test) else  {
+        guard let state = Feature.state(for: test) else {
             testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }

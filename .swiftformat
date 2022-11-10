@@ -6,3 +6,4 @@
 --header strip
 
 --enable consecutiveBlankLines
+--enable consecutiveSpaces

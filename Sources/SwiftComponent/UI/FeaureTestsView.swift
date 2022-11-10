@@ -54,7 +54,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
     @MainActor
     func runTest(_ test: Test<Feature.Model>) async {
 
-        guard let state = Feature.state(for: test) else  { return }
+        guard let state = Feature.state(for: test) else { return }
         testState[test.name] = .running
 
         let viewModel = ViewModel<Feature.Model>(state: state)
