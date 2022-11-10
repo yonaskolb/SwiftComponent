@@ -9,9 +9,9 @@ import Foundation
 import CustomDump
 import Dependencies
 
-public struct Test<C: ComponentModel> {
+public struct Test<Model: ComponentModel> {
 
-    public init(_ name: String, _ state: C.State, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, _ state: Model.State, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
         self.appear = appear
@@ -20,7 +20,7 @@ public struct Test<C: ComponentModel> {
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<C>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
@@ -30,9 +30,9 @@ public struct Test<C: ComponentModel> {
     }
 
     public var name: String
-    public var state: C.State?
+    public var state: Model.State?
     public var stateName: String?
-    public var steps: [TestStep<C>]
+    public var steps: [TestStep<Model>]
     public var appear: Bool
     public let source: Source
     public let assertions: Set<TestAssertion>
@@ -55,7 +55,7 @@ extension Set where Element == TestAssertion {
     ]) }
 }
 
-public struct TestStep<C: ComponentModel>: Identifiable {
+public struct TestStep<Model: ComponentModel>: Identifiable {
     let type: StepType
     public var source: Source
     public let id = UUID()
@@ -63,14 +63,14 @@ public struct TestStep<C: ComponentModel>: Identifiable {
     enum StepType {
         case appear
         case setDependency(Any, (inout DependencyValues) -> Void)
-        case input(C.Input)
-        case binding((inout C.State, Any) -> Void, PartialKeyPath<C.State>, path: String, value: Any)
-        case validateState(name: String, validateState: (C.State) -> Bool)
+        case input(Model.Input)
+        case binding((inout Model.State, Any) -> Void, PartialKeyPath<Model.State>, path: String, value: Any)
+        case validateState(name: String, validateState: (Model.State) -> Bool)
         case validateEmptyRoute
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
-        case expectRoute(C.Route)
-        case expectState((inout C.State) -> Void)
-        case expectOutput(C.Output)
+        case expectRoute(Model.Route)
+        case expectState((inout Model.State) -> Void)
+        case expectOutput(Model.Output)
         case expectTask(String, successful: Bool = true)
     }
 
@@ -78,25 +78,25 @@ public struct TestStep<C: ComponentModel>: Identifiable {
         .init(type: .appear, source: .capture(file: file, line: line))
     }
 
-    public static func input(_ input: C.Input, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .input(input), source: .capture(file: file, line: line))
     }
 
-    public static func expectOutput(_ output: C.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func expectOutput(_ output: Model.Output, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .expectOutput(output), source: .capture(file: file, line: line))
     }
 
     /// validate some properties on state by returning a boolean
-    public static func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (C.State) -> Bool) -> Self {
+    public static func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (Model.State) -> Bool) -> Self {
         .init(type: .validateState(name: name, validateState: validateState), source: .capture(file: file, line: line))
     }
 
     /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
-    public static func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout C.State) -> Void) -> Self {
+    public static func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout Model.State) -> Void) -> Self {
         .init(type: .expectState(modify), source: .capture(file: file, line: line))
     }
 
-    public static func setBinding<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), source: .capture(file: file, line: line))
     }
 
@@ -117,11 +117,11 @@ public struct TestStep<C: ComponentModel>: Identifiable {
     }
 
     //TODO: also clear mutation assertions
-    public static func expectResourceTask<R>(_ keyPath: KeyPath<C.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func expectResourceTask<R>(_ keyPath: KeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .expectTask(getResourceTaskName(keyPath), successful: successful), source: .capture(file: file, line: line))
     }
 
-    public static func expectRoute(_ route: C.Route, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func expectRoute(_ route: Model.Route, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .expectRoute(route), source: .capture(file: file, line: line))
     }
 
@@ -207,9 +207,9 @@ public struct TestBuilder {
 
 @resultBuilder
 public struct TestStepBuilder {
-    public static func buildBlock<C: ComponentModel>() -> [TestStep<C>] { [] }
-    public static func buildBlock<C: ComponentModel>(_ tests: TestStep<C>...) -> [TestStep<C>] { tests }
-    public static func buildBlock<C: ComponentModel>(_ tests: [TestStep<C>]) -> [TestStep<C>] { tests }
+    public static func buildBlock<Model: ComponentModel>() -> [TestStep<Model>] { [] }
+    public static func buildBlock<Model: ComponentModel>(_ tests: TestStep<Model>...) -> [TestStep<Model>] { tests }
+    public static func buildBlock<Model: ComponentModel>(_ tests: [TestStep<Model>]) -> [TestStep<Model>] { tests }
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
@@ -227,9 +227,9 @@ public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     }
 }
 
-public struct TestStepResult<C: ComponentModel>: Identifiable {
+public struct TestStepResult<Model: ComponentModel>: Identifiable {
     public var id: UUID { step.id }
-    public var step: TestStep<C>
+    public var step: TestStep<Model>
     public var events: [ComponentEvent]
     public var errors: [TestError]
     public var success: Bool { errors.isEmpty }
@@ -481,6 +481,7 @@ extension ViewModel {
     }
 }
 
+#if DEBUG
 extension ComponentFeature {
 
     public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> [TestError] {
@@ -493,3 +494,4 @@ extension ComponentFeature {
         return result.errors
     }
 }
+#endif

@@ -38,7 +38,7 @@ public struct ComponentEvent: Identifiable {
         self.source = source
     }
 
-    func isComponent<C: ComponentModel>(_ type: C.Type) -> Bool {
+    func isComponent<Model: ComponentModel>(_ type: Model.Type) -> Bool {
         componentType == type
     }
 }
@@ -139,4 +139,16 @@ extension Color {
 public struct TaskResult {
     public let name: String
     public let result: Result<Any, Error>
+}
+
+public struct Mutation: Identifiable {
+    public let value: Any
+    public let property: String
+    public var valueType: String { String(describing: type(of: value)) }
+    public let id = UUID()
+
+    init<State, T>(keyPath: KeyPath<State, T>, value: T) {
+        self.value = value
+        self.property = keyPath.propertyName ?? "self"
+    }
 }

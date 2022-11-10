@@ -114,5 +114,6 @@ struct ComponentDebugView_Previews: PreviewProvider {
         viewModelEvents = previewEvents
         return ExampleView(model: .init(state: .init(name: "Hello")))
             .debugView()
+            .navigationViewStyle(.stack)
     }
 }

@@ -8,7 +8,6 @@
 import Foundation
 import SwiftUI
 
-#if DEBUG
 public protocol ComponentFeature: PreviewProvider {
     associatedtype Model: ComponentModel
     associatedtype ViewType: View
@@ -53,14 +52,18 @@ extension ComponentFeature {
             ForEach(states, id: \.name) { state in
                 embedView(state: state.state)
                     .previewDisplayName("State: \(state.name)")
-                    .environment(\.isPreviewReference, true)
+                    .previewReference()
                     .previewLayout(state.size.flatMap { PreviewLayout.fixed(width: $0.width, height: $0.height) } ?? PreviewLayout.device)
             }
         }
     }
 
     public static var componentPreview: some View {
-        ComponentFeatureView<Self>()
+        NavigationView {
+            FeaturePreviewView<Self>()
+        }
+        .navigationViewStyle(.stack)
+        .previewDevice(.largestDevice)
     }
 
     public static func state(name: String) -> Model.State? {
@@ -108,5 +111,3 @@ public struct ComponentPreviewState<State> {
         self.state = state
     }
 }
-
-#endif

@@ -8,12 +8,18 @@
 import SwiftUI
 import Parsing
 
-struct ComponentEditorView<Preview: ComponentFeature>: View {
+struct FeatureEditorView<Preview: ComponentFeature>: View {
 
+    @State var initialFileContent: String = ""
     @State var fileContent: String = ""
     @State var editor = FeatureEditor(model: .init(state: "", handle: ""), view: .init(view: ""), preview: .init())
     @State var output = ""
     @State var filePath = ""
+    @AppStorage("preview.editor.showFile") var showFile = false
+    let fileManager = FileManager.default
+
+    var hasChanges: Bool { initialFileContent != fileContent }
+
     struct FeatureEditor {
         var model: ComponentModelEditor
         var view: ViewEditor
@@ -38,14 +44,14 @@ struct ComponentEditorView<Preview: ComponentFeature>: View {
     }
 
     func setup() {
-        let fileManager = FileManager.default
+
 
         guard let filePath = Preview.tests.first?.source.file.description else { return }
         self.filePath = filePath
         guard let data = fileManager.contents(atPath: filePath) else { return }
         guard let string = String(data: data, encoding: .utf8) else { return }
         fileContent = string
-
+        initialFileContent = string
         func scopeParser(prefix: String) -> some Parser {
             Parse {
                 Skip {
@@ -119,8 +125,13 @@ struct ComponentEditorView<Preview: ComponentFeature>: View {
         }
     }
 
+    func save() {
+        guard let data = fileContent.data(using: .utf8) else { return }
+        fileManager.createFile(atPath: filePath, contents: data)
+    }
+
     var body: some View {
-        VStack {
+        ZStack(alignment: .bottom) {
             ScrollView {
                 VStack(alignment: .leading) {
                     if output != "" {
@@ -128,7 +139,7 @@ struct ComponentEditorView<Preview: ComponentFeature>: View {
                     }
                     editors
 
-                    DisclosureGroup {
+                    DisclosureGroup(isExpanded: $showFile) {
                         wholeFile
                     } label: {
                         HStack {
@@ -144,12 +155,18 @@ struct ComponentEditorView<Preview: ComponentFeature>: View {
                 }
                 .padding()
             }
+            if hasChanges {
+                Button(action: save) {
+                    Text("Save")
+                }
+                .buttonStyle(.borderedProminent)
+            }
         }
         .task { setup() }
     }
 
     var wholeFile: some View {
-        Text(fileContent)
+        TextEditor(text: $fileContent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
             .background {
@@ -189,7 +206,7 @@ struct ComponentEditorView<Preview: ComponentFeature>: View {
 
 struct ComponentEditorView_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentEditorView<ExamplePreview>()
+        FeatureEditorView<ExamplePreview>()
             .previewDevice(.largestDevice)
     }
 }

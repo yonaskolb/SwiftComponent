@@ -2,87 +2,12 @@
 //  File.swift
 //  
 //
-//  Created by Yonas Kolb on 2/10/2022.
+//  Created by Yonas Kolb on 10/11/2022.
 //
 
 import Foundation
 import SwiftUI
 import Combine
-import CustomDump
-import CasePaths
-
-public struct ComponentPath: CustomStringConvertible, Equatable {
-    public static func == (lhs: ComponentPath, rhs: ComponentPath) -> Bool {
-        lhs.string == rhs.string
-    }
-
-    public var suffix: String?
-    public let path: [any ComponentModel.Type]
-
-    var pathString: String {
-        path.map { $0.baseName }.joined(separator: "/")
-    }
-
-    public var string: String {
-        var string = pathString
-        if let suffix = suffix {
-            string += "\(suffix)"
-        }
-        return string
-    }
-
-    public var description: String { string }
-
-    init(_ component: any ComponentModel.Type) {
-        self.path = [component]
-    }
-
-    init(_ path: [any ComponentModel.Type]) {
-        self.path = path
-    }
-
-    func contains(_ path: ComponentPath) -> Bool {
-        self.pathString.hasPrefix(path.pathString)
-    }
-
-    func appending(_ component: any ComponentModel.Type) -> ComponentPath {
-        ComponentPath(path + [component])
-    }
-
-    var parent: ComponentPath? {
-        if path.count > 1 {
-            return ComponentPath(path.dropLast())
-        } else {
-            return nil
-        }
-    }
-
-    func relative(to component: ComponentPath) -> ComponentPath {
-        guard contains(component) else { return self }
-        let difference = path.count - component.path.count 
-        return ComponentPath(Array(path.dropFirst(difference)))
-    }
-
-    var droppingRoot: ComponentPath? {
-        if !path.isEmpty {
-            return ComponentPath(Array(path.dropFirst()))
-        } else {
-            return nil
-        }
-    }
-}
-
-public struct Mutation: Identifiable {
-    public let value: Any
-    public let property: String
-    public var valueType: String { String(describing: type(of: value)) }
-    public let id = UUID()
-
-    init<State, T>(keyPath: KeyPath<State, T>, value: T) {
-        self.value = value
-        self.property = keyPath.propertyName ?? "self"
-    }
-}
 
 @dynamicMemberLookup
 public class ViewModel<Model: ComponentModel>: ObservableObject {
@@ -111,7 +36,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     let id = UUID()
     @Published var route: Model.Route?
-    var componentModel: ComponentModelModel<Model>!
+    var modelContext: ModelContext<Model>!
     var model: Model
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
@@ -135,7 +60,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     private init(path: ComponentPath?) {
         self.model = Model()
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
-        self.componentModel = ComponentModelModel(viewModel: self)
+        self.modelContext = ModelContext(viewModel: self)
     }
 
     private func startEvent() {
@@ -156,12 +81,6 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         viewModelEvents.append(event)
     }
 
-    public func send(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
-        mutationAnimation = animation
-        processInput(input, source: .capture(file: file, line: line), sendEvents: true)
-        mutationAnimation = nil
-    }
-
     func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) {
         Task { @MainActor in
             await processInput(input, source: source, sendEvents: sendEvents)
@@ -173,11 +92,72 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(input: input, model: componentModel)
+        await model.handle(input: input, model: modelContext)
         if sendEvents {
             sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
         }
     }
+
+    public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
+        self.state[keyPath: keyPath]
+    }
+
+}
+
+// MARK: View Accessors
+extension ViewModel {
+
+    public func send(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+        mutationAnimation = animation
+        processInput(input, source: .capture(file: file, line: line), sendEvents: true)
+        mutationAnimation = nil
+    }
+
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Input?)? = nil) -> Binding<Value> {
+        Binding(
+            get: { self.state[keyPath: keyPath] },
+            set: { value in
+                let start = Date()
+                self.startEvent()
+                // don't continue if change doesn't lead to state change
+                guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
+
+                //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
+                self.state[keyPath: keyPath] = value
+
+                let mutation = Mutation(keyPath: keyPath, value: value)
+                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
+
+                //print(diff(oldState, self.state) ?? "  No state changes")
+
+                Task { @MainActor in
+                    await self.model.binding(keyPath: keyPath, model: self.modelContext)
+                }
+
+                if let onSet = onSet, let action = onSet(value) {
+                    self.send(action, file: file, line: line)
+                }
+            }
+        )
+    }
+}
+
+// MARK: ComponentView Accessors
+extension ViewModel {
+
+    @MainActor
+    func appear() async {
+        let start = Date()
+        startEvent()
+        mutations = []
+        handledAppear = true
+        await model.appear(model: modelContext)
+        self.sendEvent(type: .appear, start: start, mutations: mutations, source: .capture())
+    }
+}
+
+// MARK: Model Accessors
+extension ViewModel {
 
     func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, source: Source, animation: Animation? = nil) {
         let start = Date()
@@ -195,44 +175,6 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         }
         sendEvent(type: .mutation(mutation), start: start, mutations: [mutation], source: source)
         //print(diff(oldState, self.state) ?? "  No state changes")
-    }
-
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Input?)? = nil) -> Binding<Value> {
-        Binding(
-            get: { self.state[keyPath: keyPath] },
-            set: { value in
-                let start = Date()
-                self.startEvent()
-                // don't continue if change doesn't lead to state change
-                guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
-
-//                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
-                self.state[keyPath: keyPath] = value
-
-                let mutation = Mutation(keyPath: keyPath, value: value)
-                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
-
-                //print(diff(oldState, self.state) ?? "  No state changes")
-
-                Task { @MainActor in
-                    await self.model.binding(keyPath: keyPath, model: self.componentModel)
-                }
-
-                if let onSet = onSet, let action = onSet(value) {
-                    self.send(action, file: file, line: line)
-                }
-            }
-        )
-    }
-
-    @MainActor
-    func appear() async {
-        let start = Date()
-        startEvent()
-        mutations = []
-        handledAppear = true
-        await model.appear(model: componentModel)
-        self.sendEvent(type: .appear, start: start, mutations: mutations, source: .capture())
     }
 
     func output(_ event: Model.Output, source: Source) {
@@ -283,78 +225,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         //TODO: send event
         self.route = nil
     }
-
-    public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
-      self.state[keyPath: keyPath]
-    }
 }
 
-@dynamicMemberLookup
-public class ComponentModelModel<C: ComponentModel> {
-
-    let viewModel: ViewModel<C>
-
-    init(viewModel: ViewModel<C>) {
-        self.viewModel = viewModel
-    }
-
-    var state: C.State { viewModel.state }
-
-    public func mutate<Value>(_ keyPath: WritableKeyPath<C.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
-        viewModel.mutate(keyPath, value: value, source: .capture(file: file, line: line), animation: animation)
-    }
-
-    public func output(_ event: C.Output, file: StaticString = #file, line: UInt = #line) {
-        viewModel.output(event, source: .capture(file: file, line: line))
-    }
-
-    public subscript<Value>(dynamicMember keyPath: WritableKeyPath<C.State, Value>) -> Value {
-        get { viewModel.state[keyPath: keyPath] }
-        set {
-            // TODO: can't capture source location
-            // https://forums.swift.org/t/add-default-parameter-support-e-g-file-to-dynamic-member-lookup/58490/2
-            viewModel.mutate(keyPath, value: newValue, source: .capture(file: #file, line: #line))
-        }
-    }
-
-    public func task(_ name: String, file: StaticString = #file, line: UInt = #line, _ task: () async -> Void) async {
-        await viewModel.task(name, source: .capture(file: file, line: line), task)
-    }
-
-    public func task<R>(_ name: String, file: StaticString = #file, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
-        await viewModel.task(name, source: .capture(file: file, line: line), task, catch: catchError)
-    }
-
-    public func present(_ route: C.Route, file: StaticString = #file, line: UInt = #line) {
-        viewModel.present(route, source: .capture(file: file, line: line))
-    }
-
-    public func dismissRoute(file: StaticString = #file, line: UInt = #line) {
-        viewModel.dismissRoute(source: .capture(file: file, line: line))
-    }
-}
-
-func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> String {
-    "get \(keyPath.propertyName ?? "resource")"
-}
-
-extension ComponentModelModel {
-
-
-    @MainActor
-    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<C.State, Resource<ResourceState>>, animation: Animation? = nil, load: @MainActor () async throws -> ResourceState) async {
-        mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
-        let name = getResourceTaskName(keyPath)
-        await task(name) {
-            let content = try await load()
-            mutate(keyPath.appending(path: \.content), content, animation: animation)
-        } catch: { error in
-            mutate(keyPath.appending(path: \.error), error, animation: animation)
-        }
-        mutate(keyPath.appending(path: \.isLoading), false, animation: animation)
-    }
-}
-
+// MARK: Scoping
 extension ViewModel {
 
     private func keyPathBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {

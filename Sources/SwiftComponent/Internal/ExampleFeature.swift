@@ -1,19 +1,11 @@
-//
-//  File.swift
-//  
-//
-//  Created by Yonas Kolb on 21/10/2022.
-//
-
 import Foundation
 import SwiftUI
 import Dependencies
 
-#if DEBUG
-
 struct ExampleComponent: ComponentModel {
 
     @Dependency(\.date) var now
+    @Dependency(\.timeZone) var clock
 
     struct State: Equatable {
         var name: String
@@ -106,5 +98,3 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
         }
     }
 }
-
-#endif

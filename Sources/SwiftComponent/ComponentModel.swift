@@ -11,7 +11,7 @@ public protocol ComponentModel<State, Input> {
     @MainActor func handle(input: Input, model: Model) async
     init()
 
-    typealias Model = ComponentModelModel<Self>
+    typealias Model = ModelContext<Self>
 }
 
 extension ComponentModel {

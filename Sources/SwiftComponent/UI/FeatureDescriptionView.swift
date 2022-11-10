@@ -60,7 +60,7 @@ enum TypeDescription {
     }
 }
 
-struct ComponentFeatureGraphView<Feature: ComponentFeature>: View {
+struct FeatureDescriptionView<Feature: ComponentFeature>: View {
 
     var feature: FeatureDescription = try! Self.getFeatureDescription()
 
@@ -250,7 +250,7 @@ fileprivate extension View {
 
 struct ComponentFeatureGraphView_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentFeatureGraphView<ExamplePreview>()
+        FeatureDescriptionView<ExamplePreview>()
 //            .previewDevice(.largestDevice)
     }
 }

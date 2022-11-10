@@ -38,7 +38,7 @@ enum TestState<Model: ComponentModel> {
     }
 }
 
-struct ComponentFeatureTestsView<Feature: ComponentFeature>: View {
+struct FeaureTestsView<Feature: ComponentFeature>: View {
 
     @State var testState: [String: TestState<Feature.Model>] = [:]
     @State var testResults: [String: [TestStep<Feature.Model>.ID]] = [:]
@@ -279,6 +279,6 @@ extension String {
 
 struct ComponentFeatureTests_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentFeatureTestsView<ExamplePreview>()
+        FeaureTestsView<ExamplePreview>()
     }
 }

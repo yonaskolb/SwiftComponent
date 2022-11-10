@@ -10,7 +10,7 @@ import SwiftUI
 import SwiftPreview
 import SwiftGUI
 
-struct ComponentFeatureDashboard<Feature: ComponentFeature>: View {
+struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
     @StateObject var viewModel = ViewModel<Feature.Model>.init(state: Feature.states[0].state)
 
@@ -239,6 +239,6 @@ struct ComponentFeatureDashboard<Feature: ComponentFeature>: View {
 
 struct ComponentFeatureDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentFeatureDashboard<ExamplePreview>()
+        FeatureDashboardView<ExamplePreview>()
     }
 }

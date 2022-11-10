@@ -118,7 +118,7 @@ public struct ViewPreviewer<Content: View>: View {
     var previewContent: some View {
         content
             .allowsHitTesting(false)
-            .environment(\.isPreviewReference, true)
+            .previewReference()
     }
 
     var colorSchemeSelector: some View {
@@ -198,6 +198,11 @@ extension EnvironmentValues {
 }
 
 extension View {
+
+    /// disables component views from calling their appearance task
+    public func previewReference() -> some View {
+        self.environment(\.isPreviewReference, true)
+    }
 
     public func preview(name: String? = nil) -> some View {
         ViewPreviewer(content: self, name: name)
