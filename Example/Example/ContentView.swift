@@ -183,7 +183,7 @@ struct ItemDetailView: ComponentView {
 //}
 
 struct ItemPreview: PreviewProvider, ComponentFeature {
-    typealias ModelType = ItemComponent
+    typealias Model = ItemComponent
     typealias ViewType = ItemView
 
     static var states: [ComponentState] {
