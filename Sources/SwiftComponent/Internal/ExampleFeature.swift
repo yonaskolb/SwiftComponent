@@ -104,13 +104,13 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
             let date = Date().addingTimeInterval(10000)
             Step.setDependency(\.date, .constant(date))
             Step.input(.tap(2))
-            Step.expectState { $0.date = date }
+                .expectState { $0.date = date }
         }
 
         ComponentTest("Fill out", State(name: "Main"), appear: true) {
             Step.setBinding(\.name, "test")
-            Step.expectState { $0.name = "invalid" }
-            Step.expectState { $0.date = Date() }
+                .expectState { $0.name = "invalid" }
+                .expectState { $0.date = Date() }
         }
     }
 }

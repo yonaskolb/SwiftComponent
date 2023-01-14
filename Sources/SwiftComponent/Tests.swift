@@ -52,12 +52,16 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     let type: StepType
     public var source: Source
     public let id = UUID()
+    var expectations: [Expectation] = []
 
     enum StepType {
         case appear
         case setDependency(Any, (inout DependencyValues) -> Void)
         case input(Model.Input)
         case binding((inout Model.State, Any) -> Void, PartialKeyPath<Model.State>, path: String, value: Any)
+    }
+
+    enum Expectation {
         case validateState(name: String, validateState: (Model.State) -> Bool)
         case validateEmptyRoute
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
@@ -75,20 +79,6 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
         .init(type: .input(input), source: .capture(file: file, line: line))
     }
 
-    public static func expectOutput(_ output: Model.Output, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .expectOutput(output), source: .capture(file: file, line: line))
-    }
-
-    /// validate some properties on state by returning a boolean
-    public static func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (Model.State) -> Bool) -> Self {
-        .init(type: .validateState(name: name, validateState: validateState), source: .capture(file: file, line: line))
-    }
-
-    /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
-    public static func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout Model.State) -> Void) -> Self {
-        .init(type: .expectState(modify), source: .capture(file: file, line: line))
-    }
-
     public static func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), source: .capture(file: file, line: line))
     }
@@ -97,25 +87,68 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
         .init(type: .setDependency(dependency) { $0[keyPath: keyPath] = dependency }, source: .capture(file: file, line: line))
     }
 
-    public static func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), source: .capture(file: file, line: line))
+}
+
+//public struct TestExpectation<Model: ComponentModel> {
+//
+//    let name: String
+//    let run: (Context) -> [TestError]
+//    let source: Source
+//
+//    struct Context {
+//        let viewModel: ViewModel<Model>
+//        let events: [ComponentEvent]
+//    }
+//}
+//
+//extension TestStep {
+//
+//    func expect(_ expectation: Expectation) {
+//
+//    }
+//}
+
+extension TestStep {
+
+    func addExpectation(_ expectation: Expectation, source: Source) -> Self {
+        var step = self
+        step.expectations.append(expectation)
+        return step
     }
 
-    public static func validateEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .validateEmptyRoute, source: .capture(file: file, line: line))
+    public func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.validateDependency(error: error, dependency: String(describing: T.self), validateDependency: { validateDependency($0[keyPath: keyPath]) }), source: .capture(file: file, line: line))
     }
 
-    public static func expectTask(_ name: String, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .expectTask(name, successful: successful), source: .capture(file: file, line: line))
+    public func validateEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.validateEmptyRoute, source: .capture(file: file, line: line))
+    }
+
+    public func expectOutput(_ output: Model.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectOutput(output), source: .capture(file: file, line: line))
+    }
+
+    /// validate some properties on state by returning a boolean
+    public func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (Model.State) -> Bool) -> Self {
+        addExpectation(.validateState(name: name, validateState: validateState), source: .capture(file: file, line: line))
+    }
+
+    /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
+    public func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout Model.State) -> Void) -> Self {
+        addExpectation(.expectState(modify), source: .capture(file: file, line: line))
+    }
+
+    public func expectTask(_ name: String, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectTask(name, successful: successful), source: .capture(file: file, line: line))
     }
 
     //TODO: also clear mutation assertions
-    public static func expectResourceTask<R>(_ keyPath: KeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .expectTask(getResourceTaskName(keyPath), successful: successful), source: .capture(file: file, line: line))
+    public func expectResourceTask<R>(_ keyPath: KeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectTask(getResourceTaskName(keyPath), successful: successful), source: .capture(file: file, line: line))
     }
 
-    public static func expectRoute(_ route: Model.Route, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .expectRoute(route), source: .capture(file: file, line: line))
+    public func expectRoute(_ route: Model.Route, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectRoute(route), source: .capture(file: file, line: line))
     }
 
 }
@@ -136,6 +169,35 @@ extension TestStep {
                 return "Input"
             case .binding:
                 return "Binding"
+        }
+    }
+
+    public var description: String {
+        var string = title
+        if let details {
+            string += ": \(details)"
+        }
+        return string
+    }
+
+    public var details: String? {
+        switch type {
+            case .appear:
+                return nil
+            case .setDependency(let dependency, _):
+                return "\(String(describing: Swift.type(of: dependency)))"
+            case .input(let input):
+                return "\(getEnumCase(input).name)"
+            case .binding(_, _, let path, let value):
+                return "\(path) = \(value)"
+        }
+    }
+}
+
+extension TestStep.Expectation {
+
+    public var title: String {
+        switch self {
             case .validateState:
                 return "Validate State"
             case .validateEmptyRoute:
@@ -162,15 +224,7 @@ extension TestStep {
     }
 
     public var details: String? {
-        switch type {
-            case .appear:
-                return nil
-            case .setDependency(let dependency, _):
-                return "\(String(describing: Swift.type(of: dependency)))"
-            case .input(let input):
-                return "\(getEnumCase(input).name)"
-            case .binding(_, _, let path, let value):
-                return "\(path) = \(value)"
+        switch self {
             case .validateState(let name, _ ):
                 return "\(name)"
             case .expectState(_):
@@ -229,9 +283,8 @@ public struct TestStepResult<Model: ComponentModel>: Identifiable {
 public struct TestResult<C: ComponentModel> {
     public let steps: [TestStepResult<C>]
     public var success: Bool { errors.isEmpty && steps.allSatisfy(\.success) }
-    public var assertionErrors: [TestError]
     public var stepErrors: [TestError] { steps.reduce([]) { $0 + $1.errors } }
-    public var errors: [TestError] { assertionErrors + stepErrors }
+    public var errors: [TestError] { stepErrors }
 }
 
 extension ViewModel {
@@ -244,10 +297,10 @@ extension ViewModel {
         testDependencyValues.context = .preview
 
         // handle events
-        var events: [ComponentEvent] = []
-        let eventsSubscription = self.events.sink { event in
-            events.append(event)
-        }
+//        var events: [ComponentEvent] = []
+//        let eventsSubscription = self.events.sink { event in
+//            events.append(event)
+//        }
 
         let sendEventsValue = self.sendGlobalEvents
         self.sendGlobalEvents = sendEvents
@@ -281,6 +334,8 @@ extension ViewModel {
             }
             var stepErrors: [TestError] = []
             switch step.type {
+                case .setDependency(_, let modify):
+                    modify(&testDependencyValues)
                 case .appear:
                     await DependencyValues.withValues { dependencyValues in
                         dependencyValues = testDependencyValues
@@ -332,157 +387,157 @@ extension ViewModel {
                         }
                         mutate(&state, value)
                     }
-                case .validateState(_, let validateState):
-                    let valid = validateState(state)
-                    if !valid {
-                        stepErrors.append(TestError(error: "Invalid State", source: step.source))
-                    }
-                case .validateDependency(let error, let dependency, let validateDependency):
-                    let valid = validateDependency(testDependencyValues)
-                    if !valid {
-                        stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", source: step.source))
-                    }
-                case .expectState(let modify):
-                    let currentState = state
-                    var expectedState = state
-                    modify(&expectedState)
-                    if let difference = diff(expectedState, currentState) {
-                        stepErrors.append(TestError(error: "Unexpected State", diff: difference, source: step.source))
-                    }
-                case .expectRoute(let route):
-                    if sleepDelay > 0 {
-                        try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-                        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
-                    }
-                    var foundRoute: Model.Route?
-                    for (index, event) in events.enumerated() {
-                        switch event.type {
-                            case .route(let route):
-                                if foundRoute == nil, let route = route as? Model.Route {
-                                    foundRoute = route
-                                    events.remove(at: index)
-                                    break
-                                }
-                            default: break
+            }
+            for expectation in step.expectations {
+                switch expectation {
+                    case .validateState(_, let validateState):
+                        let valid = validateState(state)
+                        if !valid {
+                            stepErrors.append(TestError(error: "Invalid State", source: step.source))
                         }
-                    }
-                    if let foundRoute {
-                        if let difference = diff(foundRoute, route) {
-                            stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name)", diff: difference, source: step.source))
+                    case .validateDependency(let error, let dependency, let validateDependency):
+                        let valid = validateDependency(testDependencyValues)
+                        if !valid {
+                            stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", source: step.source))
                         }
-                    } else {
-                        stepErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not sent", source: step.source))
-                    }
-                case .expectOutput(let output):
-                    var foundOutput: Model.Output?
-                    for (index, event) in events.enumerated() {
-                        switch event.type {
-                            case .output(let output):
-                                if foundOutput == nil, let output = output as? Model.Output {
-                                    foundOutput = output
-                                    events.remove(at: index)
-                                    break
-                                }
-                            default: break
+                    case .expectState(let modify):
+                        let currentState = state
+                        var expectedState = state
+                        modify(&expectedState)
+                        if let difference = diff(expectedState, currentState) {
+                            stepErrors.append(TestError(error: "Unexpected State", diff: difference, source: step.source))
                         }
-                    }
-                    if let foundOutput {
-                        if let difference = diff(foundOutput, output) {
-                            stepErrors.append(TestError(error: "Unexpected output value \(getEnumCase(foundOutput).name)", diff: difference, source: step.source))
+                    case .expectRoute(let route):
+                        if sleepDelay > 0 {
+                            try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
+                            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
                         }
-                    } else {
-                        stepErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not sent", source: step.source))
-                    }
-                case .expectTask(let name, let successful):
-                    var result: TaskResult?
-                    for (index, event) in events.enumerated() {
-                        switch event.type {
-                            case .task(let taskResult):
-                                if result == nil {
-                                    result = taskResult
-                                    events.remove(at: index)
-                                    break
-                                }
-                            default: break
+                        var foundRoute: Model.Route?
+                        for (index, event) in stepEvents.enumerated() {
+                            switch event.type {
+                                case .route(let route):
+                                    if foundRoute == nil, let route = route as? Model.Route {
+                                        foundRoute = route
+                                        stepEvents.remove(at: index)
+                                        break
+                                    }
+                                default: break
+                            }
                         }
-                    }
-                    if let result {
-                        switch result.result {
-                            case .failure:
-                                if successful {
-                                    stepErrors.append(TestError(error: "Expected \(name) task to succeed, but it failed", source: step.source))
-                                }
-                            case .success:
-                                if !successful {
-                                    stepErrors.append(TestError(error: "Expected \(name) task to fail, but it succeeded", source: step.source))
-                                }
+                        if let foundRoute {
+                            if let difference = diff(foundRoute, route) {
+                                stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name)", diff: difference, source: step.source))
+                            }
+                        } else {
+                            stepErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not sent", source: step.source))
                         }
-                    } else {
-                        stepErrors.append(TestError(error: "Task \(name) was not sent", source: step.source))
-                    }
-                case .setDependency(_, let modify):
-                    modify(&testDependencyValues)
-                case .validateEmptyRoute:
-                    if let route = self.route {
-                        stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name)", source: step.source))
-                    }
+                    case .expectOutput(let output):
+                        var foundOutput: Model.Output?
+                        for (index, event) in stepEvents.enumerated() {
+                            switch event.type {
+                                case .output(let output):
+                                    if foundOutput == nil, let output = output as? Model.Output {
+                                        foundOutput = output
+                                        stepEvents.remove(at: index)
+                                        break
+                                    }
+                                default: break
+                            }
+                        }
+                        if let foundOutput {
+                            if let difference = diff(foundOutput, output) {
+                                stepErrors.append(TestError(error: "Unexpected output value \(getEnumCase(foundOutput).name)", diff: difference, source: step.source))
+                            }
+                        } else {
+                            stepErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not sent", source: step.source))
+                        }
+                    case .expectTask(let name, let successful):
+                        var result: TaskResult?
+                        for (index, event) in stepEvents.enumerated() {
+                            switch event.type {
+                                case .task(let taskResult):
+                                    if result == nil {
+                                        result = taskResult
+                                        stepEvents.remove(at: index)
+                                        break
+                                    }
+                                default: break
+                            }
+                        }
+                        if let result {
+                            switch result.result {
+                                case .failure:
+                                    if successful {
+                                        stepErrors.append(TestError(error: "Expected \(name) task to succeed, but it failed", source: step.source))
+                                    }
+                                case .success:
+                                    if !successful {
+                                        stepErrors.append(TestError(error: "Expected \(name) task to fail, but it succeeded", source: step.source))
+                                    }
+                            }
+                        } else {
+                            stepErrors.append(TestError(error: "Task \(name) was not sent", source: step.source))
+                        }
+                    case .validateEmptyRoute:
+                        if let route = self.route {
+                            stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name)", source: step.source))
+                        }
+                }
+            }
+            for assertion in assertions {
+                switch assertion {
+                    case .output:
+                        for event in stepEvents {
+                            switch event.type {
+                                case .output(let output):
+                                    stepErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not handled", source: step.source))
+                                default: break
+                            }
+                        }
+                    case .task:
+                        for event in stepEvents {
+                            switch event.type {
+                                case .task(let result):
+                                    stepErrors.append(TestError(error: "Task \(result.name) was not handled", source: step.source))
+                                default: break
+                            }
+                        }
+                    case .route:
+                        for event in stepEvents {
+                            switch event.type {
+                                case .route(let route):
+                                    stepErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not handled", source: step.source))
+                                default: break
+                            }
+                        }
+                    case .mutation:
+                        for event in stepEvents {
+                            switch event.type {
+                                case .mutation(let mutation):
+                                    stepErrors.append(TestError(error: "Mutation of \(mutation.property) was not handled", source: step.source))
+                                default: break
+                            }
+                        }
+                }
             }
             let result = TestStepResult(step: step, events: stepEvents, errors: stepErrors)
             stepComplete?(result)
             stepResults.append(result)
         }
-        var assertionErrors: [TestError] = []
-        for assertion in assertions {
-            switch assertion {
-                case .output:
-                    for event in events {
-                        switch event.type {
-                            case .output(let output):
-                                assertionErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not handled", source: test.source))
-                            default: break
-                        }
-                    }
-                case .task:
-                    for event in events {
-                        switch event.type {
-                            case .task(let result):
-                                assertionErrors.append(TestError(error: "Task \(result.name) was not handled", source: test.source))
-                            default: break
-                        }
-                    }
-                case .route:
-                    for event in events {
-                        switch event.type {
-                            case .route(let route):
-                                assertionErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not handled", source: test.source))
-                            default: break
-                        }
-                    }
-                case .mutation:
-                    for event in events {
-                        switch event.type {
-                            case .mutation(let mutation):
-                                assertionErrors.append(TestError(error: "Mutation of \(mutation.property) was not handled", source: test.source))
-                            default: break
-                        }
-                    }
-            }
-        }
-        return TestResult(steps: stepResults, assertionErrors: assertionErrors)
+        return TestResult(steps: stepResults)
     }
 }
 
 #if DEBUG
 extension ComponentFeature {
 
-    public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> [TestError] {
+    public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
         guard let state = Self.state(for: test) else {
-            return [TestError(error: "Could not find state", source: test.source)]
+            fatalError("Could not find state")
         }
 
         let viewModel = ViewModel<Model>(state: state)
-        let result = await viewModel.runTest(test, initialState: state, assertions: assertions)
-        return result.errors
+        return await viewModel.runTest(test, initialState: state, assertions: assertions)
     }
 }
 #endif

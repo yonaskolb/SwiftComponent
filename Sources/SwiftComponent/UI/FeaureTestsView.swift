@@ -97,25 +97,6 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
                 }
                 .padding(.leading, 30)
             }
-            switch getTestState(test) {
-                case .complete(let result):
-                    if !result.assertionErrors.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(result.assertionErrors, id: \.error) { error in
-                                HStack {
-                                    Image(systemName: "x.circle.fill")
-                                    Text("Assertion: ")
-                                        .bold() +
-                                    Text(error.error)
-                                }
-                                .foregroundColor(.red)
-                                .padding(.leading, 30)
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-                    default: EmptyView()
-            }
         }
     }
 

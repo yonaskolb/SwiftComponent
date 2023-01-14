@@ -152,7 +152,7 @@ extension ViewModel {
 // MARK: Model Accessors
 extension ViewModel {
 
-    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, source: Source, animation: Animation? = nil) {
+    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, animation: Animation? = nil, source: Source) {
         let start = Date()
         startEvent()
         // TODO: note that source from dynamicMember keyPath is not correct

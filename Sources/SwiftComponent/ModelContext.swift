@@ -16,7 +16,7 @@ public class ModelContext<Model: ComponentModel> {
     var state: Model.State { viewModel.state }
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
-        viewModel.mutate(keyPath, value: value, source: .capture(file: file, line: line), animation: animation)
+        viewModel.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
     }
 
     public func output(_ event: Model.Output, file: StaticString = #file, line: UInt = #line) {

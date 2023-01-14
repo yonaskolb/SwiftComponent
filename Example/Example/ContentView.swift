@@ -200,12 +200,12 @@ struct ItemPreview: PreviewProvider, ComponentFeature {
         ComponentTest("Happy New style", State(name: "john", data: .loading)) {
             Step.input(.updateDetail)
             Step.setBinding(\.text, "yeah")
-            Step.validateState("text is set") { state in
-                state.text == "yeah"
-            }
-            Step.expectState { state in
-                state.name = "yeah"
-            }
+                .validateState("text is set") { state in
+                    state.text == "yeah"
+                }
+                .expectState { state in
+                    state.name = "yeah"
+                }
         }
     }
 }
