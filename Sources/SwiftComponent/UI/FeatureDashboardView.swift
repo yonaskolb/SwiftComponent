@@ -5,7 +5,7 @@ import SwiftGUI
 
 struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
-    @StateObject var viewModel = ViewModel<Feature.Model>.init(state: Feature.states[0].state)
+    @ObservedObject var viewModel: ViewModel<Feature.Model>
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
@@ -232,6 +232,6 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
 struct ComponentFeatureDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        FeatureDashboardView<ExamplePreview>()
+        FeatureDashboardView<ExamplePreview>(viewModel: .init(state: ExamplePreview.states[0].state))
     }
 }

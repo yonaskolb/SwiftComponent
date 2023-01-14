@@ -3,7 +3,7 @@ import Foundation
 public protocol ComponentModel<State, Input> {
 
     associatedtype State = Void
-    associatedtype Input = Never
+    associatedtype Input = Void
     associatedtype Output = Never
     associatedtype Route = Never
     @MainActor func appear(model: Model) async
@@ -31,9 +31,9 @@ extension ComponentModel {
     }
 }
 
-//public extension ComponentModel where Input == Never {
-//    static func handle(input: Input, model: Model) async {}
-//}
+public extension ComponentModel where Input == Void {
+    func handle(input: Void, model: Model) async {}
+}
 
 public extension ComponentModel {
     func binding(keyPath: PartialKeyPath<State>, model: Model) async { }

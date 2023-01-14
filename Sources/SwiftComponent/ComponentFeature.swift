@@ -6,11 +6,13 @@ public protocol ComponentFeature: PreviewProvider {
     associatedtype ViewType: View
     typealias ComponentState = ComponentPreviewState<Model.State>
     typealias ComponentTest = Test<Model>
+    typealias ComponentRoute = ComponentFeatureRoute<Model.Route>
     typealias Step = TestStep<Model>
     typealias State = Model.State
 
     @StateBuilder static var states: [ComponentState] { get }
     @TestBuilder static var tests: [ComponentTest] { get }
+    @RouteBuilder static var routes: [ComponentRoute] { get }
     static func createView(model: ViewModel<Model>) -> ViewType
     static var embedInNav: Bool { get }
 }
@@ -20,6 +22,11 @@ extension ComponentFeature where ViewType: ComponentView, ViewType.Model == Mode
     public static func createView(model: ViewModel<Model>) -> ViewType {
         ViewType(model: model)
     }
+}
+
+extension ComponentFeature {
+
+    public static var routes: [ComponentRoute] { [] }
 }
 
 extension ComponentFeature {
@@ -102,5 +109,21 @@ public struct ComponentPreviewState<State> {
         self.name = name ?? "Default"
         self.size = size
         self.state = state
+    }
+}
+
+@resultBuilder
+public struct RouteBuilder {
+    public static func buildBlock<Route>() -> [ComponentFeatureRoute<Route>] { [] }
+    public static func buildBlock<Route>(_ routes: ComponentFeatureRoute<Route>...) -> [ComponentFeatureRoute<Route>] { routes }
+    public static func buildBlock<Route>(_ routes: [ComponentFeatureRoute<Route>]) -> [ComponentFeatureRoute<Route>] { routes }
+}
+
+public struct ComponentFeatureRoute<Route> {
+    public let name: String
+    public let route: Route
+    public init(_ name: String, _ route: Route) {
+        self.name = name
+        self.route = route
     }
 }

@@ -5,6 +5,7 @@ import SwiftUI
 public enum Presentation {
     case sheet
     case push
+    case fullScreenCover
 }
 
 // wip

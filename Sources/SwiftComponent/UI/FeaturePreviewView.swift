@@ -18,10 +18,11 @@ struct FeaturePreviewView<Feature: ComponentFeature>: View {
         Group {
             switch viewState {
                 case .feature:
-                    FeatureDashboardView<Feature>()
+                    FeatureDashboardView<Feature>(viewModel: viewModel)
                 case .view:
                     ViewPreviewer(content: Feature.createView(model: viewModel))
                         .padding()
+                        .previewReference()
                 case .tests:
                     FeaureTestsView<Feature>()
                 case .code:
@@ -45,7 +46,7 @@ struct FeaturePreviewView<Feature: ComponentFeature>: View {
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)
-        .edgesIgnoringSafeArea(.all)
+//        .edgesIgnoringSafeArea(.all)
     }
 
 }
@@ -55,5 +56,6 @@ struct ComponentPreviewView_Previews: PreviewProvider {
         NavigationView {
             FeaturePreviewView<ExamplePreview>()
         }
+        .navigationViewStyle(.stack)
     }
 }

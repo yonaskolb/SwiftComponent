@@ -18,7 +18,7 @@ extension View {
 
     public func accessibilityPreview() -> some View {
         let viewController = UIHostingController(rootView: self)
-        viewController.view.frame.size = CGSize(width: 600, height: 10000)
+        viewController.view.frame = UIScreen.main.bounds
         let markers = accessibilityHierarchyParser.parseAccessibilityElements(in: viewController.view)
         return AccessibilityHeirarchyView(markers: markers)
     }

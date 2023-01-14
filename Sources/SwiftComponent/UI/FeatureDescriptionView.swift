@@ -121,29 +121,32 @@ struct FeatureDescriptionView<Feature: ComponentFeature>: View {
     }
 
     var pills: some View {
-        VStack {
-            typeSection("State", icon: "square.text.square", feature.model.state)
-            typeSection("Input", icon: "arrow.backward.square", feature.model.input)
-            typeSection("Output", icon: "arrow.forward.square", feature.model.output)
-            typeSection("Route", icon: "arrow.uturn.right.square", feature.model.route)
-            section("States", icon: "square.text.square") {
-                ForEach(feature.feature.states, id: \.self) { state in
-                    Text(state)
-                        .bold()
+        ScrollView {
+            VStack {
+                typeSection("State", icon: "square.text.square", feature.model.state)
+                typeSection("Input", icon: "arrow.backward.square", feature.model.input)
+                typeSection("Output", icon: "arrow.forward.square", feature.model.output)
+                typeSection("Route", icon: "arrow.uturn.right.square", feature.model.route)
+                section("States", icon: "square.text.square") {
+                    ForEach(feature.feature.states, id: \.self) { state in
+                        Text(state)
+                            .bold()
+                    }
+                    .item()
+                    .frame(maxWidth: maxPillWidth)
                 }
-                .item()
-                .frame(maxWidth: maxPillWidth)
-            }
-            .isUsed(!feature.feature.states.isEmpty)
-            section("Tests", icon: "checkmark.square") {
-                ForEach(feature.feature.tests, id: \.self) { test in
-                    Text(test)
-                        .bold()
+                .isUsed(!feature.feature.states.isEmpty)
+                section("Tests", icon: "checkmark.square") {
+                    ForEach(feature.feature.tests, id: \.self) { test in
+                        Text(test)
+                            .bold()
+                    }
+                    .item()
+                    .frame(maxWidth: maxPillWidth)
                 }
-                .item()
-                .frame(maxWidth: maxPillWidth)
+                .isUsed(!feature.feature.tests.isEmpty)
             }
-            .isUsed(!feature.feature.tests.isEmpty)
+            .padding(20)
         }
     }
 

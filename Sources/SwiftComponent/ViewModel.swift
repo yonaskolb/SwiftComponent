@@ -139,7 +139,7 @@ extension ViewModel {
 extension ViewModel {
 
     @MainActor
-    func appear() async {
+    public func appear() async {
         let start = Date()
         startEvent()
         mutations = []

@@ -21,6 +21,10 @@ struct ExampleComponent: ComponentModel {
         case finished
     }
 
+    enum Route {
+        case open(Int)
+    }
+
     func appear(model: Model) async {
         await model.task("get thing") {
             model.loading = false
@@ -58,6 +62,14 @@ struct ExampleSubComponent: ComponentModel {
 
 struct ExampleView: ComponentView {
 
+    func routeView(_ route: ExampleComponent.Route) -> some View {
+        switch route {
+            case .open(let id):
+                Text(id.description)
+        }
+    }
+
+
     @ObservedObject var model: ViewModel<ExampleComponent>
 
     var view: some View {
@@ -81,6 +93,10 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
         ComponentState("Empty") {
             State(name: "")
         }
+    }
+
+    static var routes: [ComponentRoute] {
+        ComponentRoute("thing", .open(2))
     }
 
     static var tests: [ComponentTest] {

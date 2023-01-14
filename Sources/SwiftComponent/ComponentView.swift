@@ -8,6 +8,7 @@ public protocol ComponentView: View {
     associatedtype Model: ComponentModel
     associatedtype ComponentView: View
     associatedtype DestinationView: View
+    associatedtype Style = Never
     var model: ViewModel<Model> { get }
     init(model: ViewModel<Model>)
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
@@ -74,10 +75,6 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
 public extension ComponentView {
 
-    private func dismiss() {
-        model.route = nil
-    }
-
     @MainActor
     private var currentPresentation: Presentation? {
         model.route.map { presentation(for: $0) }
@@ -91,7 +88,7 @@ public extension ComponentView {
             },
             set: { present in
                 if !present {
-                    self.dismiss()
+                    self.model.route = nil
                 }
             }
         )
@@ -114,6 +111,11 @@ public extension ComponentView {
                     routeView(route)
                 }
             }
+            .fullScreenCover(isPresented: presentationBinding(.fullScreenCover)) {
+                if let route = model.route {
+                    routeView(route)
+                }
+            }
     }
 
     func task() async {
@@ -126,3 +128,10 @@ public extension ComponentView {
 
     var state: Model.State { model.state }
 }
+
+//extension View {
+//
+//    func style<V: ComponentView>(_ view: V.Type, _ style: (inout V.Style) -> Void) -> some View {
+//        self.environment(\., <#T##value: V##V#>)
+//    }
+//}
