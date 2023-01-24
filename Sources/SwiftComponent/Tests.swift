@@ -332,7 +332,7 @@ extension ViewModel {
 
         // run task
         if test.appear {
-            await appear()
+            await appear(first: true)
         }
 
         var stepResults: [TestStepResult<Model>] = []

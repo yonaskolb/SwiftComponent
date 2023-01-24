@@ -41,7 +41,7 @@ public enum EventType {
     case binding(Mutation)
     case input(Any)
     case output(Any)
-    case appear
+    case appear(first: Bool)
     case task(TaskResult)
     case route(Any)
 

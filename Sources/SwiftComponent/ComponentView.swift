@@ -33,6 +33,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
     let model: ViewModel<Model>
     let view: Content
+    @State var hasAppeared = false
     @State var showDebug = false
     @State var viewModes: [ComponentViewMode] = [.view]
     @Environment(\.isPreviewReference) var isPreviewReference
@@ -52,7 +53,9 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         .task { @MainActor in
             // don't call this for other reference views
             if !isPreviewReference {
-                await model.appear()
+                let first = !hasAppeared
+                hasAppeared = true
+                await model.appear(first: first)
             }
         }
 #if DEBUG

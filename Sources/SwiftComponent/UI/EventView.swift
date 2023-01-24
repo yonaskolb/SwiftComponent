@@ -249,7 +249,7 @@ extension EventType {
 
 let previewEvents: [ComponentEvent] = [
         ComponentEvent(
-            type: .appear,
+            type: .appear(first: true),
             componentPath: .init([ExampleComponent.self]),
             start: Date().addingTimeInterval(-1.05),
             end: Date(),

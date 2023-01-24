@@ -139,13 +139,13 @@ extension ViewModel {
 extension ViewModel {
 
     @MainActor
-    public func appear() async {
+    func appear(first: Bool) async {
         let start = Date()
         startEvent()
         mutations = []
         handledAppear = true
         await model.appear(model: modelContext)
-        self.sendEvent(type: .appear, start: start, mutations: mutations, source: .capture())
+        self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture())
     }
 }
 
