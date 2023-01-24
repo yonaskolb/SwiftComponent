@@ -4,6 +4,7 @@ import Dependencies
 
 public struct Test<Model: ComponentModel> {
 
+    //TODO: make state named
     public init(_ name: String, _ state: Model.State, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
@@ -137,6 +138,7 @@ public struct TestContext<Model: ComponentModel> {
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
 }
 
+
 //public struct TestExpectation<Model: ComponentModel> {
 //
 //    let name: String
@@ -145,6 +147,7 @@ public struct TestContext<Model: ComponentModel> {
 //
 //    struct Context {
 //        let viewModel: ViewModel<Model>
+//        let dependencies: DependencyValues
 //        let events: [ComponentEvent]
 //    }
 //}
@@ -199,47 +202,6 @@ extension TestStep {
         addExpectation(.expectRoute(route), source: .capture(file: file, line: line))
     }
 
-}
-
-extension TestStep {
-
-}
-
-extension TestStep {
-
-    public var title: String {
-        switch type {
-            case .appear:
-                return "Appear"
-            case .setDependency:
-                return "Set Dependency"
-            case .input:
-                return "Input"
-            case .binding:
-                return "Binding"
-        }
-    }
-
-    public var description: String {
-        var string = title
-        if let details {
-            string += ": \(details)"
-        }
-        return string
-    }
-
-    public var details: String? {
-        switch type {
-            case .appear:
-                return nil
-            case .setDependency(let dependency, _):
-                return "\(String(describing: Swift.type(of: dependency)))"
-            case .input(let input):
-                return "\(getEnumCase(input).name)"
-            case .binding(_, _, let path, let value):
-                return "\(path) = \(value)"
-        }
-    }
 }
 
 extension TestStep.Expectation {
@@ -363,7 +325,7 @@ extension ViewModel {
             self.previewTaskDelay = 0
         }
 
-        let assertions = assertions ?? test.assertions
+        let assertions = Array(assertions ?? test.assertions).sorted { $0.rawValue < $1.rawValue }
 
         // setup state
         state = initialState
@@ -375,6 +337,7 @@ extension ViewModel {
 
         var stepResults: [TestStepResult<Model>] = []
         let sleepDelay = 1_000_000_000.0 * delay
+
         for step in test.steps {
             var stepEvents: [ComponentEvent] = []
             let stepEventsSubscription = self.events.sink { event in
@@ -389,19 +352,32 @@ extension ViewModel {
             testDependencyValues = context.dependencies
 
             var stepErrors: [TestError] = []
+
+            func findEventValue<T>(_ find: (ComponentEvent) -> T?) -> T? {
+                for (index, event) in stepEvents.enumerated() {
+                    if let eventValue = find(event) {
+                        stepEvents.remove(at: index)
+                        return eventValue
                     }
+                }
+                return nil
             }
+
             for expectation in step.expectations {
                 switch expectation {
-                    case .validateState(_, let validateState):
+                    case .validateState(let name, let validateState):
                         let valid = validateState(state)
                         if !valid {
-                            stepErrors.append(TestError(error: "Invalid State", source: step.source))
+                            stepErrors.append(TestError(error: "Invalid State \(name.quoted)", source: step.source))
                         }
                     case .validateDependency(let error, let dependency, let validateDependency):
                         let valid = validateDependency(testDependencyValues)
                         if !valid {
                             stepErrors.append(TestError(error: "Invalid \(dependency): \(error)", source: step.source))
+                        }
+                    case .validateEmptyRoute:
+                        if let route = self.route {
+                            stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name.quoted)", source: step.source))
                         }
                     case .expectState(let modify):
                         let currentState = state
@@ -415,75 +391,53 @@ extension ViewModel {
                             try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
                             try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
                         }
-                        var foundRoute: Model.Route?
-                        for (index, event) in stepEvents.enumerated() {
-                            switch event.type {
-                                case .route(let route):
-                                    if foundRoute == nil, let route = route as? Model.Route {
-                                        foundRoute = route
-                                        stepEvents.remove(at: index)
-                                        break
-                                    }
-                                default: break
+                        let foundRoute: Model.Route? = findEventValue { event in
+                            if case .route(let route) = event.type, let route = route as? Model.Route {
+                                return route
                             }
+                            return nil
                         }
                         if let foundRoute {
                             if let difference = diff(foundRoute, route) {
-                                stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name)", diff: difference, source: step.source))
+                                stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name.quoted)", diff: difference, source: step.source))
                             }
                         } else {
-                            stepErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not sent", source: step.source))
+                            stepErrors.append(TestError(error: "Route \(getEnumCase(route).name.quoted) was not sent", source: step.source))
                         }
                     case .expectOutput(let output):
-                        var foundOutput: Model.Output?
-                        for (index, event) in stepEvents.enumerated() {
-                            switch event.type {
-                                case .output(let output):
-                                    if foundOutput == nil, let output = output as? Model.Output {
-                                        foundOutput = output
-                                        stepEvents.remove(at: index)
-                                        break
-                                    }
-                                default: break
+                        let foundOutput: Model.Output? = findEventValue { event in
+                            if case .output(let output) = event.type, let output = output as? Model.Output {
+                              return output
                             }
+                            return nil
                         }
                         if let foundOutput {
                             if let difference = diff(foundOutput, output) {
-                                stepErrors.append(TestError(error: "Unexpected output value \(getEnumCase(foundOutput).name)", diff: difference, source: step.source))
+                                stepErrors.append(TestError(error: "Unexpected output value \(getEnumCase(foundOutput).name.quoted)", diff: difference, source: step.source))
                             }
                         } else {
-                            stepErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not sent", source: step.source))
+                            stepErrors.append(TestError(error: "Output \(getEnumCase(output).name.quoted) was not sent", source: step.source))
                         }
                     case .expectTask(let name, let successful):
-                        var result: TaskResult?
-                        for (index, event) in stepEvents.enumerated() {
-                            switch event.type {
-                                case .task(let taskResult):
-                                    if result == nil {
-                                        result = taskResult
-                                        stepEvents.remove(at: index)
-                                        break
-                                    }
-                                default: break
+                        let result: TaskResult? = findEventValue { event in
+                            if case .task(let taskResult) = event.type {
+                                return taskResult
                             }
+                            return nil
                         }
                         if let result {
                             switch result.result {
                                 case .failure:
                                     if successful {
-                                        stepErrors.append(TestError(error: "Expected \(name) task to succeed, but it failed", source: step.source))
+                                        stepErrors.append(TestError(error: "Expected \(name.quoted) task to succeed, but it failed", source: step.source))
                                     }
                                 case .success:
                                     if !successful {
-                                        stepErrors.append(TestError(error: "Expected \(name) task to fail, but it succeeded", source: step.source))
+                                        stepErrors.append(TestError(error: "Expected \(name.quoted) task to fail, but it succeeded", source: step.source))
                                     }
                             }
                         } else {
-                            stepErrors.append(TestError(error: "Task \(name) was not sent", source: step.source))
-                        }
-                    case .validateEmptyRoute:
-                        if let route = self.route {
-                            stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name)", source: step.source))
+                            stepErrors.append(TestError(error: "Task \(name.quoted) was not sent", source: step.source))
                         }
                 }
             }
@@ -493,7 +447,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .output(let output):
-                                    stepErrors.append(TestError(error: "Output \(getEnumCase(output).name) was not handled", source: step.source))
+                                    stepErrors.append(TestError(error: "Output \(getEnumCase(output).name.quoted) was not expected", source: step.source))
                                 default: break
                             }
                         }
@@ -501,7 +455,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .task(let result):
-                                    stepErrors.append(TestError(error: "Task \(result.name) was not handled", source: step.source))
+                                    stepErrors.append(TestError(error: "Task \(result.name.quoted) was not expected", source: step.source))
                                 default: break
                             }
                         }
@@ -509,7 +463,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .route(let route):
-                                    stepErrors.append(TestError(error: "Route \(getEnumCase(route).name) was not handled", source: step.source))
+                                    stepErrors.append(TestError(error: "Route \(getEnumCase(route).name.quoted) was not expected", source: step.source))
                                 default: break
                             }
                         }
@@ -517,7 +471,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .mutation(let mutation):
-                                    stepErrors.append(TestError(error: "Mutation of \(mutation.property) was not handled", source: step.source))
+                                    stepErrors.append(TestError(error: "Mutation of \(mutation.property.quoted) was not expected", source: step.source))
                                 default: break
                             }
                         }
