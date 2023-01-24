@@ -6,12 +6,24 @@ public protocol ComponentModel<State, Input> {
     associatedtype Input = Void
     associatedtype Output = Never
     associatedtype Route = Never
+    associatedtype Task: ModelTask = String
     @MainActor func appear(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(input: Input, model: Model) async
     init()
 
     typealias Model = ModelContext<Self>
+}
+
+public protocol ModelTask {
+    var taskName: String { get }
+}
+extension String: ModelTask {
+    public var taskName: String { self }
+}
+
+extension RawRepresentable where RawValue == String {
+    public var taskName: String { rawValue }
 }
 
 extension ComponentModel {

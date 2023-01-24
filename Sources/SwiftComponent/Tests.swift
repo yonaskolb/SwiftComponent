@@ -189,8 +189,8 @@ extension TestStep {
         addExpectation(.expectState(modify), source: .capture(file: file, line: line))
     }
 
-    public func expectTask(_ name: String, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        addExpectation(.expectTask(name, successful: successful), source: .capture(file: file, line: line))
+    public func expectTask(_ taskID: Model.Task, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectTask(taskID.taskName, successful: successful), source: .capture(file: file, line: line))
     }
 
     //TODO: also clear mutation assertions
