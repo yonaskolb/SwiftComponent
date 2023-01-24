@@ -76,7 +76,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
     }
 }
 
-public extension ComponentView {
+extension ComponentView {
 
     @MainActor
     private var currentPresentation: Presentation? {
@@ -98,7 +98,7 @@ public extension ComponentView {
     }
 
     @MainActor
-    var body: some View {
+    public var body: some View {
         ComponentViewContainer(model: model, view: view)
             .background {
                 NavigationLink(isActive: presentationBinding(.push) ) {
@@ -121,15 +121,24 @@ public extension ComponentView {
             }
     }
 
-    func task() async {
+    public func task() async {
 
     }
 
-    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
         model.binding(keyPath)
     }
 
-    var state: Model.State { model.state }
+    public var state: Model.State { model.state }
+
+    public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
+        _ = model.onEvent { event in
+            if case let .output(output) = event.type, let output = output as? Model.Output {
+                handle(output)
+            }
+        }
+        return self
+    }
 }
 
 //extension View {

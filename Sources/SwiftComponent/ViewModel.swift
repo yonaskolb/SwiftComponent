@@ -95,6 +95,21 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         self.state[keyPath: keyPath]
     }
 
+    public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
+        self.onEvent { event in
+            if case let .output(output) = event.type, let output = output as? Model.Output {
+                handle(output)
+            }
+        }
+    }
+
+    public func onEvent(_ handle: @escaping (ComponentEvent) -> Void) -> Self {
+        self.events.sink { event in
+            handle(event)
+        }
+        .store(in: &cancellables)
+        return self
+    }
 }
 
 // MARK: View Accessors
@@ -241,18 +256,14 @@ extension ViewModel {
 
     private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, source: Source) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
+            .onOutput { [weak self] output in
+                guard let self else { return }
+                let action = toInput(output)
+                self.processInput(action, source: source, sendEvents: false)
+            }
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
-            switch event.type {
-                case .output(let output):
-                    if let output = output as? Child.Output {
-                        let action = toInput(output)
-                        self.processInput(action, source: source, sendEvents: false)
-                    }
-                default:
-                    break
-            }
         }
         .store(in: &viewModel.subscriptions)
         return viewModel
@@ -302,19 +313,14 @@ extension ViewModel {
     // state and output
     public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: state, path: self.path)
+            .onOutput { [weak self] output in
+                guard let self else { return }
+                let action = toInput(output)
+                self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
+            }
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
-
-            switch event.type {
-                case .output(let output):
-                    if let output = output as? Child.Output {
-                        let action = toInput(output)
-                        self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
-                    }
-                default:
-                    break
-            }
         }
         .store(in: &viewModel.subscriptions)
         return viewModel
