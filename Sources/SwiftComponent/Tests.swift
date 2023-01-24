@@ -49,19 +49,31 @@ extension Set where Element == TestAssertion {
 }
 
 public struct TestStep<Model: ComponentModel>: Identifiable {
-    let type: StepType
+
+    public var title: String
+    public var details: String?
     public var source: Source
     public let id = UUID()
     var expectations: [Expectation] = []
+    var run: (inout TestContext<Model>) async -> Void
 
-    enum StepType {
-        case appear
-        case setDependency(Any, (inout DependencyValues) -> Void)
-        case input(Model.Input)
-        case binding((inout Model.State, Any) -> Void, PartialKeyPath<Model.State>, path: String, value: Any)
+    public init(title: String, details: String? = nil, source: Source, expectations: [TestStep<Model>.Expectation] = [], run: @escaping (inout TestContext<Model>) async -> Void) {
+        self.title = title
+        self.details = details
+        self.source = source
+        self.expectations = expectations
+        self.run = run
     }
 
-    enum Expectation {
+    public var description: String {
+        var string = title
+        if let details {
+            string += ": \(details)"
+        }
+        return string
+    }
+
+    public enum Expectation {
         case validateState(name: String, validateState: (Model.State) -> Bool)
         case validateEmptyRoute
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
@@ -70,23 +82,59 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
         case expectOutput(Model.Output)
         case expectTask(String, successful: Bool = true)
     }
+}
 
+extension TestStep {
     public static func appear(file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .appear, source: .capture(file: file, line: line))
+        .init(title: "Appear", source: .capture(file: file, line: line)) { context in
+            await context.viewModel.appear(first: true)
+        }
     }
 
     public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .input(input), source: .capture(file: file, line: line))
+        .init(title: "Input", details: getEnumCase(input).name, source: .capture(file: file, line: line)) { context in
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+            }
+            await context.viewModel.processInput(input, source: context.source, sendEvents: true)
+        }
     }
 
-    public static func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .binding({ $0[keyPath: keyPath] = $1 as! Value }, keyPath, path: keyPath.propertyName ?? "", value: value), source: .capture(file: file, line: line))
+    public static func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", source: .capture(file: file, line: line)) { context in
+            if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
+                let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
+                var currentString = ""
+                for character in string {
+                    currentString.append(character)
+                    context.viewModel.state[keyPath: keyPath] = currentString as! Value
+                    if sleepTime > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(sleepTime))
+                    }
+                }
+            } else {
+                if context.delay > 0 {
+                    try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                }
+                context.viewModel.state[keyPath: keyPath] = value
+            }
+        }
     }
 
     public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(type: .setDependency(dependency) { $0[keyPath: keyPath] = dependency }, source: .capture(file: file, line: line))
+        .init(title: "Set Dependency", details: "\(String(describing: Swift.type(of: dependency)))", source: .capture(file: file, line: line)) { context in
+            context.dependencies[keyPath: keyPath] = dependency
+        }
     }
+}
 
+public struct TestContext<Model: ComponentModel> {
+    public let viewModel: ViewModel<Model>
+    public let source: Source
+    public var dependencies: DependencyValues
+    public var delay: TimeInterval
+
+    var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
 }
 
 //public struct TestExpectation<Model: ComponentModel> {
@@ -332,60 +380,15 @@ extension ViewModel {
             let stepEventsSubscription = self.events.sink { event in
                 stepEvents.append(event)
             }
+            var context = TestContext<Model>(viewModel: self, source: step.source, dependencies: testDependencyValues, delay: delay)
+            await withDependencies { dependencyValues in
+                dependencyValues = testDependencyValues
+            } operation: {
+                await step.run(&context)
+            }
+            testDependencyValues = context.dependencies
+
             var stepErrors: [TestError] = []
-            switch step.type {
-                case .setDependency(_, let modify):
-                    modify(&testDependencyValues)
-                case .appear:
-                    await DependencyValues.withValues { dependencyValues in
-                        dependencyValues = testDependencyValues
-                    } operation: {
-                        await appear()
-                    }
-                case .input(let input):
-                    if delay > 0 {
-                        try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-                    }
-                    await DependencyValues.withValues { dependencyValues in
-                        dependencyValues = testDependencyValues
-                    } operation: {
-                        await processInput(input, source: step.source, sendEvents: true)
-                    }
-                case .binding(let mutate, _, _, let value):
-                    if let string = value as? String, string.count > 1, string != "", sleepDelay > 0 {
-                        let sleepTime = sleepDelay/(Double(string.count))
-                        var currentString = ""
-                        for character in string {
-                            currentString.append(character)
-                            mutate(&state, currentString)
-                            if sleepTime > 0 {
-                                try? await Task.sleep(nanoseconds: UInt64(sleepTime))
-                            }
-                        }
-//                    } else if let date = value as? Date, sleepDelay > 0 {
-//                        if delay > 0 {
-//                            try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-//                        }
-//                        //TODO: fix. Preview not showing steps
-//                        let oldDate = state[keyPath: keyPath] as? Date ?? Date()
-//                        var currentDate = oldDate
-//                        let calendar = Calendar.current
-//                        let components: [Calendar.Component] = [.year, .day, .hour, .minute]
-//                        for component in components {
-//                            let newComponentValue = calendar.component(component, from: date)
-//                            let oldComponentValue = calendar.component(component, from: currentDate)
-//                            if oldComponentValue != newComponentValue, let modifiedDate = calendar.date(bySetting: component, value: newComponentValue, of: currentDate) {
-//                                currentDate = modifiedDate
-//                                mutate(&state, currentDate)
-//                                try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-//                            }
-//                        }
-//                        mutate(&state, value)
-                    } else {
-                        if delay > 0 {
-                            try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-                        }
-                        mutate(&state, value)
                     }
             }
             for expectation in step.expectations {
