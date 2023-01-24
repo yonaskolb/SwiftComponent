@@ -15,7 +15,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
     @AppStorage("showChildEvents") var showChildEvents = true
 
     var events: [ComponentEvent] {
-        componentEvents(for: viewModel.path, includeChildren: showChildEvents)
+        EventStore.shared.componentEvents(for: viewModel.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
             .sorted { $0.start < $1.start }
     }
@@ -60,7 +60,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
                     .buttonStyle(.plain)
                 }
                 Section {
-                    ComponentEventList(events: events, allEvents: viewModelEvents.sorted { $0.start < $1.start })
+                    ComponentEventList(events: events, allEvents: EventStore.shared.events.sorted { $0.start < $1.start })
                 }
             }
             .animation(.default, value: eventTypes)
@@ -104,7 +104,7 @@ extension ComponentView {
 struct ComponentDebugView_Previews: PreviewProvider {
 
     static var previews: some View {
-        viewModelEvents = previewEvents
+        EventStore.shared.events = previewEvents
         return ExampleView(model: .init(state: .init(name: "Hello")))
             .debugView()
             .navigationViewStyle(.stack)

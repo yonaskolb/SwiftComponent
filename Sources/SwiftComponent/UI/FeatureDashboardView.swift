@@ -18,7 +18,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
     @State var previewTestDelay = 0.5
 
     var events: [ComponentEvent] {
-        viewModelEvents
+        EventStore.shared.events
     }
 
     func getTestState(_ test: Test<Feature.Model>) -> TestState<Feature.Model> {
@@ -26,7 +26,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
     }
 
     func clearEvents() {
-        viewModelEvents = []
+        EventStore.shared.clear()
         render = UUID()
     }
 

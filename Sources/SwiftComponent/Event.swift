@@ -2,10 +2,23 @@ import Foundation
 import CustomDump
 import SwiftUI
 
-var viewModelEvents: [ComponentEvent] = []
+public class EventStore {
 
-public func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [ComponentEvent] {
-    viewModelEvents.filter { includeChildren ? $0.componentPath.contains(path) : $0.componentPath == path }
+    static let shared = EventStore()
+
+    public internal(set) var events: [ComponentEvent] = []
+
+    public func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [ComponentEvent] {
+        events.filter { includeChildren ? $0.componentPath.contains(path) : $0.componentPath == path }
+    }
+    
+    func send(_ event: ComponentEvent) {
+        events.append(event)
+    }
+    
+    func clear() {
+        events = []
+    }
 }
 
 public struct ComponentEvent: Identifiable {

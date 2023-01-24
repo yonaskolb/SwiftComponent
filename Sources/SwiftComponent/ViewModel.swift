@@ -70,8 +70,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         events.send(event)
 
         guard sendGlobalEvents else { return }
-
-        viewModelEvents.append(event)
+        EventStore.shared.send(event)
     }
 
     func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) {

@@ -317,7 +317,7 @@ let previewEvents: [ComponentEvent] = [
 
 struct EventView_Previews: PreviewProvider {
     static var previews: some View {
-        viewModelEvents = previewEvents
+        EventStore.shared.events = previewEvents
         return Group {
             NavigationView {
                 EventView(event: previewEvents[1], allEvents: previewEvents)
