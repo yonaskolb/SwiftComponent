@@ -90,9 +90,15 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 }
 
 extension TestStep {
-    public static func appear(first: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", source: .capture(file: file, line: line)) { context in
-            await context.viewModel.appear(first: first)
+            if `await` {
+                await context.viewModel.appear(first: first)
+            } else {
+                Task { [context] in
+                    await context.viewModel.appear(first: first)
+                }
+            }
         }
     }
 
