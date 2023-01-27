@@ -134,21 +134,9 @@ struct EventView: View {
     }
 }
 
-extension ComponentEvent {
-
-    var duration: String {
-        let seconds = end.timeIntervalSince1970 - start.timeIntervalSince1970
-        if seconds < 2 {
-            return Int(seconds*1000).formatted(.number) + " ms"
-        } else {
-            return (start ..< end).formatted(.components(style: .abbreviated))
-        }
-    }
-}
-
 extension EventType {
 
-    var title: String { type.title }
+    public var title: String { type.title }
     var color: Color {
         switch self {
             case .task(let result):

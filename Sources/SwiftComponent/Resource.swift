@@ -15,21 +15,46 @@ public struct Resource<State> {
     public enum ResourceState {
         case unloaded
         case loading
-        case content(State)
+        case loaded(State)
         case error(Error)
+
+        public enum ResourceStateType {
+            case loading
+            case content
+            case error
+        }
     }
 
-    /// content takes precedence over error if both are non nil
-    public var state: ResourceState {
+    /// order is the order that state type will be returned if it's not nil. States that are left out will be returned in the order content, loading, error
+    public func state(order: [ResourceState.ResourceStateType] = [.content, .loading, .error]) -> ResourceState {
+        for state in order {
+            switch state {
+                case .content:
+                    if let content {
+                        return .loaded(content)
+                    }
+                case .error:
+                    if let error {
+                        return .error(error)
+                    }
+                case .loading:
+                    if isLoading {
+                        return .loading
+                    }
+            }
+        }
+
+        // in case order is empty or doesn't contain all cases
         if let content {
-            return .content(content)
-        } else if let error {
-            return .error(error)
+            return .loaded(content)
         } else if isLoading {
             return .loading
+        } else if let error {
+            return .error(error)
         } else {
             return .unloaded
         }
+
     }
 }
 
@@ -80,8 +105,8 @@ public struct ResourceView<State: Equatable, Content: View, ErrorView: View>: Vi
     }
 
     public var body: some View {
-        switch resource.state {
-            case .content(let value):
+        switch resource.state() {
+            case .loaded(let value):
                 content(value)
             case .error(let error):
                 self.error(error)

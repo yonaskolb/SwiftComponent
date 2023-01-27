@@ -1,21 +1,30 @@
 import Foundation
+import Combine
 import CustomDump
 import SwiftUI
 
 public class EventStore {
 
-    static let shared = EventStore()
-
+    public static let shared = EventStore()
     public internal(set) var events: [ComponentEvent] = []
+    public let eventPublisher = PassthroughSubject<ComponentEvent, Never>()
+    #if DEBUG
+    public var storeEvents = true
+    #else
+    public var storeEvents = false
+    #endif
 
-    public func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [ComponentEvent] {
+    func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [ComponentEvent] {
         events.filter { includeChildren ? $0.componentPath.contains(path) : $0.componentPath == path }
     }
-    
+
     func send(_ event: ComponentEvent) {
-        events.append(event)
+        if storeEvents {
+            events.append(event)
+        }
+        eventPublisher.send(event)
     }
-    
+
     func clear() {
         events = []
     }
@@ -28,8 +37,8 @@ public struct ComponentEvent: Identifiable {
     public let type: EventType
     public let depth: Int
     public let source: Source
-    public let componentType: any ComponentModel.Type
-    public var componentName: String { componentPath.path.last?.baseName ?? "" }
+    public var componentType: any ComponentModel.Type { componentPath.path.last! }
+    public var componentName: String { componentType.baseName }
     public var componentPath: ComponentPath
     public var mutations: [Mutation]
 
@@ -38,7 +47,6 @@ public struct ComponentEvent: Identifiable {
         self.start = start
         self.end = end
         self.mutations = mutations
-        self.componentType = componentPath.path.last!
         self.componentPath = componentPath
         self.depth = depth
         self.source = source
@@ -46,6 +54,22 @@ public struct ComponentEvent: Identifiable {
 
     func isComponent<Model: ComponentModel>(_ type: Model.Type) -> Bool {
         componentType == type
+    }
+
+    public var duration: String {
+        let seconds = end.timeIntervalSince1970 - start.timeIntervalSince1970
+        if seconds < 2 {
+            return Int(seconds*1000).formatted(.number) + " ms"
+        } else {
+            return (start ..< end).formatted(.components(style: .abbreviated))
+        }
+    }
+}
+
+extension ComponentEvent: CustomStringConvertible {
+
+    public var description: String {
+        "\(componentPath) \(type.title): \(type.details)"
     }
 }
 

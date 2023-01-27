@@ -66,7 +66,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
             assertionFailure("Parent count is \(eventsInProgress), but should only be 0 or more")
         }
         let event = ComponentEvent(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, source: source)
-        print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
+//        print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
         events.send(event)
 
         guard sendGlobalEvents else { return }
@@ -170,7 +170,7 @@ extension ViewModel {
         let start = Date()
         startEvent()
         // TODO: note that source from dynamicMember keyPath is not correct
-        let oldState = state
+//        let oldState = state
         let mutation = Mutation(keyPath: keyPath, value: value)
         self.mutations.append(mutation)
         if let animation {

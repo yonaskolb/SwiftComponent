@@ -86,9 +86,9 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 }
 
 extension TestStep {
-    public static func appear(file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func appear(first: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", source: .capture(file: file, line: line)) { context in
-            await context.viewModel.appear(first: true)
+            await context.viewModel.appear(first: first)
         }
     }
 
@@ -97,7 +97,7 @@ extension TestStep {
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
-            await context.viewModel.processInput(input, source: context.source, sendEvents: true)
+            await context.viewModel.processInput(input, source: .capture(file: file, line: line), sendEvents: true)
         }
     }
 
@@ -108,7 +108,7 @@ extension TestStep {
                 var currentString = ""
                 for character in string {
                     currentString.append(character)
-                    context.viewModel.state[keyPath: keyPath] = currentString as! Value
+                    context.viewModel.mutate(keyPath, value: currentString as! Value, source: .capture(file: file, line: line))
                     if sleepTime > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                     }
@@ -117,7 +117,7 @@ extension TestStep {
                 if context.delay > 0 {
                     try? await Task.sleep(nanoseconds: context.delayNanoseconds)
                 }
-                context.viewModel.state[keyPath: keyPath] = value
+                context.viewModel.mutate(keyPath, value: value, source: .capture(file: file, line: line))
             }
         }
     }
@@ -131,7 +131,6 @@ extension TestStep {
 
 public struct TestContext<Model: ComponentModel> {
     public let viewModel: ViewModel<Model>
-    public let source: Source
     public var dependencies: DependencyValues
     public var delay: TimeInterval
 
@@ -337,19 +336,22 @@ extension ViewModel {
 
         var stepResults: [TestStepResult<Model>] = []
         let sleepDelay = 1_000_000_000.0 * delay
-
+        var context = TestContext<Model>(viewModel: self, dependencies: testDependencyValues, delay: delay)
         for step in test.steps {
             var stepEvents: [ComponentEvent] = []
             let stepEventsSubscription = self.events.sink { event in
-                stepEvents.append(event)
+                if event.componentPath == self.path {
+                    stepEvents.append(event)
+                }
             }
-            var context = TestContext<Model>(viewModel: self, source: step.source, dependencies: testDependencyValues, delay: delay)
+
             await withDependencies { dependencyValues in
                 dependencyValues = testDependencyValues
             } operation: {
+                context.dependencies = testDependencyValues
                 await step.run(&context)
+                testDependencyValues = context.dependencies
             }
-            testDependencyValues = context.dependencies
 
             var stepErrors: [TestError] = []
 
@@ -493,8 +495,8 @@ extension ComponentFeature {
             fatalError("Could not find state")
         }
 
-        let viewModel = ViewModel<Model>(state: state)
-        return await viewModel.runTest(test, initialState: state, assertions: assertions)
+        let model = ViewModel<Model>(state: state)
+        return await model.runTest(test, initialState: state, assertions: assertions)
     }
 }
 #endif

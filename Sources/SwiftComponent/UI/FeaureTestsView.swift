@@ -36,7 +36,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
     @State var testState: [String: TestState<Feature.Model>] = [:]
     @State var testResults: [String: [TestStep<Feature.Model>.ID]] = [:]
     @State var testStepResults: [TestStep<Feature.Model>.ID: TestStepResult<Feature.Model>] = [:]
-    @State var showEvents = true
+    @State var showEvents = false
 
     func getTestState(_ test: Test<Feature.Model>) -> TestState<Feature.Model> {
         testState[test.name] ?? .notRun

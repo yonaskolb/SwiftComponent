@@ -7,13 +7,13 @@ import CasePaths
 @dynamicMemberLookup
 public class ModelContext<Model: ComponentModel> {
 
-    let viewModel: ViewModel<Model>
+    weak var viewModel: ViewModel<Model>!
 
     init(viewModel: ViewModel<Model>) {
         self.viewModel = viewModel
     }
 
-    var state: Model.State { viewModel.state }
+    public var state: Model.State { viewModel.state }
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         viewModel.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
@@ -62,10 +62,12 @@ extension ModelContext {
         await viewModel.task(name, source: .capture(file: file, line: line)) {
             let content = try await load()
             mutate(keyPath.appending(path: \.content), content, animation: animation)
-            mutate(keyPath.appending(path: \.error), nil, animation: animation)
+            if viewModel.state[keyPath: keyPath.appending(path: \.error)] != nil {
+                mutate(keyPath.appending(path: \.error), nil, animation: animation)
+            }
             return content
         } catch: { error in
-            if overwriteContent {
+            if overwriteContent, viewModel.state[keyPath: keyPath.appending(path: \.content)] != nil {
                 mutate(keyPath.appending(path: \.content), nil, animation: animation)
             }
             mutate(keyPath.appending(path: \.error), error, animation: animation)

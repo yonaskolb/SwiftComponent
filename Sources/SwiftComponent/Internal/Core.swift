@@ -2,10 +2,12 @@ import Foundation
 import CustomDump
 
 extension String {
-    public func indent(by indent: Int) -> String {
+    func indent(by indent: Int) -> String {
         let indentation = String(repeating: " ", count: indent)
         return indentation + self.replacingOccurrences(of: "\n", with: "\n\(indentation)")
     }
+
+    var quoted: String { "\"\(self)\""}
 }
 
 func dumpToString(_ value: Any) -> String {
