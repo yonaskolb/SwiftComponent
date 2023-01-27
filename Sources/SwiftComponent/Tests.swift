@@ -5,7 +5,7 @@ import Dependencies
 public struct Test<Model: ComponentModel> {
 
     //TODO: make state named
-    public init(_ name: String, _ state: Model.State, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String, state: Model.State, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
         self.appear = appear

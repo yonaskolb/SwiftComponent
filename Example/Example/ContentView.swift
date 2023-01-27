@@ -200,7 +200,7 @@ struct ItemPreview: PreviewProvider, ComponentFeature {
     }
 
     static var tests: [ComponentTest] {
-        ComponentTest("Happy New style", State(name: "john", data: .loading)) {
+        ComponentTest("Happy New style", state: State(name: "john", data: .loading)) {
             Step.input(.updateDetail)
             Step.setBinding(\.text, "yeah")
                 .validateState("text is set") { state in
