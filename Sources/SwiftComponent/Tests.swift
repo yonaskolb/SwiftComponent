@@ -14,7 +14,7 @@ public struct Test<Model: ComponentModel> {
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion> = .normal, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
@@ -29,7 +29,7 @@ public struct Test<Model: ComponentModel> {
     public var steps: [TestStep<Model>]
     public var appear: Bool
     public let source: Source
-    public let assertions: Set<TestAssertion>
+    public let assertions: Set<TestAssertion>?
 }
 
 public enum TestAssertion: String, CaseIterable {
