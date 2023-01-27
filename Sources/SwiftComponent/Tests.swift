@@ -59,11 +59,14 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     var expectations: [Expectation] = []
     var run: (inout TestContext<Model>) async -> Void
 
-    public init(title: String, details: String? = nil, source: Source, expectations: [TestStep<Model>.Expectation] = [], run: @escaping (inout TestContext<Model>) async -> Void) {
+    public init(title: String, details: String? = nil, file: StaticString = #file, line: UInt = #line, run: @escaping (inout TestContext<Model>) async -> Void) {
+        self.init(title: title, details: details, source: .capture(file: file, line: line), run: run)
+    }
+
+    init(title: String, details: String? = nil, source: Source, run: @escaping (inout TestContext<Model>) async -> Void) {
         self.title = title
         self.details = details
         self.source = source
-        self.expectations = expectations
         self.run = run
     }
 
