@@ -100,12 +100,14 @@ extension ComponentView {
     public var body: some View {
         ComponentViewContainer(model: model, view: view)
             .background {
-                NavigationLink(isActive: presentationBinding(.push) ) {
-                    if let route = model.route {
-                        routeView(route)
+                if currentPresentation == .push {
+                    NavigationLink(isActive: presentationBinding(.push) ) {
+                        if let route = model.route {
+                            routeView(route)
+                        }
+                    } label: {
+                        EmptyView()
                     }
-                } label: {
-                    EmptyView()
                 }
             }
             .sheet(isPresented: presentationBinding(.sheet)) {
