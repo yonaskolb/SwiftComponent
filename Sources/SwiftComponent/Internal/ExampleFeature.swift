@@ -84,7 +84,10 @@ struct ExampleView: ComponentView {
 
 struct ExamplePreview: PreviewProvider, ComponentFeature {
     typealias Model = ExampleComponent
-    typealias ViewType = ExampleView
+
+    static func createView(model: ViewModel<ExampleComponent>) -> some View {
+        ExampleView(model: model)
+    }
 
     static var states: [ComponentState] {
         ComponentState {

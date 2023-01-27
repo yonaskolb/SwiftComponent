@@ -10,7 +10,6 @@ public protocol ComponentView: View {
     associatedtype DestinationView: View
     associatedtype Style = Never
     var model: ViewModel<Model> { get }
-    init(model: ViewModel<Model>)
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
     @ViewBuilder @MainActor func routeView(_ route: Model.Route) -> DestinationView
     @MainActor func presentation(for route: Model.Route) -> Presentation

@@ -184,7 +184,10 @@ struct ItemDetailView: ComponentView {
 
 struct ItemPreview: PreviewProvider, ComponentFeature {
     typealias Model = ItemComponent
-    typealias ViewType = ItemView
+
+    static func createView(model: ViewModel<ItemComponent>) -> some View {
+        ItemView(model: model)
+    }
 
     static var states: [ComponentState] {
         ComponentState {

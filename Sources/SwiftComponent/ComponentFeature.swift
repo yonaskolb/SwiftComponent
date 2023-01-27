@@ -13,15 +13,7 @@ public protocol ComponentFeature: PreviewProvider {
     @StateBuilder static var states: [ComponentState] { get }
     @TestBuilder static var tests: [ComponentTest] { get }
     @RouteBuilder static var routes: [ComponentRoute] { get }
-    static func createView(model: ViewModel<Model>) -> ViewType
-    static var embedInNav: Bool { get }
-}
-    
-extension ComponentFeature where ViewType: ComponentView, ViewType.Model == Model {
-
-    public static func createView(model: ViewModel<Model>) -> ViewType {
-        ViewType(model: model)
-    }
+    @ViewBuilder static func createView(model: ViewModel<Model>) -> ViewType
     static var testAssertions: Set<TestAssertion> { get }
 }
 
@@ -35,24 +27,13 @@ extension ComponentFeature {
 
     public static var tests: [Test<Model>] { [] }
 
-    static func embedView(state: Model.State) -> AnyView {
-        let viewModel = ViewModel<Model>(state: state)
-        let view = createView(model: viewModel)
-        if config.embedInNav {
-            return NavigationView { view }.eraseToAnyView()
-        } else {
-            return view.eraseToAnyView()
-        }
-    }
-
-    static var config: PreviewConfig { PreviewConfig(embedInNav: embedInNav) }
     public static var embedInNav: Bool { false }
     public static var previews: some View {
         Group {
             componentPreview
                 .previewDisplayName(Model.baseName + " Component")
             ForEach(states, id: \.name) { state in
-                embedView(state: state.state)
+                createView(model: ViewModel<Model>(state: state.state))
                     .previewDisplayName("State: \(state.name)")
                     .previewReference()
                     .previewLayout(state.size.flatMap { PreviewLayout.fixed(width: $0.width, height: $0.height) } ?? PreviewLayout.device)
@@ -80,15 +61,6 @@ extension ComponentFeature {
         }
         return nil
     }
-}
-
-public struct PreviewConfig {
-
-    public init(embedInNav: Bool) {
-        self.embedInNav = embedInNav
-    }
-
-    var embedInNav: Bool
 }
 
 @resultBuilder
