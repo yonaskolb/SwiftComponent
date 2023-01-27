@@ -198,6 +198,11 @@ extension TestStep {
         addExpectation(.expectState(modify), source: .capture(file: file, line: line))
     }
 
+    /// expect state to have a keypath set to a value
+    public func expectState<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectState { $0[keyPath: keyPath] = value }, source: .capture(file: file, line: line))
+    }
+
     public func expectTask(_ taskID: Model.Task, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         addExpectation(.expectTask(taskID.taskName, successful: successful), source: .capture(file: file, line: line))
     }
