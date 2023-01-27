@@ -30,14 +30,15 @@ extension ComponentModel {
 
     public static var baseName: String {
         var name = String(describing: Self.self)
-        if name.hasSuffix("Component") {
-            name = String(name.dropLast(9))
-        }
-        if name.hasSuffix("Model") {
-            name = String(name.dropLast(5))
-        }
-        if name.hasSuffix("Feature") {
-            name = String(name.dropLast(7))
+        let suffixes: [String] = [
+            "Component",
+            "Model",
+            "Feature",
+        ]
+        for suffix in suffixes {
+            if name.hasSuffix(suffix) && name.count > suffix.count {
+                name = String(name.dropLast(suffix.count))
+            }
         }
         return name
     }
