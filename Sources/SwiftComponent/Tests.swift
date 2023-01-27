@@ -37,6 +37,7 @@ public enum TestAssertion: String, CaseIterable {
     case task
     case route
     case mutation
+    case dependency
 }
 
 extension Set where Element == TestAssertion {
@@ -304,8 +305,13 @@ extension ViewModel {
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
         // setup dependencies
-        var testDependencyValues = DependencyValues._current
-        testDependencyValues.context = .preview
+        var testDependencyValues  = DependencyValues._current
+        // rely on Dependencies failing when in test context
+        if assertions.contains(.dependency) {
+            testDependencyValues.context = .test
+        } else {
+            testDependencyValues.context = .preview
+        }
 
         // handle events
 //        var events: [ComponentEvent] = []
@@ -477,6 +483,7 @@ extension ViewModel {
                                 default: break
                             }
                         }
+                    case .dependency: break
                 }
             }
             let result = TestStepResult(step: step, events: stepEvents, errors: stepErrors)
