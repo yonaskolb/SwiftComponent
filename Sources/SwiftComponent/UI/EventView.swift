@@ -152,7 +152,7 @@ extension EventType {
         color.circleEmoji
     }
     
-    var detailsTitle: String {
+    public var detailsTitle: String {
         switch self {
             case .input:
                 return "Action Name"
@@ -171,7 +171,7 @@ extension EventType {
         }
     }
 
-    var valueTitle: String {
+    public var valueTitle: String {
         switch self {
             case .input:
                 return "Action"
