@@ -253,12 +253,12 @@ extension ViewModel {
         }
     }
 
-    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input, source: Source) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
             .onOutput { [weak self] output in
                 guard let self else { return }
                 let action = toInput(output)
-                self.processInput(action, source: source, sendEvents: false)
+                self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
             }
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
@@ -268,7 +268,7 @@ extension ViewModel {
         return viewModel
     }
 
-    private func scopedViewModel<Child: ComponentModel>(_ binding: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
+    public func scope<Child: ComponentModel>(state binding: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
@@ -280,22 +280,22 @@ extension ViewModel {
 
     // statePath and output
     public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        scopedViewModel(keyPathBinding(statePath), output: toInput, source: .capture(file: file, line: line))
+        scope(state: keyPathBinding(statePath), file: file, line: line, output: toInput)
     }
 
     // optional statePath and output
     public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        scopedViewModel(optionalBinding(state: statePath, value: value), output: toInput, source: .capture(file: file, line: line))
+        scope(state: optionalBinding(state: statePath, value: value), file: file, line: line, output: toInput)
     }
 
     // optional statePath
     public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never {
-        scopedViewModel(optionalBinding(state: statePath, value: value))
+        scope(state: optionalBinding(state: statePath, value: value))
     }
 
     // statePath
     public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never {
-        scopedViewModel(keyPathBinding(statePath))
+        scope(state: keyPathBinding(statePath))
     }
 
     // state
