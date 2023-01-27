@@ -58,7 +58,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
         testState[test.name] = .running
 
         let viewModel = ViewModel<Feature.Model>(state: state)
-        let result = await viewModel.runTest(test, initialState: state, delay: 0, sendEvents: false) { result in
+        let result = await viewModel.runTest(test, initialState: state, assertions: Feature.testAssertions, delay: 0, sendEvents: false) { result in
             Task { @MainActor in
                 testResults[test.name, default: []].append(result.id)
                 testStepResults[result.id] = result

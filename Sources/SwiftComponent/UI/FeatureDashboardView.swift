@@ -62,7 +62,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
             viewModel = ViewModel(state: state)
         }
         viewModel.path.suffix = " Test: \(test.name)"
-        let result = await viewModel.runTest(test, initialState: state, delay: delay, sendEvents: showTestEvents)
+        let result = await viewModel.runTest(test, initialState: state, assertions: Feature.testAssertions, delay: delay, sendEvents: showTestEvents)
         viewModel.path.suffix = nil
         testState[test.name] = .complete(result)
         runningTests = false

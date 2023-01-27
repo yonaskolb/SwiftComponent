@@ -22,11 +22,13 @@ extension ComponentFeature where ViewType: ComponentView, ViewType.Model == Mode
     public static func createView(model: ViewModel<Model>) -> ViewType {
         ViewType(model: model)
     }
+    static var testAssertions: Set<TestAssertion> { get }
 }
 
 extension ComponentFeature {
 
     public static var routes: [ComponentRoute] { [] }
+    public static var testAssertions: Set<TestAssertion> { .normal }
 }
 
 extension ComponentFeature {

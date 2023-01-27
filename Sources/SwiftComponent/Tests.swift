@@ -299,7 +299,9 @@ public struct TestResult<C: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>? = nil, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> {
+
+        let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
         // setup dependencies
         var testDependencyValues = DependencyValues._current
@@ -323,8 +325,6 @@ extension ViewModel {
         defer {
             self.previewTaskDelay = 0
         }
-
-        let assertions = Array(assertions ?? test.assertions).sorted { $0.rawValue < $1.rawValue }
 
         // setup state
         state = initialState
@@ -496,7 +496,7 @@ extension ComponentFeature {
         }
 
         let model = ViewModel<Model>(state: state)
-        return await model.runTest(test, initialState: state, assertions: assertions)
+        return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
     }
 }
 #endif
