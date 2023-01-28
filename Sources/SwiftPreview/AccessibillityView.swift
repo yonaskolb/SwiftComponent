@@ -1,16 +1,8 @@
-//
-//  File.swift
-//  
-//
-//  Created by Yonas Kolb on 27/10/2022.
-//
-
 import Foundation
 import SwiftUI
 #if canImport(UIKit)
 import AccessibilitySnapshotCore
 import UIKit
-
 
 private let accessibilityHierarchyParser = AccessibilityHierarchyParser()
 

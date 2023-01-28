@@ -153,7 +153,6 @@ public struct TestContext<Model: ComponentModel> {
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
 }
 
-
 //public struct TestExpectation<Model: ComponentModel> {
 //
 //    let name: String
@@ -325,7 +324,7 @@ extension ViewModel {
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
         // setup dependencies
-        var testDependencyValues  = DependencyValues._current
+        var testDependencyValues = DependencyValues._current
         // rely on Dependencies failing when in test context
         if assertions.contains(.dependency) {
             testDependencyValues.context = .test

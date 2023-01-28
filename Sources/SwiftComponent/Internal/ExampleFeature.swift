@@ -69,7 +69,6 @@ struct ExampleView: ComponentView {
         }
     }
 
-
     @ObservedObject var model: ViewModel<ExampleComponent>
 
     var view: some View {
