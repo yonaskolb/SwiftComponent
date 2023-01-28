@@ -24,7 +24,7 @@ struct ItemComponent: ComponentModel {
         case detail(ItemDetailComponent.State)
     }
 
-    enum Input {
+    enum Action {
         case calculate
         case openDetail
         case pushItem
@@ -39,8 +39,8 @@ struct ItemComponent: ComponentModel {
         }
     }
 
-    func handle(input: Input, model: Model) async {
-        switch input {
+    func handle(action: Action, model: Model) async {
+        switch action {
             case .calculate:
                 try? await clock.sleep(for: .seconds(1))
                 model.name = String(UUID().uuidString.prefix(6))
@@ -81,7 +81,7 @@ struct ItemView: ComponentView {
     func routeView(_ route: ItemComponent.Route) -> some View {
         switch route {
             case .detail(let state):
-                ItemDetailView(model: model.scope(state: state, output: ItemComponent.Input.detail))
+                ItemDetailView(model: model.scope(state: state, output: Model.Action.detail))
         }
     }
 
@@ -98,7 +98,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 model.button(.updateDetail, "Update")
             }
-            ItemDetailView(model: model.scope(statePath: \.detail, output: ItemComponent.Input.detail))
+            ItemDetailView(model: model.scope(statePath: \.detail, output: Model.Action.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
@@ -111,7 +111,7 @@ struct ItemView: ComponentView {
         .padding()
         .sheet(item: model.binding(\.presentDetail)) { state in
             NavigationView {
-                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: ItemComponent.Input.detail))
+                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: Model.Action.detail))
             }
         }
         .navigationBarTitleDisplayMode(.large)
@@ -126,7 +126,7 @@ struct ItemDetailComponent: ComponentModel {
         var name: String
     }
 
-    enum Input {
+    enum Action {
         case close
         case updateName
     }
@@ -143,8 +143,8 @@ struct ItemDetailComponent: ComponentModel {
 
     }
 
-    func handle(input: Input, model: Model) async {
-        switch input {
+    func handle(action: Action, model: Model) async {
+        switch action {
             case .close:
                 model.output(.finished(model.name))
             case .updateName:
@@ -201,7 +201,7 @@ struct ItemPreview: PreviewProvider, ComponentFeature {
 
     static var tests: [ComponentTest] {
         ComponentTest("Happy New style", state: State(name: "john", data: .loading)) {
-            Step.input(.updateDetail)
+            Step.action(.updateDetail)
             Step.setBinding(\.text, "yeah")
                 .validateState("text is set") { state in
                     state.text == "yeah"

@@ -102,11 +102,17 @@ extension TestStep {
         }
     }
 
-    public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Input", details: getEnumCase(input).name, source: .capture(file: file, line: line)) { context in
+    public static func action(_ action: Model.Action, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Action", details: getEnumCase(action).name, source: .capture(file: file, line: line)) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
+            await context.viewModel.processAction(action, source: .capture(file: file, line: line), sendEvents: true)
+        }
+    }
+
+    public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Input", details: getEnumCase(input).name, source: .capture(file: file, line: line)) { context in
             await context.viewModel.processInput(input, source: .capture(file: file, line: line), sendEvents: true)
         }
     }

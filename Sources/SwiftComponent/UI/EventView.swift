@@ -154,12 +154,14 @@ extension EventType {
     
     public var detailsTitle: String {
         switch self {
-            case .input:
+            case .action:
                 return "Action Name"
             case .binding:
                 return "Path"
             case .output:
-                return "Output Name"
+                return "Output"
+            case .input:
+                return "Input Name"
             case .appear:
                 return ""
             case .task:
@@ -173,7 +175,7 @@ extension EventType {
 
     public var valueTitle: String {
         switch self {
-            case .input:
+            case .action:
                 return "Action"
             case .binding:
                 return "Value"
@@ -181,6 +183,8 @@ extension EventType {
                 return "Value"
             case .output:
                 return "Output"
+            case .input:
+                return "Input"
             case .appear:
                 return ""
             case .task(let result):
@@ -195,13 +199,15 @@ extension EventType {
 
     public var details: String {
         switch self {
-            case .input(let action):
+            case .action(let action):
                 return getEnumCase(action).name
             case .binding(let mutation):
                 return mutation.property
             case .mutation(let mutation):
                 return mutation.property
             case .output(let event):
+                return getEnumCase(event).name
+            case .input(let event):
                 return getEnumCase(event).name
             case .appear:
                 return ""
@@ -214,7 +220,7 @@ extension EventType {
 
     public var value: Any {
         switch self {
-            case .input(let action):
+            case .action(let action):
                 return action
             case .binding(let mutation):
                 return mutation.value
@@ -222,6 +228,8 @@ extension EventType {
                 return mutation.value
             case .output(let output):
                 return output
+            case .input(let input):
+                return input
             case .appear:
                 return ""
             case .task(let result):
@@ -250,7 +258,7 @@ let previewEvents: [ComponentEvent] = [
         ),
 
         ComponentEvent(
-            type: .input(ExampleComponent.Input.tap(2)),
+            type: .action(ExampleComponent.Action.tap(2)),
             componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
             start: Date(),
             end: Date(),

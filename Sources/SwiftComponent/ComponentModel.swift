@@ -1,14 +1,16 @@
 import Foundation
 
-public protocol ComponentModel<State, Input> {
+public protocol ComponentModel<State, Action> {
 
     associatedtype State = Void
-    associatedtype Input = Void
+    associatedtype Action = Never
+    associatedtype Input = Never
     associatedtype Output = Never
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
     @MainActor func appear(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
+    @MainActor func handle(action: Action, model: Model) async
     @MainActor func handle(input: Input, model: Model) async
     init()
 
@@ -42,6 +44,10 @@ extension ComponentModel {
         }
         return name
     }
+}
+
+public extension ComponentModel where Action == Void {
+    func handle(action: Void, model: Model) async {}
 }
 
 public extension ComponentModel where Input == Void {

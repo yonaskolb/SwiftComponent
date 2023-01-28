@@ -76,6 +76,7 @@ extension ComponentEvent: CustomStringConvertible {
 public enum EventType {
     case mutation(Mutation)
     case binding(Mutation)
+    case action(Any)
     case input(Any)
     case output(Any)
     case appear(first: Bool)
@@ -85,9 +86,10 @@ public enum EventType {
     var type: EventSimpleType {
         switch self {
             case .mutation: return .mutation
-            case .input: return .input
+            case .action: return .action
             case .binding: return .binding
             case .output: return .output
+            case .input: return .input
             case .appear: return .appear
             case .task: return .task
             case .route: return .route
@@ -97,9 +99,10 @@ public enum EventType {
 
 enum EventSimpleType: String, CaseIterable {
     case appear
-    case input
+    case action
     case binding
     case task
+    case input
     case mutation
     case route
     case output
@@ -108,9 +111,10 @@ enum EventSimpleType: String, CaseIterable {
 
     var title: String {
         switch self {
-            case .input: return "Input"
+            case .action: return "Action"
             case .binding: return "Binding"
             case .output: return "Output"
+            case .input: return "Input"
             case .appear: return "Appear"
             case .task: return "Task"
             case .mutation: return "Mutation"
@@ -120,11 +124,13 @@ enum EventSimpleType: String, CaseIterable {
 
     var color: Color {
         switch self {
-            case .input:
+            case .action:
                 return .blue
             case .binding:
                 return .yellow
             case .output:
+                return .orange
+            case .input:
                 return .orange
             case .appear:
                 return .purple

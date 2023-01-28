@@ -13,6 +13,7 @@ struct FeatureDescription {
 struct ModelInfo {
     var name: String
     var state: TypeDescription
+    var action: TypeDescription
     var input: TypeDescription
     var route: TypeDescription
     var output: TypeDescription
@@ -100,6 +101,7 @@ struct FeatureDescriptionView<Feature: ComponentFeature>: View {
         let model = ModelInfo(
             name: String(describing: Feature.Model.self),
             state: try getType(Feature.Model.State.self),
+            action: try getType(Feature.Model.Action.self),
             input: try getType(Feature.Model.Input.self),
             route: try getType(Feature.Model.Route.self),
             output: try getType(Feature.Model.Output.self)
@@ -124,8 +126,9 @@ struct FeatureDescriptionView<Feature: ComponentFeature>: View {
         ScrollView {
             VStack {
                 typeSection("State", icon: "square.text.square", feature.model.state)
-                typeSection("Input", icon: "arrow.backward.square", feature.model.input)
-                typeSection("Output", icon: "arrow.forward.square", feature.model.output)
+                typeSection("Action", icon: "arrow.up.square", feature.model.action)
+                typeSection("Input", icon: "arrow.forward.square", feature.model.input)
+                typeSection("Output", icon: "arrow.backward.square", feature.model.output)
                 typeSection("Route", icon: "arrow.uturn.right.square", feature.model.route)
                 section("States", icon: "square.text.square") {
                     ForEach(feature.feature.states, id: \.self) { state in

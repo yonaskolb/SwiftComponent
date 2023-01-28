@@ -13,7 +13,7 @@ struct ExampleComponent: ComponentModel {
         var date = Date()
     }
 
-    enum Input: Equatable {
+    enum Action: Equatable {
         case tap(Int)
     }
 
@@ -31,8 +31,8 @@ struct ExampleComponent: ComponentModel {
         }
     }
     
-    func handle(input: Input, model: Model) async {
-        switch input {
+    func handle(action: Action, model: Model) async {
+        switch action {
             case .tap(let int):
                 model.date = now()
                 model.output(.finished)
@@ -45,15 +45,15 @@ struct ExampleSubComponent: ComponentModel {
     struct State: Equatable {
         var name: String
     }
-    enum Input: Equatable {
+    enum Action: Equatable {
         case tap(Int)
     }
     enum Output {
         case finished
     }
 
-    func handle(input: Input, model: Model) async {
-        switch input {
+    func handle(action: Action, model: Model) async {
+        switch action {
             case .tap(let int):
                 model.name += int.description
         }
@@ -106,7 +106,7 @@ struct ExamplePreview: PreviewProvider, ComponentFeature {
         ComponentTest("Sets correct date", state: State(name: "Main"), appear: false) {
             let date = Date().addingTimeInterval(10000)
             Step.setDependency(\.date, .constant(date))
-            Step.input(.tap(2))
+            Step.action(.tap(2))
                 .expectState { $0.date = date }
         }
 

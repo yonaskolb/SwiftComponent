@@ -73,6 +73,23 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         EventStore.shared.send(event)
     }
 
+    func processAction(_ action: Model.Action, source: Source, sendEvents: Bool) {
+        Task { @MainActor in
+            await processAction(action, source: source, sendEvents: sendEvents)
+        }
+    }
+
+    @MainActor
+    func processAction(_ action: Model.Action, source: Source, sendEvents: Bool) async {
+        let eventStart = Date()
+        startEvent()
+        mutations = []
+        await model.handle(action: action, model: modelContext)
+        if sendEvents {
+            sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
+        }
+    }
+
     func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) {
         Task { @MainActor in
             await processInput(input, source: source, sendEvents: sendEvents)
@@ -114,13 +131,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 // MARK: View Accessors
 extension ViewModel {
 
-    public func send(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+    public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         mutationAnimation = animation
-        processInput(input, source: .capture(file: file, line: line), sendEvents: true)
+        processAction(action, source: .capture(file: file, line: line), sendEvents: true)
         mutationAnimation = nil
     }
 
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Input?)? = nil) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
@@ -257,8 +274,8 @@ extension ViewModel {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
             .onOutput { [weak self] output in
                 guard let self else { return }
-                let action = toInput(output)
-                self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
+                let input = toInput(output)
+                self.processInput(input, source: .capture(file: file, line: line), sendEvents: false)
             }
         viewModel.events.sink { [weak self] event in
             guard let self else { return }
@@ -314,8 +331,8 @@ extension ViewModel {
         let viewModel = ViewModel<Child>(state: state, path: self.path)
             .onOutput { [weak self] output in
                 guard let self else { return }
-                let action = toInput(output)
-                self.processInput(action, source: .capture(file: file, line: line), sendEvents: false)
+                let input = toInput(output)
+                self.processInput(input, source: .capture(file: file, line: line), sendEvents: false)
             }
         viewModel.events.sink { [weak self] event in
             guard let self else { return }

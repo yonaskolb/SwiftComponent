@@ -30,7 +30,7 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
 
     struct ComponentModelEditor {
         var state: String
-        var input: String?
+        var action: String?
         var output: String?
         var appear: String?
         var handle: String
@@ -68,14 +68,14 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
 
         let handlerParser = Parse {
             Skip {
-                PrefixUpTo("switch input")
+                PrefixUpTo("switch action")
                 PrefixThrough("{\n")
             }
             PrefixUpTo("}").map(String.init)
         }
 
 //        let stateParser = scopeParser(prefix: "State:")
-//        let handlerParser = scopeParser(prefix: "switch input")
+//        let handlerParser = scopeParser(prefix: "switch action")
 
         let modelParser = Parse {
             stateParser
@@ -171,7 +171,7 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
             Text("State")
                 .bold()
             editor($editor.model.state)
-            Text("Handle Input")
+            Text("Handle Action")
                 .bold()
             editor($editor.model.handle)
         }
