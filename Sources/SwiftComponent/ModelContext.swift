@@ -9,6 +9,8 @@ public class ModelContext<Model: ComponentModel> {
 
     weak var viewModel: ViewModel<Model>!
 
+    public var cancellables: Set<AnyCancellable> = []
+
     init(viewModel: ViewModel<Model>) {
         self.viewModel = viewModel
     }
@@ -46,6 +48,19 @@ public class ModelContext<Model: ComponentModel> {
 
     public func dismissRoute(file: StaticString = #file, line: UInt = #line) {
         viewModel.dismissRoute(source: .capture(file: file, line: line))
+    }
+
+    public func statePublisher() -> AnyPublisher<Model.State, Never> {
+        viewModel.stateChanged
+            .eraseToAnyPublisher()
+    }
+
+    // removes duplicates from equatable values, so only changes are published
+    public func statePublisher<Value: Equatable>(_ keypath: KeyPath<Model.State, Value>) -> AnyPublisher<Value, Never> {
+        statePublisher()
+            .map { $0[keyPath: keypath] }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 }
 

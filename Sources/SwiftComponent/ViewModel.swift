@@ -11,6 +11,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     public var componentName: String { Model.baseName }
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
+    let stateChanged = PassthroughSubject<Model.State, Never>()
 
     public internal(set) var state: Model.State {
         get {
@@ -24,6 +25,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
                 ownedState = newValue
             }
             objectWillChange.send()
+            stateChanged.send(newValue)
         }
     }
 
@@ -270,6 +272,7 @@ extension ViewModel {
         }
     }
 
+    // state binding and output
     public func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
             .onOutput { [weak self] output in
@@ -285,6 +288,7 @@ extension ViewModel {
         return viewModel
     }
 
+    // state binding
     public func scope<Child: ComponentModel>(state binding: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
         let viewModel = ViewModel<Child>(state: binding, path: self.path)
         viewModel.events.sink { [weak self] event in
