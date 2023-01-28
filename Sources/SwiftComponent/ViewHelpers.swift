@@ -3,35 +3,49 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func inputButton<Label: View>(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
-        Button(action: {
-            if let animation {
-                withAnimation(animation) {
-                    self.send(input, file: file, line: line)
-                }
-            } else {
-                self.send(input, file: file, line: line)
-            }
-        }) { label() }
+    public func button<Label: View>(_ input: Model.Input, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+        ViewModelButton(model: self, input: input, animation: animation, file: file, line: line, label: label)
     }
 
-    public func inputButton(_ input: Model.Input, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
-        inputButton(input, animation: animation, file: file, line: line) { Text(text) }
+    public func button(_ input: Model.Input, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
+        ViewModelButton(model: self, input: input, animation: animation, file: file, line: line) { Text(text) }
     }
 }
 
-/// Used to easily dismiss a view. Will not work inside a toolbar
-public struct DismissButton<Label: View>: View {
+struct ViewModelButton<Model: ComponentModel, Label: View>: View {
 
-    @Environment(\.dismiss) var dismiss
+    var model: ViewModel<Model>
+    var input: Model.Input
+    var animation: Animation?
+    var file: StaticString
+    var line: UInt
     var label: Label
 
-    public init(@ViewBuilder label: () -> Label) {
+    init(
+        model: ViewModel<Model>,
+        input: Model.Input,
+        animation: Animation? = nil,
+        file: StaticString = #file,
+        line: UInt = #line,
+        @ViewBuilder label: () -> Label) {
+        self.model = model
+        self.input = input
+        self.animation = animation
+        self.file = file
+        self.line = line
         self.label = label()
     }
 
-    public var body: some View {
-        Button(action: { dismiss() }) { label }
+    var body: some View {
+        Button {
+            if let animation {
+                withAnimation(animation) {
+                    model.send(input, file: file, line: line)
+                }
+            } else {
+                model.send(input, file: file, line: line)
+            }
+        } label: { label }
     }
 }
 

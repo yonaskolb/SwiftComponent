@@ -96,16 +96,16 @@ struct ItemView: ComponentView {
             .frame(height: 30)
             HStack {
                 Text("Detail name: \(model.state.detail.name)")
-                model.inputButton(.updateDetail, "Update")
+                model.button(.updateDetail, "Update")
             }
             ItemDetailView(model: model.scope(statePath: \.detail, output: ItemComponent.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
-            model.inputButton(.calculate, "Calculate")
-            model.inputButton(.openDetail, "Item")
-            model.inputButton(.pushItem, "Push Item")
+            model.button(.calculate, "Calculate")
+            model.button(.openDetail, "Item")
+            model.button(.pushItem, "Push Item")
             Spacer()
         }
         .padding()
