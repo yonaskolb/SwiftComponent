@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 public protocol ComponentModel<State, Action> {
 
     associatedtype State = Void
@@ -12,7 +13,7 @@ public protocol ComponentModel<State, Action> {
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
     @MainActor func handle(action: Action, model: Model) async
     @MainActor func handle(input: Input, model: Model) async
-    init()
+    nonisolated init()
 
     typealias Model = ModelContext<Self>
 }
@@ -30,6 +31,7 @@ extension RawRepresentable where RawValue == String {
 
 extension ComponentModel {
 
+    nonisolated
     public static var baseName: String {
         var name = String(describing: Self.self)
         let suffixes: [String] = [

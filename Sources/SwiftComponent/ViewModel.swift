@@ -139,6 +139,7 @@ extension ViewModel {
         mutationAnimation = nil
     }
 
+    @MainActor
     public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },

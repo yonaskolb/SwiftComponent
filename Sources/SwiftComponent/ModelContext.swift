@@ -25,6 +25,7 @@ public class ModelContext<Model: ComponentModel> {
         viewModel.output(event, source: .capture(file: file, line: line))
     }
 
+    @MainActor
     public subscript<Value>(dynamicMember keyPath: WritableKeyPath<Model.State, Value>) -> Value {
         get { viewModel.state[keyPath: keyPath] }
         set {

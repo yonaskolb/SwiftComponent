@@ -57,17 +57,22 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var source: Source
     public let id = UUID()
     var expectations: [Expectation] = []
-    var run: (inout TestContext<Model>) async -> Void
+    private var _run: (inout TestContext<Model>) async -> Void
 
-    public init(title: String, details: String? = nil, file: StaticString = #file, line: UInt = #line, run: @escaping (inout TestContext<Model>) async -> Void) {
+    public init(title: String, details: String? = nil, file: StaticString = #file, line: UInt = #line, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
         self.init(title: title, details: details, source: .capture(file: file, line: line), run: run)
     }
 
-    init(title: String, details: String? = nil, source: Source, run: @escaping (inout TestContext<Model>) async -> Void) {
+    init(title: String, details: String? = nil, source: Source, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
         self.title = title
         self.details = details
         self.source = source
-        self.run = run
+        self._run = run
+    }
+
+    @MainActor
+    public func run(_ context: inout TestContext<Model>) async {
+        await _run(&context)
     }
 
     public var description: String {
@@ -90,6 +95,12 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 }
 
 extension TestStep {
+
+    public static func run(_ title: String, file: StaticString = #file, line: UInt = #line, _ run: @escaping () async -> Void) -> Self {
+        .init(title: title) { _ in
+            await run()
+        }
+    }
     public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", source: .capture(file: file, line: line)) { context in
             if `await` {
@@ -372,7 +383,7 @@ extension ViewModel {
 
             await withDependencies { dependencyValues in
                 dependencyValues = testDependencyValues
-            } operation: {
+            } operation: { @MainActor in
                 context.dependencies = testDependencyValues
                 await step.run(&context)
                 testDependencyValues = context.dependencies

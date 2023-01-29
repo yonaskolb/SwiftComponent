@@ -126,6 +126,7 @@ extension ComponentView {
 
     }
 
+    @MainActor
     public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
         model.binding(keyPath)
     }
