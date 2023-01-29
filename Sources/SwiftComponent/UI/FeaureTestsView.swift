@@ -37,6 +37,9 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
     @State var testResults: [String: [TestStep<Feature.Model>.ID]] = [:]
     @State var testStepResults: [TestStep<Feature.Model>.ID: TestStepResult<Feature.Model>] = [:]
     @State var showEvents = false
+    @State var showDependencies = false
+    @State var showExpectations = false
+    @State var showStepTitles = true
 
     func getTestState(_ test: Test<Feature.Model>) -> TestState<Feature.Model> {
         testState[test.name] ?? .notRun
@@ -69,7 +72,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 30) {
+            LazyVStack(spacing: 20) {
                 ForEach(Feature.tests, id: \.name) { test in
                     testRow(test)
                     Divider()
@@ -90,7 +93,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
             if let steps = testResults[test.name] {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(steps, id: \.self) { step in
-                        if let stepResult = testStepResults[step] {
+                        if let stepResult = testStepResults[step], showDependencies || stepResult.step.title != "Dependency" {
                             stepResultRow(stepResult, test: test)
                         }
                     }
@@ -114,25 +117,22 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
 
     func stepResultRow(_ stepResult: TestStepResult<Feature.Model>, test: Test<Feature.Model>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Group {
-                    if stepResult.success {
-                        Image(systemName: "checkmark.circle.fill")
-                    } else {
-                        Image(systemName: "x.circle.fill")
+            if showStepTitles {
+                HStack {
+                    Group {
+                        if stepResult.success {
+                            Image(systemName: "checkmark.circle.fill")
+                        } else {
+                            Image(systemName: "x.circle.fill")
+                        }
                     }
-                }
-                .foregroundColor(stepColor(stepResult: stepResult, test: test))
+                    .foregroundColor(stepColor(stepResult: stepResult, test: test))
 
-                HStack(spacing: 0) {
-                    Text(stepResult.step.title)
+                    Text(stepResult.step.description)
                         .bold()
-                    if let details = stepResult.step.details {
-                        Text(": \(details)")
-                            .lineLimit(1)
-                    }
+                        .lineLimit(1)
+                        .foregroundColor(stepColor(stepResult: stepResult, test: test))
                 }
-                .foregroundColor(stepColor(stepResult: stepResult, test: test))
             }
             if showEvents, !stepResult.events.isEmpty {
                 VStack(alignment: .leading, spacing:8) {
@@ -142,6 +142,18 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
                             Text("Event: ") +
                             Text(event.type.title).bold() +
                             Text(" " + event.type.details)
+                        }
+                        .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.leading, 28)
+                .padding(.top, 8)
+            }
+            if showExpectations, !stepResult.step.expectations.isEmpty {
+                VStack(alignment: .leading, spacing:8) {
+                    ForEach(stepResult.step.expectations, id: \.description) { expectation in
+                        HStack {
+                            Text(expectation.description)
                         }
                         .foregroundColor(.secondary)
                     }

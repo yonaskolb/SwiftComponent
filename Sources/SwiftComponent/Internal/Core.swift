@@ -10,9 +10,9 @@ extension String {
     var quoted: String { "\"\(self)\""}
 }
 
-func dumpToString(_ value: Any) -> String {
+public func dumpToString(_ value: Any, maxDepth: Int = .max) -> String {
     var string = ""
-    customDump(value, to: &string)
+    customDump(value, to: &string, maxDepth: maxDepth)
     return string
 }
 

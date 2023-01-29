@@ -69,7 +69,7 @@ public struct ComponentEvent: Identifiable {
 extension ComponentEvent: CustomStringConvertible {
 
     public var description: String {
-        "\(componentPath) \(type.title): \(type.details)"
+        "\(componentPath) \(type.title.lowercased()): \(type.details)"
     }
 }
 
@@ -93,6 +93,115 @@ public enum EventType {
             case .appear: return .appear
             case .task: return .task
             case .route: return .route
+        }
+    }
+}
+
+extension EventType {
+
+    public var title: String { type.title }
+    var color: Color {
+        switch self {
+            case .task(let result):
+                switch result.result {
+                    case .success: return .green
+                    case .failure: return .red
+                }
+            default: return type.color
+        }
+    }
+
+    public var emoji: String {
+        color.circleEmoji
+    }
+
+    public var detailsTitle: String {
+        switch self {
+            case .action:
+                return "Action Name"
+            case .binding:
+                return "Path"
+            case .output:
+                return "Output"
+            case .input:
+                return "Input Name"
+            case .appear:
+                return ""
+            case .task:
+                return "Name"
+            case .mutation:
+                return "Path"
+            case .route:
+                return "Destination"
+        }
+    }
+
+    public var valueTitle: String {
+        switch self {
+            case .action:
+                return "Action"
+            case .binding:
+                return "Value"
+            case .mutation:
+                return "Value"
+            case .output:
+                return "Output"
+            case .input:
+                return "Input"
+            case .appear:
+                return ""
+            case .task(let result):
+                switch result.result {
+                    case .success: return "Success"
+                    case .failure: return "Failure"
+                }
+            case .route:
+                return "Destination"
+        }
+    }
+
+    public var details: String {
+        switch self {
+            case .action(let action):
+                return getEnumCase(action).name
+            case .binding(let mutation):
+                return mutation.property
+            case .mutation(let mutation):
+                return mutation.property
+            case .output(let event):
+                return getEnumCase(event).name
+            case .input(let event):
+                return getEnumCase(event).name
+            case .appear:
+                return ""
+            case .task(let result):
+                return result.name
+            case .route(let route):
+                return getEnumCase(route).name
+        }
+    }
+
+    public var value: Any {
+        switch self {
+            case .action(let action):
+                return action
+            case .binding(let mutation):
+                return mutation.value
+            case .mutation(let mutation):
+                return mutation.value
+            case .output(let output):
+                return output
+            case .input(let input):
+                return input
+            case .appear:
+                return ""
+            case .task(let result):
+                switch result.result {
+                    case .success(let value): return value
+                    case .failure(let error): return error
+                }
+            case .route(let route):
+                return route
         }
     }
 }
@@ -125,21 +234,21 @@ enum EventSimpleType: String, CaseIterable {
     var color: Color {
         switch self {
             case .action:
-                return .blue
+                return .purple
             case .binding:
                 return .yellow
             case .output:
-                return .orange
+                return .black
             case .input:
-                return .orange
+                return .white
             case .appear:
-                return .purple
+                return .blue
             case .task:
-                return .green
+                return .green // changed to green or red in event
             case .mutation:
                 return .yellow
             case .route:
-                return .teal
+                return .orange
         }
     }
 }

@@ -15,7 +15,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
     @State var testState: [String: TestState<Feature.Model>] = [:]
     @State var runningTests = false
     @State var render = UUID()
-    @State var previewTestDelay = 0.5
+    @State var previewTestDelay = 0.3
 
     var events: [ComponentEvent] {
         EventStore.shared.events
