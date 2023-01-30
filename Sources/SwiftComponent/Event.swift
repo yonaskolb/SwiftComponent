@@ -6,19 +6,19 @@ import SwiftUI
 public class EventStore {
 
     public static let shared = EventStore()
-    public internal(set) var events: [ComponentEvent] = []
-    public let eventPublisher = PassthroughSubject<ComponentEvent, Never>()
+    public internal(set) var events: [Event] = []
+    public let eventPublisher = PassthroughSubject<Event, Never>()
     #if DEBUG
     public var storeEvents = true
     #else
     public var storeEvents = false
     #endif
 
-    func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [ComponentEvent] {
+    func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [Event] {
         events.filter { includeChildren ? $0.componentPath.contains(path) : $0.componentPath == path }
     }
 
-    func send(_ event: ComponentEvent) {
+    func send(_ event: Event) {
         if storeEvents {
             events.append(event)
         }
@@ -30,7 +30,7 @@ public class EventStore {
     }
 }
 
-public struct ComponentEvent: Identifiable {
+public struct Event: Identifiable {
     public var id = UUID()
     public let start: Date
     public let end: Date
@@ -52,10 +52,6 @@ public struct ComponentEvent: Identifiable {
         self.source = source
     }
 
-    func isComponent<Model: ComponentModel>(_ type: Model.Type) -> Bool {
-        componentType == type
-    }
-
     public var duration: String {
         let seconds = end.timeIntervalSince1970 - start.timeIntervalSince1970
         if seconds < 2 {
@@ -66,7 +62,7 @@ public struct ComponentEvent: Identifiable {
     }
 }
 
-extension ComponentEvent: CustomStringConvertible {
+extension Event: CustomStringConvertible {
 
     public var description: String {
         "\(componentPath) \(type.title.lowercased()): \(type.details)"

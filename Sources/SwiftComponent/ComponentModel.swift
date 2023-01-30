@@ -9,13 +9,13 @@ public protocol ComponentModel<State, Action> {
     associatedtype Output = Never
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
-    @MainActor func appear(model: Model) async
-    @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
-    @MainActor func handle(action: Action, model: Model) async
-    @MainActor func handle(input: Input, model: Model) async
+    @MainActor func appear(store: Store) async
+    @MainActor func binding(keyPath: PartialKeyPath<State>, store: Store) async
+    @MainActor func handle(action: Action, store: Store) async
+    @MainActor func handle(input: Input, store: Store) async
     nonisolated init()
 
-    typealias Model = ModelContext<Self>
+    typealias Store = ComponentModelStore<Self>
 }
 
 public protocol ModelTask {
@@ -49,14 +49,14 @@ extension ComponentModel {
 }
 
 public extension ComponentModel where Action == Void {
-    func handle(action: Void, model: Model) async {}
+    func handle(action: Void, store: Store) async {}
 }
 
 public extension ComponentModel where Input == Void {
-    func handle(input: Void, model: Model) async {}
+    func handle(input: Void, store: Store) async {}
 }
 
 public extension ComponentModel {
-    func binding(keyPath: PartialKeyPath<State>, model: Model) async { }
-    func appear(model: Model) async { model.viewModel.handledAppear = false }
+    func binding(keyPath: PartialKeyPath<State>, store: Store) async { }
+    func appear(store: Store) async { store.handledAppear = false }
 }

@@ -4,20 +4,20 @@ import SwiftGUI
 
 struct ComponentEventList: View {
 
-    let events: [ComponentEvent]
-    let allEvents: [ComponentEvent]
+    let events: [Event]
+    let allEvents: [Event]
     var depth: Int = 0
     @State var showEvent: UUID?
     @State var showMutation: UUID?
 
-    func eventDepth(_ event: ComponentEvent) -> Int {
+    func eventDepth(_ event: Event) -> Int {
         max(0, event.depth - depth)
     }
 
     var body: some View {
         ForEach(events) { event in
             NavigationLink(tag: event.id, selection: $showEvent, destination: {
-                EventView(event: event, allEvents: allEvents)
+                ComponentEventView(event: event, allEvents: allEvents)
             }) {
                 HStack {
 //                    if eventDepth(event) > 0 {
@@ -52,12 +52,12 @@ struct ComponentEventList: View {
     }
 }
 
-struct EventView: View {
+struct ComponentEventView: View {
 
-    let event: ComponentEvent
-    var allEvents: [ComponentEvent]
-    var childEvents: [ComponentEvent] { allEvents.filter { $0.start > event.start && $0.end < event.end } }
-    var parentEvents: [ComponentEvent] { allEvents.filter { $0.start < event.start && $0.end > event.end } }
+    let event: Event
+    var allEvents: [Event]
+    var childEvents: [Event] { allEvents.filter { $0.start > event.start && $0.end < event.end } }
+    var parentEvents: [Event] { allEvents.filter { $0.start < event.start && $0.end > event.end } }
     @State var showValue = false
     @State var showMutation: UUID?
 
@@ -134,56 +134,56 @@ struct EventView: View {
     }
 }
 
-let previewEvents: [ComponentEvent] = [
-        ComponentEvent(
+let previewEvents: [Event] = [
+        Event(
             type: .appear(first: true),
-            componentPath: .init([ExampleComponent.self]),
+            componentPath: .init([ExampleModel.self]),
             start: Date().addingTimeInterval(-1.05),
             end: Date(),
             mutations: [
-                Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
-                Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new1"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new2"),
             ],
             depth: 0,
             source: .capture()
         ),
 
-        ComponentEvent(
-            type: .action(ExampleComponent.Action.tap(2)),
-            componentPath: .init([ExampleComponent.self, ExampleSubComponent.self]),
+        Event(
+            type: .action(ExampleModel.Action.tap(2)),
+            componentPath: .init([ExampleModel.self, ExampleChildModel.self]),
             start: Date(),
             end: Date(),
             mutations: [
-                Mutation(keyPath: \ExampleComponent.State.name, value: "new1"),
-                Mutation(keyPath: \ExampleComponent.State.name, value: "new2"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new1"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new2"),
             ],
             depth: 0,
             source: .capture()
         ),
 
-        ComponentEvent(
-            type: .binding(Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")),
-            componentPath: .init(ExampleComponent.self),
+        Event(
+            type: .binding(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
-            mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
+            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello")],
             depth: 1,
             source: .capture()
         ),
 
-        ComponentEvent(
-            type: .mutation(Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")),
-            componentPath: .init(ExampleComponent.self),
+        Event(
+            type: .mutation(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
-            mutations: [Mutation(keyPath: \ExampleComponent.State.name, value: "Hello")],
+            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello")],
             depth: 2,
             source: .capture()
         ),
 
-        ComponentEvent(
+        Event(
             type: .task(TaskResult.init(name: "get item", result: .success(()))),
-            componentPath: .init(ExampleComponent.self),
+            componentPath: .init(ExampleModel.self),
             start: Date().addingTimeInterval(-2.3),
             end: Date(),
             mutations: [],
@@ -191,9 +191,9 @@ let previewEvents: [ComponentEvent] = [
             source: .capture()
         ),
 
-        ComponentEvent(
-            type: .output(ExampleComponent.Output.finished),
-            componentPath: .init(ExampleComponent.self),
+        Event(
+            type: .output(ExampleModel.Output.finished),
+            componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
             mutations: [],
@@ -207,7 +207,7 @@ struct EventView_Previews: PreviewProvider {
         EventStore.shared.events = previewEvents
         return Group {
             NavigationView {
-                EventView(event: previewEvents[1], allEvents: previewEvents)
+                ComponentEventView(event: previewEvents[1], allEvents: previewEvents)
             }
             .navigationViewStyle(.stack)
             ExampleView(model: .init(state: .init(name: "Hello")))

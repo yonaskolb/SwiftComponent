@@ -31,37 +31,40 @@ enum TestState<Model: ComponentModel> {
     }
 }
 
-struct FeaureTestsView<Feature: ComponentFeature>: View {
+struct ComponentTestsView<ComponentType: Component>: View {
 
-    @State var testState: [String: TestState<Feature.Model>] = [:]
-    @State var testResults: [String: [TestStep<Feature.Model>.ID]] = [:]
-    @State var testStepResults: [TestStep<Feature.Model>.ID: TestStepResult<Feature.Model>] = [:]
+    typealias Model = ComponentType.Model
+
+    @State var testState: [String: TestState<Model>] = [:]
+    @State var testResults: [String: [TestStep<Model>.ID]] = [:]
+    @State var testStepResults: [TestStep<Model>.ID: TestStepResult<Model>] = [:]
     @State var showEvents = false
     @State var showDependencies = false
     @State var showExpectations = false
+    @State var showErrors = true
     @State var showStepTitles = true
 
-    func getTestState(_ test: Test<Feature.Model>) -> TestState<Feature.Model> {
+    func getTestState(_ test: Test<Model>) -> TestState<Model> {
         testState[test.name] ?? .notRun
     }
 
     func runAllTests() {
         Task { @MainActor in
-            Feature.tests.forEach { testState[$0.name] = .pending }
-            for test in Feature.tests {
+            ComponentType.tests.forEach { testState[$0.name] = .pending }
+            for test in ComponentType.tests {
                 await runTest(test)
             }
         }
     }
 
     @MainActor
-    func runTest(_ test: Test<Feature.Model>) async {
+    func runTest(_ test: Test<Model>) async {
 
-        guard let state = Feature.state(for: test) else { return }
+        guard let state = ComponentType.state(for: test) else { return }
         testState[test.name] = .running
 
-        let viewModel = ViewModel<Feature.Model>(state: state)
-        let result = await viewModel.runTest(test, initialState: state, assertions: Feature.testAssertions, delay: 0, sendEvents: false) { result in
+        let model = ViewModel<Model>(state: state)
+        let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
             Task { @MainActor in
                 testResults[test.name, default: []].append(result.id)
                 testStepResults[result.id] = result
@@ -73,7 +76,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                ForEach(Feature.tests, id: \.name) { test in
+                ForEach(ComponentType.tests, id: \.name) { test in
                     testRow(test)
                     Divider()
                 }
@@ -86,7 +89,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
         }
     }
 
-    func testRow(_ test: Test<Feature.Model>) -> some View {
+    func testRow(_ test: Test<Model>) -> some View {
         VStack(alignment: .leading) {
             testHeader(test)
                 .padding(.bottom, 8)
@@ -103,7 +106,7 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
         }
     }
 
-    func stepColor(stepResult: TestStepResult<Feature.Model>, test: Test<Feature.Model>) -> Color {
+    func stepColor(stepResult: TestStepResult<Model>, test: Test<Model>) -> Color {
         switch getTestState(test) {
             case .complete(let result):
                 if result.success {
@@ -115,80 +118,105 @@ struct FeaureTestsView<Feature: ComponentFeature>: View {
         }
     }
 
-    func stepResultRow(_ stepResult: TestStepResult<Feature.Model>, test: Test<Feature.Model>) -> some View {
+    func stepResultRow(_ stepResult: TestStepResult<Model>, test: Test<Model>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            if showStepTitles {
-                HStack {
-                    Group {
-                        if stepResult.success {
-                            Image(systemName: "checkmark.circle.fill")
-                        } else {
-                            Image(systemName: "x.circle.fill")
-                        }
-                    }
-                    .foregroundColor(stepColor(stepResult: stepResult, test: test))
-
-                    Text(stepResult.step.description)
-                        .bold()
-                        .lineLimit(1)
-                        .foregroundColor(stepColor(stepResult: stepResult, test: test))
+            // groups are to fix a rare compiler type inference error
+            Group {
+                if showStepTitles {
+                    stepTitle(stepResult, test: test)
                 }
             }
-            if showEvents, !stepResult.events.isEmpty {
-                VStack(alignment: .leading, spacing:8) {
-                    ForEach(stepResult.events.sorted { $0.start < $1.start }) { event in
-                        HStack {
-                            //                            Text(event.type.emoji)
-                            Text("Event: ") +
-                            Text(event.type.title).bold() +
-                            Text(" " + event.type.details)
-                        }
-                        .foregroundColor(.secondary)
-                    }
+            Group {
+                if showEvents, !stepResult.events.isEmpty {
+                    stepEvents(stepResult.events)
+                        .padding(.leading, 28)
+                        .padding(.top, 8)
                 }
-                .padding(.leading, 28)
-                .padding(.top, 8)
             }
-            if showExpectations, !stepResult.step.expectations.isEmpty {
-                VStack(alignment: .leading, spacing:8) {
-                    ForEach(stepResult.step.expectations, id: \.description) { expectation in
-                        HStack {
-                            Text(expectation.description)
-                        }
-                        .foregroundColor(.secondary)
-                    }
+            Group {
+                if showExpectations, !stepResult.step.expectations.isEmpty {
+                    stepExpectations(stepResult.step.expectations)
+                        .padding(.leading, 28)
+                        .padding(.top, 8)
                 }
-                .padding(.leading, 28)
-                .padding(.top, 8)
             }
-            if !stepResult.errors.isEmpty {
-                ForEach(stepResult.errors, id: \.id) { error in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(error.error)
-                            .foregroundColor(.red)
-                        if let diff = error.diff {
-                            VStack(alignment: .leading, spacing: 4) {
-                                diff
-                                    .diffText()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .padding(16)
-                            .background {
-                                RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1))
-                            }
-                            .background {
-                                RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2))
-                            }
-                        }
-                    }
+            Group {
+                if showErrors, !stepResult.errors.isEmpty {
+                    stepResultErrors(stepResult.errors)
+                        .padding(.leading, 28)
+                        .padding(.top, 2)
                 }
-                .padding(.leading, 28)
-                .padding(.top, 2)
             }
         }
     }
 
-    func testHeader(_ test: Test<Feature.Model>) -> some View {
+    func stepTitle(_ stepResult: TestStepResult<Model>, test: Test<Model>) -> some View {
+        HStack {
+            Group {
+                if stepResult.success {
+                    Image(systemName: "checkmark.circle.fill")
+                } else {
+                    Image(systemName: "x.circle.fill")
+                }
+            }
+            .foregroundColor(stepColor(stepResult: stepResult, test: test))
+
+            Text(stepResult.step.description)
+                .bold()
+                .lineLimit(1)
+                .foregroundColor(stepColor(stepResult: stepResult, test: test))
+        }
+    }
+
+    func stepEvents(_ events: [Event]) -> some View {
+        VStack(alignment: .leading, spacing:8) {
+            ForEach(events.sorted { $0.start < $1.start }) { event in
+                HStack {
+                    //                            Text(event.type.emoji)
+                    Text("Event: ") +
+                    Text(event.type.title).bold() +
+                    Text(" " + event.type.details)
+                }
+                .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    func stepExpectations(_ expectations: [TestStep<Model>.Expectation]) -> some View {
+        VStack(alignment: .leading, spacing:8) {
+            ForEach(expectations, id: \.description) { expectation in
+                HStack {
+                    Text(expectation.description)
+                }
+                .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    func stepResultErrors(_ errors: [TestError]) -> some View {
+        ForEach(errors, id: \.id) { error in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(error.error)
+                    .foregroundColor(.red)
+                if let diff = error.diff {
+                    VStack(alignment: .leading, spacing: 4) {
+                        diff
+                            .diffText()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(16)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1))
+                    }
+                    .background {
+                        RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2))
+                    }
+                }
+            }
+        }
+    }
+
+    func testHeader(_ test: Test<Model>) -> some View {
         Button {
             Task { @MainActor in
                 await runTest(test)
@@ -263,8 +291,8 @@ extension String {
     }
 }
 
-struct ComponentFeatureTests_Previews: PreviewProvider {
+struct ComponentTests_Previews: PreviewProvider {
     static var previews: some View {
-        FeaureTestsView<ExamplePreview>()
+        ComponentTestsView<ExampleComponent>()
     }
 }

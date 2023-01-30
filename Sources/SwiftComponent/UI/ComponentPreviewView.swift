@@ -1,15 +1,15 @@
 import SwiftUI
 import SwiftPreview
 
-struct FeaturePreviewView<Feature: ComponentFeature>: View {
+struct ComponentPreviewView<ComponentType: Component>: View {
 
-    @StateObject var viewModel = ViewModel<Feature.Model>.init(state: Feature.states[0].state)
-    @AppStorage("componentPreview.viewState") var viewState: ViewState = .feature
+    @StateObject var model = ViewModel<ComponentType.Model>.init(state: ComponentType.states[0].state)
+    @AppStorage("componentPreview.viewState") var viewState: ViewState = .dashboard
 
     enum ViewState: String, CaseIterable {
-        case feature = "Feature"
+        case dashboard = "Dashboard"
         case view = "View"
-        case model = "Model"
+        case description = "Description"
         case code = "Code"
         case tests = "Tests"
     }
@@ -17,18 +17,18 @@ struct FeaturePreviewView<Feature: ComponentFeature>: View {
     var body: some View {
         Group {
             switch viewState {
-                case .feature:
-                    FeatureDashboardView<Feature>(viewModel: viewModel)
+                case .dashboard:
+                    ComponentDashboardView<ComponentType>(model: model)
                 case .view:
-                    ViewPreviewer(content: Feature.createView(model: viewModel))
+                    ViewPreviewer(content: ComponentType.view(model: model))
                         .padding()
                         .previewReference()
                 case .tests:
-                    FeaureTestsView<Feature>()
+                    ComponentTestsView<ComponentType>()
                 case .code:
-                    FeatureEditorView<Feature>()
-                case .model:
-                    FeatureDescriptionView<Feature>()
+                    ComponentEditorView<ComponentType>()
+                case .description:
+                    ComponentDescriptionView<ComponentType>()
             }
         }
         .toolbar {
@@ -54,7 +54,7 @@ struct FeaturePreviewView<Feature: ComponentFeature>: View {
 struct ComponentPreviewView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            FeaturePreviewView<ExamplePreview>()
+            ComponentPreviewView<ExampleComponent>()
         }
         .navigationViewStyle(.stack)
     }

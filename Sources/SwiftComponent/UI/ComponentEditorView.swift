@@ -1,11 +1,11 @@
 import SwiftUI
 import Parsing
 
-struct FeatureEditorView<Preview: ComponentFeature>: View {
+struct ComponentEditorView<Preview: Component>: View {
 
     @State var initialFileContent: String = ""
     @State var fileContent: String = ""
-    @State var editor = FeatureEditor(model: .init(state: "", handle: ""), view: .init(view: ""), preview: .init())
+    @State var editor = ComponentEditor(model: .init(state: "", handle: ""), view: .init(view: ""), preview: .init())
     @State var output = ""
     @State var filePath = ""
     @AppStorage("preview.editor.showFile") var showFile = false
@@ -13,8 +13,8 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
 
     var hasChanges: Bool { initialFileContent != fileContent }
 
-    struct FeatureEditor {
-        var model: ComponentModelEditor
+    struct ComponentEditor {
+        var model: ModelEditor
         var view: ViewEditor
         var preview: PreviewEditor
     }
@@ -28,7 +28,7 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
         var tests: String?
     }
 
-    struct ComponentModelEditor {
+    struct ModelEditor {
         var state: String
         var action: String?
         var output: String?
@@ -85,7 +85,7 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
             }
         }
         do {
-            let feature = try modelParser.parse(string)
+            let component = try modelParser.parse(string)
 
             func removePadding(_ string: String) -> String {
 
@@ -110,8 +110,8 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
                     .joined(separator: "\n")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
             }
-            editor.model.state = removePadding(feature.0)
-            editor.model.handle = removePadding(feature.1)
+            editor.model.state = removePadding(component.0)
+            editor.model.handle = removePadding(component.1)
         } catch {
             output = String(describing: error)
         }
@@ -198,7 +198,7 @@ struct FeatureEditorView<Preview: ComponentFeature>: View {
 
 struct ComponentEditorView_Previews: PreviewProvider {
     static var previews: some View {
-        FeatureEditorView<ExamplePreview>()
+        ComponentEditorView<ExampleComponent>()
             .previewDevice(.largestDevice)
     }
 }

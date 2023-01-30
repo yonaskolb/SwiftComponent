@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import Dependencies
 
-struct ExampleComponent: ComponentModel {
+struct ExampleModel: ComponentModel {
 
     @Dependency(\.date) var now
     @Dependency(\.timeZone) var clock
@@ -25,22 +25,22 @@ struct ExampleComponent: ComponentModel {
         case open(Int)
     }
 
-    func appear(model: Model) async {
-        await model.task("get thing") {
-            model.loading = false
+    func appear(store: Store) async {
+        await store.task("get thing") {
+            store.loading = false
         }
     }
     
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action, store: Store) async {
         switch action {
             case .tap(let int):
-                model.date = now()
-                model.output(.finished)
+                store.date = now()
+                store.output(.finished)
         }
     }
 }
 
-struct ExampleSubComponent: ComponentModel {
+struct ExampleChildModel: ComponentModel {
 
     struct State: Equatable {
         var name: String
@@ -52,24 +52,24 @@ struct ExampleSubComponent: ComponentModel {
         case finished
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action, store: Store) async {
         switch action {
             case .tap(let int):
-                model.name += int.description
+                store.name += int.description
         }
     }
 }
 
 struct ExampleView: ComponentView {
 
-    func routeView(_ route: ExampleComponent.Route) -> some View {
+    func routeView(_ route: ExampleModel.Route) -> some View {
         switch route {
             case .open(let id):
                 Text(id.description)
         }
     }
 
-    @ObservedObject var model: ViewModel<ExampleComponent>
+    @ObservedObject var model: ViewModel<ExampleModel>
 
     var view: some View {
         VStack {
@@ -81,35 +81,35 @@ struct ExampleView: ComponentView {
     }
 }
 
-struct ExamplePreview: PreviewProvider, ComponentFeature {
-    typealias Model = ExampleComponent
+struct ExampleComponent: PreviewProvider, Component {
+    typealias Model = ExampleModel
 
-    static func createView(model: ViewModel<ExampleComponent>) -> some View {
+    static func view(model: ViewModel<ExampleModel>) -> some View {
         ExampleView(model: model)
     }
 
-    static var states: [ComponentState] {
-        ComponentState {
-            State(name: "Main")
+    static var states: States {
+        State {
+            .init(name: "Main")
         }
-        ComponentState("Empty") {
-            State(name: "")
+        State("Empty") {
+            .init(name: "")
         }
     }
 
-    static var routes: [ComponentRoute] {
-        ComponentRoute("thing", .open(2))
+    static var routes: Routes {
+        Route("thing", .open(2))
     }
 
-    static var tests: [ComponentTest] {
-        ComponentTest("Sets correct date", state: State(name: "Main"), appear: false) {
+    static var tests: Tests {
+        Test("Sets correct date", state: .init(name: "Main"), appear: false) {
             let date = Date().addingTimeInterval(10000)
             Step.setDependency(\.date, .constant(date))
             Step.action(.tap(2))
                 .expectState { $0.date = date }
         }
 
-        ComponentTest("Fill out", state: State(name: "Main"), appear: true) {
+        Test("Fill out", state: .init(name: "Main"), appear: true) {
             Step.setBinding(\.name, "test")
                 .expectState { $0.name = "invalid" }
                 .expectState { $0.date = Date() }

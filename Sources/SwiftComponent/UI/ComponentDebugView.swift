@@ -2,9 +2,9 @@ import SwiftUI
 import SwiftGUI
 import CustomDump
 
-struct ComponentDebugView<ComponentType: ComponentModel>: View {
+struct ComponentDebugView<Model: ComponentModel>: View {
 
-    let viewModel: ViewModel<ComponentType>
+    let model: ViewModel<Model>
     @Environment(\.dismiss) var dismiss
 
     @State var showStateEditor = false
@@ -14,8 +14,8 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
     @AppStorage("showBindings") var showBindings = true
     @AppStorage("showChildEvents") var showChildEvents = true
 
-    var events: [ComponentEvent] {
-        EventStore.shared.componentEvents(for: viewModel.path, includeChildren: showChildEvents)
+    var events: [Event] {
+        EventStore.shared.componentEvents(for: model.store.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
             .sorted { $0.start < $1.start }
     }
@@ -23,7 +23,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
     var body: some View {
         NavigationView {
             Form {
-                if let parent = viewModel.path.parent {
+                if let parent = model.store.path.parent {
                     Section(header: Text("Parent")) {
                         Text(parent.string)
                             .lineLimit(2)
@@ -32,7 +32,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
                 }
 
                 Section(header: Text("State")) {
-                    SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+                    SwiftView(value: model.binding(\.self), config: Config(editing: true))
                         .showRootNavTitle(false)
                 }
                 Section(header: eventsHeader) {
@@ -65,7 +65,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
             }
             .animation(.default, value: eventTypes)
             .animation(.default, value: showChildEvents)
-            .navigationTitle(viewModel.componentName + " Component")
+            .navigationTitle(model.componentName + " Component")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -86,7 +86,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
     }
 
     var componentHeader: some View {
-        Text(viewModel.componentName)
+        Text(model.componentName)
             .bold()
             .textCase(.none)
             .font(.headline)
@@ -97,7 +97,7 @@ struct ComponentDebugView<ComponentType: ComponentModel>: View {
 extension ComponentView {
 
     func debugView() -> ComponentDebugView<Model> {
-        ComponentDebugView(viewModel: model)
+        ComponentDebugView(model: model)
     }
 }
 

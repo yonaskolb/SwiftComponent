@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct ExampleApp: App {
-    @State var state = ItemComponent.State(name: "Bob", data: .loading)
+    @State var state = ItemModel.State(name: "Bob", data: .loading)
 
     var body: some Scene {
         WindowGroup {

@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftComponent
 
-struct ItemComponent: ComponentModel {
+struct ItemModel: ComponentModel {
 
     @Dependency(\.continuousClock) var clock
 
@@ -9,48 +9,56 @@ struct ItemComponent: ComponentModel {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
-        var presentDetail: ItemDetailComponent.State?
-        var detail: ItemDetailComponent.State = .init(id: "0", name: "0")
+        var presentDetail: ItemDetailModel.State?
+        var detail: ItemDetailModel.State = .init(id: "0", name: "0")
     }
 
     enum Route {
-        case detail(ItemDetailComponent.State)
+        case detail(ItemDetailModel.State)
     }
 
     enum Action {
         case calculate
         case openDetail
         case pushItem
-        case detail(ItemDetailComponent.Output)
         case updateDetail
     }
 
-    func appear(model: Model) async {
-        await model.loadResource(\.data) {
+    enum Input {
+        case detail(ItemDetailModel.Output)
+    }
+
+    func appear(store: Store) async {
+        await store.loadResource(\.data) {
             try await clock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
         }
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action, store: Store) async {
         switch action {
             case .calculate:
                 try? await clock.sleep(for: .seconds(1))
-                model.name = String(UUID().uuidString.prefix(6))
+                store.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
-                model.presentDetail = model.detail
+                store.presentDetail = store.detail
             case .pushItem:
-                model.present(.detail(model.detail))
-            case .detail(.finished(let name)):
-                model.detail.name = name
-                model.name = name
-                model.presentDetail = nil
+                store.present(.detail(store.detail))
             case .updateDetail:
-                model.detail.name = Int.random(in: 0...1000).description
+                store.detail.name = Int.random(in: 0...1000).description
         }
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
+    func handle(input: Input, store: Store) async {
+        switch input {
+            case .detail(.finished(let name)):
+                store.detail.name = name
+                store.name = name
+                store.presentDetail = nil
+        }
+    }
+
+    func handleBinding(keyPath: PartialKeyPath<State>, store: Store) async {
         switch keyPath {
             case \.name:
                 print("changed name")
@@ -62,19 +70,19 @@ struct ItemComponent: ComponentModel {
 
 struct ItemView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ItemComponent>
+    @ObservedObject var model: ViewModel<ItemModel>
 
-    func presentation(for route: ItemComponent.Route) -> Presentation {
+    func presentation(for route: ItemModel.Route) -> Presentation {
         switch route {
             case .detail:
                 return .push
         }
     }
 
-    func routeView(_ route: ItemComponent.Route) -> some View {
+    func routeView(_ route: ItemModel.Route) -> some View {
         switch route {
             case .detail(let state):
-                ItemDetailView(model: model.scope(state: state, output: Model.Action.detail))
+                ItemDetailView(model: model.scope(state: state, output: Model.Input.detail))
         }
     }
 
@@ -91,7 +99,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 model.button(.updateDetail, "Update")
             }
-            ItemDetailView(model: model.scope(statePath: \.detail, output: Model.Action.detail))
+            ItemDetailView(model: model.scope(statePath: \.detail, output: Model.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
@@ -104,7 +112,7 @@ struct ItemView: ComponentView {
         .padding()
         .sheet(item: model.binding(\.presentDetail)) { state in
             NavigationView {
-                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: Model.Action.detail))
+                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: Model.Input.detail))
             }
         }
         .navigationBarTitleDisplayMode(.large)
@@ -112,7 +120,7 @@ struct ItemView: ComponentView {
     }
 }
 
-struct ItemDetailComponent: ComponentModel {
+struct ItemDetailModel: ComponentModel {
 
     struct State: Identifiable, Equatable {
         var id: String
@@ -128,27 +136,27 @@ struct ItemDetailComponent: ComponentModel {
         case finished(String)
     }
 
-    func appear(model: Model) async {
+    func appear(store: Store) async {
 
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
+    func handleBinding(keyPath: PartialKeyPath<State>, store: Store) async {
 
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action, store: Store) async {
         switch action {
             case .close:
-                model.output(.finished(model.name))
+                store.output(.finished(store.name))
             case .updateName:
-                model.name = Int.random(in: 0...100).description
+                store.name = Int.random(in: 0...100).description
         }
     }
 }
 
 struct ItemDetailView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ItemDetailComponent>
+    @ObservedObject var model: Store<ItemDetailModel>
 
     var view: some View {
         VStack {
@@ -167,33 +175,25 @@ struct ItemDetailView: ComponentView {
     }
 }
 
-//struct ItemPreviewSimple: PreviewProvider {
-//
-//    static var previews: some View {
-//        ItemView(model: State(state: .init(name: "start", data: .empty)))
-////        ItemView(model: State(state: .constant(.init(name: "start", data: .empty))))
-//    }
-//}
+struct ItemComponent: PreviewProvider, Component {
+    typealias Model = ItemModel
 
-struct ItemPreview: PreviewProvider, ComponentFeature {
-    typealias Model = ItemComponent
-
-    static func createView(model: ViewModel<ItemComponent>) -> some View {
+    static func view(model: ViewModel<ItemModel>) -> some View {
         ItemView(model: model)
     }
 
-    static var states: [ComponentState] {
-        ComponentState {
-            State(name: "start", data: .loading)
+    static var states: States {
+        State {
+            .init(name: "start", data: .loading)
         }
 
-        ComponentState("Loaded") {
-            State(name: "Loaded", data: .content(2))
+        State("Loaded") {
+            .init(name: "Loaded", data: .content(2))
         }
     }
 
-    static var tests: [ComponentTest] {
-        ComponentTest("Happy New style", state: State(name: "john", data: .loading)) {
+    static var tests: Tests {
+        Test("Happy New style", state: .init(name: "john", data: .loading)) {
             Step.action(.updateDetail)
             Step.setBinding(\.text, "yeah")
                 .validateState("text is set") { state in

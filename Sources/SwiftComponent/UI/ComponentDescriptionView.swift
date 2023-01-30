@@ -4,10 +4,10 @@ import SwiftPreview
 
 @_implementationOnly import Runtime
 
-struct FeatureDescription {
+struct ComponentDescription {
     var model: ModelInfo
     var view: ViewInfo
-    var feature: FeatureInfo
+    var component: ComponentInfo
 }
 
 struct ModelInfo {
@@ -24,7 +24,7 @@ struct ViewInfo {
     var routes: [String]
 }
 
-struct FeatureInfo {
+struct ComponentInfo {
     var name: String
     var tests: [String]
     var states: [String]
@@ -54,13 +54,13 @@ enum TypeDescription {
     }
 }
 
-struct FeatureDescriptionView<Feature: ComponentFeature>: View {
+struct ComponentDescriptionView<ComponentType: Component>: View {
 
-    var feature: FeatureDescription = try! Self.getFeatureDescription()
+    var componentDescription: ComponentDescription = try! Self.getComponentDescription()
 
     var maxPillWidth = 400.0
 
-    static func getFeatureDescription() throws -> FeatureDescription {
+    static func getComponentDescription() throws -> ComponentDescription {
 
         func getType(_ type: Any.Type) throws -> TypeDescription {
             let info = try typeInfo(of: type)
@@ -99,23 +99,23 @@ struct FeatureDescriptionView<Feature: ComponentFeature>: View {
             }
         }
         let model = ModelInfo(
-            name: String(describing: Feature.Model.self),
-            state: try getType(Feature.Model.State.self),
-            action: try getType(Feature.Model.Action.self),
-            input: try getType(Feature.Model.Input.self),
-            route: try getType(Feature.Model.Route.self),
-            output: try getType(Feature.Model.Output.self)
+            name: String(describing: ComponentType.Model.self),
+            state: try getType(ComponentType.Model.State.self),
+            action: try getType(ComponentType.Model.Action.self),
+            input: try getType(ComponentType.Model.Input.self),
+            route: try getType(ComponentType.Model.Route.self),
+            output: try getType(ComponentType.Model.Output.self)
         )
         let view = ViewInfo(
-            name: String(describing: Feature.ViewType.self),
+            name: String(describing: ComponentType.ViewType.self),
             routes: []
         )
-        let feature = FeatureInfo(
-            name: String(describing: Feature.self),
-            tests: Feature.tests.map { $0.name },
-            states: Feature.states.map(\.name)
+        let component = ComponentInfo(
+            name: String(describing: ComponentType.self),
+            tests: ComponentType.tests.map { $0.name },
+            states: ComponentType.states.map(\.name)
         )
-        return FeatureDescription(model: model, view: view, feature: feature)
+        return ComponentDescription(model: model, view: view, component: component)
     }
 
     var body: some View {
@@ -125,29 +125,29 @@ struct FeatureDescriptionView<Feature: ComponentFeature>: View {
     var pills: some View {
         ScrollView {
             VStack {
-                typeSection("State", icon: "square.text.square", feature.model.state)
-                typeSection("Action", icon: "arrow.up.square", feature.model.action)
-                typeSection("Input", icon: "arrow.forward.square", feature.model.input)
-                typeSection("Output", icon: "arrow.backward.square", feature.model.output)
-                typeSection("Route", icon: "arrow.uturn.right.square", feature.model.route)
+                typeSection("State", icon: "square.text.square", componentDescription.model.state)
+                typeSection("Action", icon: "arrow.up.square", componentDescription.model.action)
+                typeSection("Input", icon: "arrow.forward.square", componentDescription.model.input)
+                typeSection("Output", icon: "arrow.backward.square", componentDescription.model.output)
+                typeSection("Route", icon: "arrow.uturn.right.square", componentDescription.model.route)
                 section("States", icon: "square.text.square") {
-                    ForEach(feature.feature.states, id: \.self) { state in
+                    ForEach(componentDescription.component.states, id: \.self) { state in
                         Text(state)
                             .bold()
                     }
                     .item()
                     .frame(maxWidth: maxPillWidth)
                 }
-                .isUsed(!feature.feature.states.isEmpty)
+                .isUsed(!componentDescription.component.states.isEmpty)
                 section("Tests", icon: "checkmark.square") {
-                    ForEach(feature.feature.tests, id: \.self) { test in
+                    ForEach(componentDescription.component.tests, id: \.self) { test in
                         Text(test)
                             .bold()
                     }
                     .item()
                     .frame(maxWidth: maxPillWidth)
                 }
-                .isUsed(!feature.feature.tests.isEmpty)
+                .isUsed(!componentDescription.component.tests.isEmpty)
             }
             .padding(20)
         }
@@ -247,9 +247,9 @@ fileprivate extension View {
     }
 }
 
-struct ComponentFeatureGraphView_Previews: PreviewProvider {
+struct ComponentDescriptionView_Previews: PreviewProvider {
     static var previews: some View {
-        FeatureDescriptionView<ExamplePreview>()
+        ComponentDescriptionView<ExampleComponent>()
 //            .previewDevice(.largestDevice)
     }
 }

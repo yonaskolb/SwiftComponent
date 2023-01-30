@@ -103,10 +103,10 @@ extension TestStep {
     public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", source: .capture(file: file, line: line)) { context in
             if `await` {
-                await context.viewModel.appear(first: first)
+                await context.model.appear(first: first)
             } else {
                 Task { [context] in
-                    await context.viewModel.appear(first: first)
+                    await context.model.appear(first: first)
                 }
             }
         }
@@ -117,13 +117,13 @@ extension TestStep {
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
-            await context.viewModel.processAction(action, source: .capture(file: file, line: line), sendEvents: true)
+            await context.model.store.processAction(action, source: .capture(file: file, line: line), sendEvents: true)
         }
     }
 
     public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Input", details: getEnumCase(input).name, source: .capture(file: file, line: line)) { context in
-            await context.viewModel.processInput(input, source: .capture(file: file, line: line), sendEvents: true)
+            await context.model.store.processInput(input, source: .capture(file: file, line: line), sendEvents: true)
         }
     }
 
@@ -134,7 +134,7 @@ extension TestStep {
                 var currentString = ""
                 for character in string {
                     currentString.append(character)
-                    context.viewModel.mutate(keyPath, value: currentString as! Value, source: .capture(file: file, line: line))
+                    context.model.store.mutate(keyPath, value: currentString as! Value, source: .capture(file: file, line: line))
                     if sleepTime > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                     }
@@ -143,7 +143,7 @@ extension TestStep {
                 if context.delay > 0 {
                     try? await Task.sleep(nanoseconds: context.delayNanoseconds)
                 }
-                context.viewModel.mutate(keyPath, value: value, source: .capture(file: file, line: line))
+                context.model.store.mutate(keyPath, value: value, source: .capture(file: file, line: line))
             }
         }
     }
@@ -156,7 +156,7 @@ extension TestStep {
 }
 
 public struct TestContext<Model: ComponentModel> {
-    public let viewModel: ViewModel<Model>
+    public let model: ViewModel<Model>
     public var dependencies: DependencyValues
     public var delay: TimeInterval
 
@@ -170,7 +170,7 @@ public struct TestContext<Model: ComponentModel> {
 //    let source: Source
 //
 //    struct Context {
-//        let viewModel: ViewModel<Model>
+//        let store: ViewModel<Model>
 //        let dependencies: DependencyValues
 //        let events: [ComponentEvent]
 //    }
@@ -314,13 +314,13 @@ public struct TestError: CustomStringConvertible, Identifiable, Hashable {
 public struct TestStepResult<Model: ComponentModel>: Identifiable {
     public var id: UUID { step.id }
     public var step: TestStep<Model>
-    public var events: [ComponentEvent]
+    public var events: [Event]
     public var errors: [TestError]
     public var success: Bool { errors.isEmpty }
 }
 
-public struct TestResult<C: ComponentModel> {
-    public let steps: [TestStepResult<C>]
+public struct TestResult<Model: ComponentModel> {
+    public let steps: [TestStepResult<Model>]
     public var success: Bool { errors.isEmpty && steps.allSatisfy(\.success) }
     public var stepErrors: [TestError] { steps.reduce([]) { $0 + $1.errors } }
     public var errors: [TestError] { stepErrors }
@@ -348,17 +348,17 @@ extension ViewModel {
 //            events.append(event)
 //        }
 
-        let sendEventsValue = self.sendGlobalEvents
-        self.sendGlobalEvents = sendEvents
+        let sendEventsValue = store.sendGlobalEvents
+        store.sendGlobalEvents = sendEvents
         defer {
-            self.sendGlobalEvents = sendEventsValue
+            store.sendGlobalEvents = sendEventsValue
         }
 
         if delay > 0 {
-            self.previewTaskDelay = delay
+            store.previewTaskDelay = delay
         }
         defer {
-            self.previewTaskDelay = 0
+            store.previewTaskDelay = 0
         }
 
         // setup state
@@ -371,11 +371,11 @@ extension ViewModel {
 
         var stepResults: [TestStepResult<Model>] = []
         let sleepDelay = 1_000_000_000.0 * delay
-        var context = TestContext<Model>(viewModel: self, dependencies: testDependencyValues, delay: delay)
+        var context = TestContext<Model>(model: self, dependencies: testDependencyValues, delay: delay)
         for step in test.steps {
-            var stepEvents: [ComponentEvent] = []
-            let stepEventsSubscription = self.events.sink { event in
-                if event.componentPath == self.path {
+            var stepEvents: [Event] = []
+            let stepEventsSubscription = store.events.sink { event in
+                if event.componentPath == self.store.path {
                     stepEvents.append(event)
                 }
             }
@@ -390,7 +390,7 @@ extension ViewModel {
 
             var stepErrors: [TestError] = []
 
-            func findEventValue<T>(_ find: (ComponentEvent) -> T?) -> T? {
+            func findEventValue<T>(_ find: (Event) -> T?) -> T? {
                 for (index, event) in stepEvents.enumerated() {
                     if let eventValue = find(event) {
                         stepEvents.remove(at: index)
@@ -528,7 +528,7 @@ extension ViewModel {
 }
 
 #if DEBUG
-extension ComponentFeature {
+extension Component {
 
     public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
         guard let state = Self.state(for: test) else {

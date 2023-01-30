@@ -65,10 +65,10 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         }
         .sheet(isPresented: $showDebug) {
             if #available(iOS 16.0, *) {
-                ComponentDebugView(viewModel: model)
+                ComponentDebugView(model: model)
                     .presentationDetents([.medium, .large])
             } else {
-                ComponentDebugView(viewModel: model)
+                ComponentDebugView(model: model)
             }
         }
 #endif
@@ -134,7 +134,7 @@ extension ComponentView {
     public var state: Model.State { model.state }
 
     public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
-        _ = model.onEvent { event in
+        _ = model.store.onEvent { event in
             if case let .output(output) = event.type, let output = output as? Model.Output {
                 handle(output)
             }

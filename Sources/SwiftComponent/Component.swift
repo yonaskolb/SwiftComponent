@@ -1,31 +1,35 @@
 import Foundation
 import SwiftUI
 
-public protocol ComponentFeature: PreviewProvider {
+public protocol Component: PreviewProvider {
     associatedtype Model: ComponentModel
     associatedtype ViewType: View
-    typealias ComponentState = ComponentPreviewState<Model.State>
-    typealias ComponentTest = Test<Model>
-    typealias ComponentRoute = ComponentFeatureRoute<Model.Route>
-    typealias Step = TestStep<Model>
-    typealias State = Model.State
 
-    @StateBuilder static var states: [ComponentState] { get }
-    @TestBuilder static var tests: [ComponentTest] { get }
-    @RouteBuilder static var routes: [ComponentRoute] { get }
-    @ViewBuilder static func createView(model: ViewModel<Model>) -> ViewType
+    typealias States = [ComponentState<Model.State>]
+    typealias State = ComponentState<Model.State>
+
+    typealias Tests = [Test<Model>]
+    typealias Step = TestStep<Model>
+
+    typealias Route = ComponentModelRoute<Model.Route>
+    typealias Routes = [Route]
+
+    @StateBuilder static var states: States { get }
+    @TestBuilder static var tests: Tests { get }
+    @RouteBuilder static var routes: Routes { get }
+    @ViewBuilder static func view(model: ViewModel<Model>) -> ViewType
     static var testAssertions: Set<TestAssertion> { get }
 }
 
-extension ComponentFeature {
+extension Component {
 
-    public static var routes: [ComponentRoute] { [] }
+    public static var routes: Routes { [] }
     public static var testAssertions: Set<TestAssertion> { .normal }
 }
 
-extension ComponentFeature {
+extension Component {
 
-    public static var tests: [Test<Model>] { [] }
+    public static var tests: Tests { [] }
 
     public static var embedInNav: Bool { false }
     public static var previews: some View {
@@ -33,7 +37,7 @@ extension ComponentFeature {
             componentPreview
                 .previewDisplayName(Model.baseName + " Component")
             ForEach(states, id: \.name) { state in
-                createView(model: ViewModel<Model>(state: state.state))
+                view(model: ViewModel(state: state.state))
                     .previewDisplayName("State: \(state.name)")
                     .previewReference()
                     .previewLayout(state.size.flatMap { PreviewLayout.fixed(width: $0.width, height: $0.height) } ?? PreviewLayout.device)
@@ -43,7 +47,7 @@ extension ComponentFeature {
 
     public static var componentPreview: some View {
         NavigationView {
-            FeaturePreviewView<Self>()
+            ComponentPreviewView<Self>()
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)
@@ -65,12 +69,12 @@ extension ComponentFeature {
 
 @resultBuilder
 public struct StateBuilder {
-    public static func buildBlock<State>() -> [ComponentPreviewState<State>] { [] }
-    public static func buildBlock<State>(_ states: ComponentPreviewState<State>...) -> [ComponentPreviewState<State>] { states }
-    public static func buildBlock<State>(_ states: [ComponentPreviewState<State>]) -> [ComponentPreviewState<State>] { states }
+    public static func buildBlock<State>() -> [ComponentState<State>] { [] }
+    public static func buildBlock<State>(_ states: ComponentState<State>...) -> [ComponentState<State>] { states }
+    public static func buildBlock<State>(_ states: [ComponentState<State>]) -> [ComponentState<State>] { states }
 }
 
-public struct ComponentPreviewState<State> {
+public struct ComponentState<State> {
     public let name: String
     public let state: State
     public let size: CGSize?
@@ -88,12 +92,12 @@ public struct ComponentPreviewState<State> {
 
 @resultBuilder
 public struct RouteBuilder {
-    public static func buildBlock<Route>() -> [ComponentFeatureRoute<Route>] { [] }
-    public static func buildBlock<Route>(_ routes: ComponentFeatureRoute<Route>...) -> [ComponentFeatureRoute<Route>] { routes }
-    public static func buildBlock<Route>(_ routes: [ComponentFeatureRoute<Route>]) -> [ComponentFeatureRoute<Route>] { routes }
+    public static func buildBlock<Route>() -> [ComponentModelRoute<Route>] { [] }
+    public static func buildBlock<Route>(_ routes: ComponentModelRoute<Route>...) -> [ComponentModelRoute<Route>] { routes }
+    public static func buildBlock<Route>(_ routes: [ComponentModelRoute<Route>]) -> [ComponentModelRoute<Route>] { routes }
 }
 
-public struct ComponentFeatureRoute<Route> {
+public struct ComponentModelRoute<Route> {
     public let name: String
     public let route: Route
     public init(_ name: String, _ route: Route) {

@@ -3,25 +3,25 @@ import SwiftUI
 import SwiftPreview
 import SwiftGUI
 
-struct FeatureDashboardView<Feature: ComponentFeature>: View {
+struct ComponentDashboardView<ComponentType: Component>: View {
 
-    @ObservedObject var viewModel: ViewModel<Feature.Model>
+    @ObservedObject var model: ViewModel<ComponentType.Model>
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
     @AppStorage("autoRunTests") var autoRunTests = false
     @AppStorage("previewTests") var previewTests = true
     @AppStorage("showTestEvents") var showTestEvents = false
-    @State var testState: [String: TestState<Feature.Model>] = [:]
+    @State var testState: [String: TestState<ComponentType.Model>] = [:]
     @State var runningTests = false
     @State var render = UUID()
     @State var previewTestDelay = 0.3
 
-    var events: [ComponentEvent] {
+    var events: [Event] {
         EventStore.shared.events
     }
 
-    func getTestState(_ test: Test<Feature.Model>) -> TestState<Feature.Model> {
+    func getTestState(_ test: Test<ComponentType.Model>) -> TestState<ComponentType.Model> {
         testState[test.name] ?? .notRun
     }
 
@@ -38,32 +38,32 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
     @MainActor
     func runAllTestsOnMain() async {
-        Feature.tests.forEach { testState[$0.name] = .pending }
-        for test in Feature.tests {
+        ComponentType.tests.forEach { testState[$0.name] = .pending }
+        for test in ComponentType.tests {
             await runTest(test)
         }
     }
 
     @MainActor
-    func runTest(_ test: Test<Feature.Model>) async {
+    func runTest(_ test: Test<ComponentType.Model>) async {
         runningTests = true
         testState[test.name] = .running
 
-        guard let state = Feature.state(for: test) else {
+        guard let state = ComponentType.state(for: test) else {
             testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }
         let delay: TimeInterval = previewTests ? previewTestDelay : 0
 
-        let viewModel: ViewModel<Feature.Model>
+        let model: ViewModel<ComponentType.Model>
         if delay > 0 {
-            viewModel = self.viewModel
+            model = self.model
         } else {
-            viewModel = ViewModel(state: state)
+            model = ViewModel(state: state)
         }
-        viewModel.path.suffix = " Test: \(test.name)"
-        let result = await viewModel.runTest(test, initialState: state, assertions: Feature.testAssertions, delay: delay, sendEvents: showTestEvents)
-        viewModel.path.suffix = nil
+        model.store.path.suffix = " Test: \(test.name)"
+        let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: delay, sendEvents: showTestEvents)
+        model.store.path.suffix = nil
         testState[test.name] = .complete(result)
         runningTests = false
     }
@@ -71,7 +71,7 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
     var body: some View {
         HStack(spacing: 0) {
             if showView {
-                ViewPreviewer(content: Feature.createView(model: viewModel), showEnvironmentPickers: false)
+                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
                     .padding()
             }
             if showComponent {
@@ -90,11 +90,11 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
     var form: some View {
         Form {
-            if !Feature.states.isEmpty {
+            if !ComponentType.states.isEmpty {
                 statesSection
             }
             stateSection
-            if !Feature.tests.isEmpty {
+            if !ComponentType.tests.isEmpty {
                 testSettingsSection
                 testSection
             }
@@ -113,10 +113,10 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
     var statesSection: some View {
         Section(header: Text("States")) {
-            ForEach(Feature.states, id: \.name) { state in
+            ForEach(ComponentType.states, id: \.name) { state in
                 Button {
                     withAnimation {
-                        viewModel.state = state.state
+                        model.state = state.state
                     }
                 } label: {
                     Text(state.name)
@@ -127,14 +127,14 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
 
     var stateSection: some View {
         Section(header: Text("State")) {
-            SwiftView(value: viewModel.binding(\.self), config: Config(editing: true))
+            SwiftView(value: model.binding(\.self), config: Config(editing: true))
                 .showRootNavTitle(false)
         }
     }
 
     var testSection: some View {
         Section(header: testHeader) {
-            ForEach(Feature.tests, id: \.name) { test in
+            ForEach(ComponentType.tests, id: \.name) { test in
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
                         Task { @MainActor in
@@ -230,8 +230,8 @@ struct FeatureDashboardView<Feature: ComponentFeature>: View {
     }
 }
 
-struct ComponentFeatureDashboard_Previews: PreviewProvider {
+struct ComponentDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        FeatureDashboardView<ExamplePreview>(viewModel: .init(state: ExamplePreview.states[0].state))
+        ComponentDashboardView<ExampleComponent>(model: .init(state: ExampleComponent.states[0].state))
     }
 }
