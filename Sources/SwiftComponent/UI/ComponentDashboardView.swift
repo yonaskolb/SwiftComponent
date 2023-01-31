@@ -9,9 +9,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
-    @AppStorage("autoRunTests") var autoRunTests = false
     @AppStorage("previewTests") var previewTests = true
     @AppStorage("showTestEvents") var showTestEvents = false
+    @State var autoRunTests = true
     @State var testState: [String: TestState<ComponentType.Model>] = [:]
     @State var runningTests = false
     @State var render = UUID()
@@ -30,22 +30,22 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         render = UUID()
     }
 
-    func runAllTests() {
+    func runAllTests(delay: TimeInterval) {
         Task { @MainActor in
-            await runAllTestsOnMain()
+            await runAllTestsOnMain(delay: delay)
         }
     }
 
     @MainActor
-    func runAllTestsOnMain() async {
+    func runAllTestsOnMain(delay: TimeInterval) async {
         ComponentType.tests.forEach { testState[$0.name] = .pending }
         for test in ComponentType.tests {
-            await runTest(test)
+            await runTest(test, delay: delay)
         }
     }
 
     @MainActor
-    func runTest(_ test: Test<ComponentType.Model>) async {
+    func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval) async {
         runningTests = true
         testState[test.name] = .running
 
@@ -53,7 +53,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }
-        let delay: TimeInterval = previewTests ? previewTestDelay : 0
 
         let model: ViewModel<ComponentType.Model>
         if delay > 0 {
@@ -73,17 +72,18 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             if showView {
                 ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
                     .padding()
+                    .frame(maxWidth: .infinity)
             }
+
             if showComponent {
                 NavigationView {
                     form
                         .task {
-                            if autoRunTests {
-                                runAllTests()
-                            }
+                            runAllTests(delay: 0)
                         }
                 }
                 .navigationViewStyle(.stack)
+                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -95,7 +95,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             }
             stateSection
             if !ComponentType.tests.isEmpty {
-                testSettingsSection
+//                testSettingsSection
                 testSection
             }
             eventsSection
@@ -138,7 +138,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
                         Task { @MainActor in
-                            await runTest(test)
+                            await runTest(test, delay: previewTestDelay)
                         }
                     } label: {
                         VStack(alignment: .leading) {
@@ -170,10 +170,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                                     Text(error.error).foregroundColor(.red)
                                         .lineLimit(1)
                                 }
-                                if !runningTests {
-                                    Image(systemName: "play.circle")
-                                        .font(.title3)
-                                }
+                                Image(systemName: "play.circle")
+                                    .font(.title3)
+                                    .disabled(runningTests)
                             }
                             .animation(nil)
                             if let error = getTestState(test).errors?.first {
@@ -204,7 +203,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         HStack {
             Text("Tests")
             Spacer()
-            Button(action: runAllTests) {
+            Button {
+                runAllTests(delay: previewTestDelay)
+            } label: {
                 Text("Run all")
             }
             .buttonStyle(.plain)

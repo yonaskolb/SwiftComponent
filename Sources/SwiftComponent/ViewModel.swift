@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 @dynamicMemberLookup
 public class ViewModel<Model: ComponentModel>: ObservableObject {
@@ -8,8 +9,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     public var path: ComponentPath { store.path }
     public var componentName: String { Model.baseName }
+    private var stateChangeCancellable: AnyCancellable?
 
-    var state: Model.State {
+    public internal(set) var state: Model.State {
         get { store.state }
         set { store.state = newValue }
     }
@@ -21,6 +23,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     public convenience init(state: Model.State) {
         self.init(store: .init(state: state))
+        stateChangeCancellable = self.store.stateChanged.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
     }
 
     public convenience init(state: Binding<Model.State>) {
@@ -45,8 +50,8 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    public func appear(first: Bool) async {
-        await store.appear(first: first)
+    public func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
+        await store.appear(first: first, file: file, line: line)
     }
 }
 

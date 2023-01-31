@@ -98,7 +98,7 @@ struct ComponentEventView: View {
                     Text(event.start.formatted())
                 }
                 line("Duration") {
-                    Text(event.duration)
+                    Text(event.formattedDuration)
                 }
                 line("Location") {
                     Text(verbatim: "\(event.source.file)#\(event.source.line.formatted())")

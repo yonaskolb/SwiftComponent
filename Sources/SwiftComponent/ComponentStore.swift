@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 
-class ComponentStore<Model: ComponentModel>: ObservableObject {
+class ComponentStore<Model: ComponentModel> {
 
     private var stateBinding: Binding<Model.State>?
     private var ownedState: Model.State?
@@ -12,7 +12,7 @@ class ComponentStore<Model: ComponentModel>: ObservableObject {
     var previewTaskDelay: TimeInterval = 0
     let stateChanged = PassthroughSubject<Model.State, Never>()
 
-    internal(set) var state: Model.State {
+    var state: Model.State {
         get {
             ownedState ?? stateBinding!.wrappedValue
         }
@@ -23,7 +23,6 @@ class ComponentStore<Model: ComponentModel>: ObservableObject {
             } else {
                 ownedState = newValue
             }
-            objectWillChange.send()
             stateChanged.send(newValue)
         }
     }
@@ -168,13 +167,13 @@ extension ComponentStore {
 extension ComponentStore {
 
     @MainActor
-    func appear(first: Bool) async {
+    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
         let start = Date()
         startEvent()
         mutations = []
         handledAppear = true
         await model.appear(store: modelContext)
-        self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture())
+        self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture(file: file, line: line))
     }
 }
 

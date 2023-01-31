@@ -52,8 +52,12 @@ public struct Event: Identifiable {
         self.source = source
     }
 
-    public var duration: String {
-        let seconds = end.timeIntervalSince1970 - start.timeIntervalSince1970
+    public var duration: TimeInterval {
+        end.timeIntervalSince1970 - start.timeIntervalSince1970
+    }
+
+    public var formattedDuration: String {
+        let seconds = duration
         if seconds < 2 {
             return Int(seconds*1000).formatted(.number) + " ms"
         } else {

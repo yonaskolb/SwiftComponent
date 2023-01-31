@@ -57,5 +57,6 @@ struct ComponentPreviewView_Previews: PreviewProvider {
             ComponentPreviewView<ExampleComponent>()
         }
         .navigationViewStyle(.stack)
+        .previewDevice(.largestDevice)
     }
 }
