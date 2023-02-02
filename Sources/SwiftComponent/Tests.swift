@@ -488,7 +488,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .output(let output):
-                                    stepErrors.append(TestError(error: "Output \(getEnumCase(output).name.quoted) was not expected", source: step.source))
+                                    stepErrors.append(TestError(error: "Unexpected output \(getEnumCase(output).name.quoted)", source: step.source))
                                 default: break
                             }
                         }
@@ -496,7 +496,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .task(let result):
-                                    stepErrors.append(TestError(error: "Task \(result.name.quoted) was not expected", source: step.source))
+                                    stepErrors.append(TestError(error: "Unexpected task \(result.name.quoted)", source: step.source))
                                 default: break
                             }
                         }
@@ -504,7 +504,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .route(let route):
-                                    stepErrors.append(TestError(error: "Route \(getEnumCase(route).name.quoted) was not expected", source: step.source))
+                                    stepErrors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: step.source))
                                 default: break
                             }
                         }
@@ -512,7 +512,7 @@ extension ViewModel {
                         for event in stepEvents {
                             switch event.type {
                                 case .mutation(let mutation):
-                                    stepErrors.append(TestError(error: "Mutation of \(mutation.property.quoted) was not expected", source: step.source))
+                                    stepErrors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: step.source))
                                 default: break
                             }
                         }
