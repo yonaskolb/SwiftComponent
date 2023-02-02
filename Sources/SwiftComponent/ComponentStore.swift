@@ -36,6 +36,7 @@ class ComponentStore<Model: ComponentModel> {
     var handledAppear = false
     var mutationAnimation: Animation?
     var sendGlobalEvents = true
+    private var lastSource: Source? // used to get at the original source of a mutation, due to no source info on dynamic member lookup
     public var events = PassthroughSubject<Event, Never>()
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
@@ -178,10 +179,12 @@ extension ComponentStore {
 // MARK: Model Accessors
 extension ComponentStore {
 
-    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, animation: Animation? = nil, source: Source) {
+    func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, animation: Animation? = nil, source: Source?) {
+        // we can't get the source in dynamic member lookup, so just use the original action or input
+        let source = source ?? lastSource ?? .capture()
         let start = Date()
         startEvent()
-        // TODO: note that source from dynamicMember keyPath is not correct
+
 //        let oldState = state
         let mutation = Mutation(keyPath: keyPath, value: value)
         self.mutations.append(mutation)

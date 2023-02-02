@@ -36,7 +36,7 @@ public class ComponentModelStore<Model: ComponentModel> {
         set {
             // TODO: can't capture source location
             // https://forums.swift.org/t/add-default-parameter-support-e-g-file-to-dynamic-member-lookup/58490/2
-            store.mutate(keyPath, value: newValue, source: .capture(file: #file, line: #line))
+            store.mutate(keyPath, value: newValue, source: nil)
         }
     }
 
