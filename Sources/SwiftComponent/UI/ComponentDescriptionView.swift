@@ -74,12 +74,12 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
                                 case .tuple:
                                     payloads = payloadType.properties
                                     .map {
-                                        String(describing: $0.type)
+                                        String(describing: $0.type).sanitizedType
                                     }
                                 case .struct:
-                                    payloads = [payloadType.name]
+                                    payloads = [payloadType.name.sanitizedType]
                                 default:
-                                    payloads = [payloadType.name]
+                                    payloads = [payloadType.name.sanitizedType]
                             }
                         }
                         return .init(name: caseType.name, payloads: payloads)
@@ -87,7 +87,7 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
                     return .enumType(cases)
                 case .struct:
                     let properties: [TypeDescription.Property] = info.properties.map {
-                        .init(name: $0.name, type: String(describing: $0.type))
+                        .init(name: $0.name, type: String(describing: $0.type).sanitizedType)
                     }
                     return .structType(properties)
                 case .never:
@@ -211,6 +211,15 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
 //        .background {
 //            RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.9))
 //        }
+    }
+}
+
+fileprivate extension String {
+    var sanitizedType: String {
+        if hasPrefix("Optional<") && hasSuffix(">") {
+            return "\(String(self.dropFirst(9).dropLast(1)))?".sanitizedType
+        }
+        return self
     }
 }
 
