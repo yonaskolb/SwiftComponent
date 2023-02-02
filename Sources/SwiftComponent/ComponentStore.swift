@@ -73,38 +73,36 @@ class ComponentStore<Model: ComponentModel> {
         EventStore.shared.send(event)
     }
 
-    func processAction(_ action: Model.Action, source: Source, sendEvents: Bool) {
+    func processAction(_ action: Model.Action, source: Source) {
+        lastSource = source
         Task { @MainActor in
-            await processAction(action, source: source, sendEvents: sendEvents)
+            await processAction(action, source: source)
         }
     }
 
     @MainActor
-    func processAction(_ action: Model.Action, source: Source, sendEvents: Bool) async {
+    func processAction(_ action: Model.Action, source: Source) async {
         let eventStart = Date()
         startEvent()
         mutations = []
         await model.handle(action: action, store: modelContext)
-        if sendEvents {
-            sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
-        }
+        sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
     }
 
-    func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) {
+    func processInput(_ input: Model.Input, source: Source) {
+        lastSource = source
         Task { @MainActor in
-            await processInput(input, source: source, sendEvents: sendEvents)
+            await processInput(input, source: source)
         }
     }
 
     @MainActor
-    func processInput(_ input: Model.Input, source: Source, sendEvents: Bool) async {
+    func processInput(_ input: Model.Input, source: Source) async {
         let eventStart = Date()
         startEvent()
         mutations = []
         await model.handle(input: input, store: modelContext)
-        if sendEvents {
-            sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
-        }
+        sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
     func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
@@ -129,7 +127,7 @@ extension ComponentStore {
 
     func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         mutationAnimation = animation
-        processAction(action, source: .capture(file: file, line: line), sendEvents: true)
+        processAction(action, source: .capture(file: file, line: line))
         mutationAnimation = nil
     }
 
@@ -273,7 +271,7 @@ extension ComponentStore {
             .onOutput { [weak self] output in
                 guard let self else { return }
                 let input = toInput(output)
-                self.processInput(input, source: .capture(file: file, line: line), sendEvents: false)
+                self.processInput(input, source: .capture(file: file, line: line))
             }
         store.events.sink { [weak self] event in
             guard let self else { return }
@@ -331,7 +329,7 @@ extension ComponentStore {
             .onOutput { [weak self] output in
                 guard let self else { return }
                 let input = toInput(output)
-                self.processInput(input, source: .capture(file: file, line: line), sendEvents: false)
+                self.processInput(input, source: .capture(file: file, line: line))
             }
         store.events.sink { [weak self] event in
             guard let self else { return }

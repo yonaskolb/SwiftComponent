@@ -117,13 +117,13 @@ extension TestStep {
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
-            await context.model.store.processAction(action, source: .capture(file: file, line: line), sendEvents: true)
+            await context.model.store.processAction(action, source: .capture(file: file, line: line))
         }
     }
 
     public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Input", details: getEnumCase(input).name, source: .capture(file: file, line: line)) { context in
-            await context.model.store.processInput(input, source: .capture(file: file, line: line), sendEvents: true)
+            await context.model.store.processInput(input, source: .capture(file: file, line: line))
         }
     }
 
