@@ -11,6 +11,7 @@ class ComponentStore<Model: ComponentModel> {
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
     let stateChanged = PassthroughSubject<Model.State, Never>()
+    var childStore: Any?
 
     var state: Model.State {
         get {
@@ -145,14 +146,14 @@ extension ComponentStore {
                 //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
                 self.state[keyPath: keyPath] = value
 
-                let mutation = Mutation(keyPath: keyPath, value: value)
-                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
-
                 //print(diff(oldState, self.state) ?? "  No state changes")
 
                 Task { @MainActor in
                     await self.model.binding(keyPath: keyPath, store: self.modelContext)
                 }
+
+                let mutation = Mutation(keyPath: keyPath, value: value)
+                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
 
                 if let onSet, let action = onSet(value) {
                     self.send(action, file: file, line: line)
