@@ -10,7 +10,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
     @AppStorage("previewTests") var previewTests = true
-    @AppStorage("showTestEvents") var showTestEvents = false
+    @State var showTestEvents = true
     @State var autoRunTests = true
     @State var testState: [String: TestState<ComponentType.Model>] = [:]
     @State var runningTests = false
@@ -73,19 +73,46 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
                     .padding()
                     .frame(maxWidth: .infinity)
+//                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
-
+            Divider()
             if showComponent {
                 NavigationView {
                     form
-                        .task {
-                            runAllTests(delay: 0)
-                        }
                 }
                 .navigationViewStyle(.stack)
                 .frame(maxWidth: .infinity)
+//                .transition(.move(edge: .trailing).animation(.default)) // won't animate for some reason
             }
         }
+        .task {
+            runAllTests(delay: 0)
+        }
+//        .toolbar {
+//            ToolbarItem(placement: .navigationBarLeading) {
+//                Button(action: { withAnimation {
+//                    showView.toggle()
+//                    if !showComponent && !showView {
+//                        showComponent = true
+//                    }
+//
+//                }}) {
+//                    Image(systemName: "rectangle.leadinghalf.inset.filled")
+//                    Text("View")
+//                }
+//            }
+//            ToolbarItem(placement: .navigationBarTrailing) {
+//                Button(action: { withAnimation {
+//                    showComponent.toggle()
+//                    if !showComponent && !showView {
+//                        showView = true
+//                    }
+//                }}) {
+//                    Text("Model")
+//                    Image(systemName: "rectangle.trailinghalf.inset.filled")
+//                }
+//            }
+//        }
     }
 
     var form: some View {
@@ -206,7 +233,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             Button {
                 runAllTests(delay: previewTestDelay)
             } label: {
-                Text("Run all")
+                Text("Play all")
             }
             .buttonStyle(.plain)
         }
@@ -233,6 +260,10 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
 struct ComponentDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentDashboardView<ExampleComponent>(model: .init(state: ExampleComponent.states[0].state))
+        NavigationView {
+            ComponentDashboardView<ExampleComponent>(model: .init(state: ExampleComponent.states[0].state))
+        }
+        .navigationViewStyle(.stack)
+        .previewDevice(.largestDevice)
     }
 }

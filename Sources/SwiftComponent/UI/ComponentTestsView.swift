@@ -82,7 +82,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                 }
             }
             //            .animation(.default)
-            .padding(.horizontal, 20)
+            .padding(20)
         }
         .task {
             runAllTests()
