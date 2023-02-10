@@ -11,6 +11,7 @@ class ComponentStore<Model: ComponentModel> {
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
     let stateChanged = PassthroughSubject<Model.State, Never>()
+    let routeChanged = PassthroughSubject<Model.Route?, Never>()
     var childStore: Any?
 
     var state: Model.State {
@@ -29,8 +30,12 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     let id = UUID()
-    @Published var route: Model.Route?
-    var modelContext: ComponentModelStore<Model>!
+    var route: Model.Route? {
+        didSet {
+            routeChanged.send(route)
+        }
+    }
+    var modelStore: ComponentModelStore<Model>!
     var model: Model
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
@@ -42,20 +47,26 @@ class ComponentStore<Model: ComponentModel> {
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
 
-    convenience init(state: Model.State, path: ComponentPath? = nil) {
-        self.init(path: path)
+    convenience init(state: Model.State, path: ComponentPath? = nil, route: Model.Route? = nil) {
+        self.init(path: path, route: route)
         self.ownedState = state
     }
 
-    convenience init(state: Binding<Model.State>, path: ComponentPath? = nil) {
-        self.init(path: path)
+    convenience init(state: Binding<Model.State>, path: ComponentPath? = nil, route: Model.Route? = nil) {
+        self.init(path: path, route: route)
         self.stateBinding = state
     }
 
-    private init(path: ComponentPath?) {
+    private init(path: ComponentPath?, route: Model.Route? = nil) {
+        self.route = route
         self.model = Model()
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
-        self.modelContext = ComponentModelStore(store: self)
+        self.modelStore = ComponentModelStore(store: self)
+        if let route = route {
+            Task { @MainActor in
+                model.connect(route: route, store: modelStore)
+            }
+        }
     }
 
     private func startEvent() {
@@ -87,7 +98,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(action: action, store: modelContext)
+        await model.handle(action: action, store: modelStore)
         sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -103,7 +114,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(input: input, store: modelContext)
+        await model.handle(input: input, store: modelStore)
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -149,7 +160,7 @@ extension ComponentStore {
                 //print(diff(oldState, self.state) ?? "  No state changes")
 
                 Task { @MainActor in
-                    await self.model.binding(keyPath: keyPath, store: self.modelContext)
+                    await self.model.binding(keyPath: keyPath, store: self.modelStore)
                 }
 
                 let mutation = Mutation(keyPath: keyPath, value: value)
@@ -172,7 +183,7 @@ extension ComponentStore {
         startEvent()
         mutations = []
         handledAppear = true
-        await model.appear(store: modelContext)
+        await model.appear(store: modelStore)
         self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture(file: file, line: line))
     }
 }
@@ -238,7 +249,9 @@ extension ComponentStore {
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
 
+    @MainActor
     func present(_ route: Model.Route, source: Source) {
+        _ = model.connect(route: route, store: modelStore)
         self.route = route
         startEvent()
         sendEvent(type: .route(route), start: Date(), mutations: [], source: source)

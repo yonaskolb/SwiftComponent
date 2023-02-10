@@ -13,6 +13,7 @@ public protocol ComponentModel<State, Action> {
     @MainActor func binding(keyPath: PartialKeyPath<State>, store: Store) async
     @MainActor func handle(action: Action, store: Store) async
     @MainActor func handle(input: Input, store: Store) async
+    @discardableResult @MainActor func connect(route: Route, store: Store) -> Connection
     nonisolated init()
 
     typealias Store = ComponentModelStore<Self>
@@ -54,6 +55,10 @@ public extension ComponentModel where Action == Void {
 
 public extension ComponentModel where Input == Void {
     func handle(input: Void, store: Store) async {}
+}
+
+public extension ComponentModel where Route == Never {
+    func connect(route: Route, store: Store) -> Connection { Connection() }
 }
 
 public extension ComponentModel {

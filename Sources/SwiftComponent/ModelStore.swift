@@ -7,7 +7,7 @@ import CasePaths
 @dynamicMemberLookup
 public class ComponentModelStore<Model: ComponentModel> {
 
-    private weak var store: ComponentStore<Model>!
+    weak var store: ComponentStore<Model>!
 
     var handledAppear: Bool {
         get { store.handledAppear }
@@ -20,6 +20,7 @@ public class ComponentModelStore<Model: ComponentModel> {
         self.store = store
     }
 
+    public var route: Model.Route? { store.route }
     public var state: Model.State { store.state }
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
@@ -46,10 +47,6 @@ public class ComponentModelStore<Model: ComponentModel> {
 
     public func task<R>(_ taskID: Model.Task, file: StaticString = #file, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
         await store.task(taskID.taskName, source: .capture(file: file, line: line), task, catch: catchError)
-    }
-
-    public func present(_ route: Model.Route, file: StaticString = #file, line: UInt = #line) {
-        store.present(route, source: .capture(file: file, line: line))
     }
 
     public func dismissRoute(file: StaticString = #file, line: UInt = #line) {

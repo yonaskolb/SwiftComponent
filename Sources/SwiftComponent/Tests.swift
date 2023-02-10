@@ -1,10 +1,10 @@
 import Foundation
 import CustomDump
 import Dependencies
+import CasePaths
 
 public struct Test<Model: ComponentModel> {
 
-    //TODO: make state named
     public init(_ name: String, state: Model.State, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
@@ -86,7 +86,8 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public enum Expectation {
         case validateState(name: String, validateState: (Model.State) -> Bool)
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
-        case expectRoute(Model.Route?)
+        case expectRoute((Model.Route) -> Any?)
+        case expectEmptyRoute
         case expectState((inout Model.State) -> Void)
         case expectOutput(Model.Output)
         case expectTask(String, successful: Bool = true)
@@ -96,7 +97,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 extension TestStep {
 
     public static func run(_ title: String, file: StaticString = #file, line: UInt = #line, _ run: @escaping () async -> Void) -> Self {
-        .init(title: title) { _ in
+        .init(title: title, source: .capture(file: file, line: line)) { _ in
             await run()
         }
     }
@@ -151,6 +152,24 @@ extension TestStep {
     public static func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Dependency", details: "\(String(describing: Swift.type(of: dependency)))", source: .capture(file: file, line: line)) { context in
             context.dependencies[keyPath: keyPath] = dependency
+        }
+    }
+
+    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: @escaping () -> [TestStep<Child>]) -> Self {
+        .init(title: "Route", details: Child.baseName, source: .capture(file: file, line: line)) { context in
+            guard let route = context.model.store.route else { return }
+            guard let componentRoute = path.extract(from: route) else { return }
+
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
+            }
+
+            let steps = steps()
+            var childContext = TestContext<Child>(model: componentRoute.viewModel, dependencies: context.dependencies, delay: context.delay)
+            for step in steps {
+                await step.run(&childContext)
+            }
         }
     }
 }
@@ -223,8 +242,16 @@ extension TestStep {
         addExpectation(.expectTask(getResourceTaskName(keyPath), successful: successful), source: .capture(file: file, line: line))
     }
 
-    public func expectRoute(_ route: Model.Route?, file: StaticString = #file, line: UInt = #line) -> Self {
-        addExpectation(.expectRoute(route), source: .capture(file: file, line: line))
+    public func expectEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
+        addExpectation(.expectEmptyRoute, source: .capture(file: file, line: line))
+    }
+
+    public func expectRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #file, line: UInt = #line) -> Self {
+        var componentRoute = ComponentRoute<Child>(state: state, route: childRoute)
+        componentRoute.store = .init(state: state)
+        return addExpectation(.expectRoute { route in
+            path.extract(from: route)?.state
+        }, source: .capture(file: file, line: line))
     }
 
 }
@@ -243,12 +270,10 @@ extension TestStep.Expectation {
                 return "Validate dependency"
             case .expectTask:
                 return "Expect task"
-            case .expectRoute(let route):
-                if route != nil {
-                    return "Expect route"
-                } else {
-                    return "Expect empty route"
-                }
+            case .expectRoute:
+                return "Expect route"
+            case .expectEmptyRoute:
+                return "Expect empty route"
         }
     }
 
@@ -271,11 +296,9 @@ extension TestStep.Expectation {
             case .validateDependency(_, let path, _ ):
                 return path.quoted
             case .expectRoute(let route):
-                if let route = route {
-                    return getEnumCase(route).name.quoted
-                } else {
-                    return nil
-                }
+                return getEnumCase(route).name.quoted
+            case .expectEmptyRoute:
+                return nil
             case .expectTask(let name, let success):
                 return "\(name.quoted) \(success ? "success" : "failure")"
         }
@@ -419,31 +442,31 @@ extension ViewModel {
                         if let difference = diff(expectedState, currentState) {
                             stepErrors.append(TestError(error: "Unexpected State", diff: difference, source: step.source))
                         }
-                    case .expectRoute(let route):
-                        if let route {
-
-
-                            if sleepDelay > 0 {
-                                try? await Task.sleep(nanoseconds: UInt64(sleepDelay))
-                                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
+                    case .expectRoute(let getRoute):
+                        let foundRoute: Model.Route? = findEventValue { event in
+                            if case .route(let route) = event.type, let route = route as? Model.Route {
+                                return route
                             }
-                            let foundRoute: Model.Route? = findEventValue { event in
-                                if case .route(let route) = event.type, let route = route as? Model.Route {
-                                    return route
-                                }
-                                return nil
-                            }
-                            if let foundRoute {
-                                if let difference = diff(foundRoute, route) {
+                            return nil
+                        }
+                        if let foundRoute {
+                            if let route = self.route {
+                                let foundState = getRoute(foundRoute)
+                                let currentState = getRoute(route)
+                                if let difference = diff(foundState, currentState) {
                                     stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name.quoted)", diff: difference, source: step.source))
                                 }
+                                // TODO: compare nested route
                             } else {
-                                stepErrors.append(TestError(error: "Route \(getEnumCase(route).name.quoted) was not sent", source: step.source))
+                                stepErrors.append(TestError(error: "Unexpected empty route", source: step.source))
                             }
+
                         } else {
-                            if let route = self.route {
-                                stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name.quoted)", source: step.source))
-                            }
+                            stepErrors.append(TestError(error: "Route \(getEnumCase(route).name.quoted) was not sent", source: step.source))
+                        }
+                    case .expectEmptyRoute:
+                        if let route = self.route {
+                            stepErrors.append(TestError(error: "Unexpected Route \(getEnumCase(route).name.quoted)", source: step.source))
                         }
                     case .expectOutput(let output):
                         let foundOutput: Model.Output? = findEventValue { event in

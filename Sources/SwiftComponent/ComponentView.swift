@@ -100,14 +100,12 @@ extension ComponentView {
     public var body: some View {
         ComponentViewContainer(model: model, view: view)
             .background {
-                if currentPresentation == .push {
-                    NavigationLink(isActive: presentationBinding(.push) ) {
-                        if let route = model.route {
-                            routeView(route)
-                        }
-                    } label: {
-                        EmptyView()
+                NavigationLink(isActive: presentationBinding(.push) ) {
+                    if let route = model.route {
+                        routeView(route)
                     }
+                } label: {
+                    EmptyView()
                 }
             }
             .sheet(isPresented: presentationBinding(.sheet)) {
@@ -120,10 +118,6 @@ extension ComponentView {
                     routeView(route)
                 }
             }
-    }
-
-    public func task() async {
-
     }
 
     @MainActor

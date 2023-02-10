@@ -9,31 +9,36 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     public var path: ComponentPath { store.path }
     public var componentName: String { Model.baseName }
-    private var stateChangeCancellable: AnyCancellable?
+    private var cancellables: Set<AnyCancellable> = []
 
     public internal(set) var state: Model.State {
         get { store.state }
         set { store.state = newValue }
     }
 
-    var route: Model.Route? {
+    public var route: Model.Route? {
         get { store.route }
         set { store.route = newValue }
     }
 
-    public convenience init(state: Model.State) {
-        self.init(store: .init(state: state))
-        stateChangeCancellable = self.store.stateChanged.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
+    public convenience init(state: Model.State, route: Model.Route? = nil) {
+        self.init(store: .init(state: state, route: route))
     }
 
-    public convenience init(state: Binding<Model.State>) {
-        self.init(store: .init(state: state))
+    public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) {
+        self.init(store: .init(state: state, route: route))
     }
 
     init(store: ComponentStore<Model>) {
         self.store = store
+        self.store.stateChanged.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        .store(in: &cancellables)
+        self.store.routeChanged.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        .store(in: &cancellables)
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {

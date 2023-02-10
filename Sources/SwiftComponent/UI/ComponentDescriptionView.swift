@@ -219,6 +219,9 @@ fileprivate extension String {
         if hasPrefix("Optional<") && hasSuffix(">") {
             return "\(String(self.dropFirst(9).dropLast(1)))?".sanitizedType
         }
+        if hasPrefix("ComponentRoute<") && hasSuffix(">") {
+            return "\(String(self.dropFirst(15).dropLast(1)))".sanitizedType
+        }
         return self
     }
 }

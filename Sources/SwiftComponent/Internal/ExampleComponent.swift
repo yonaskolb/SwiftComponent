@@ -15,14 +15,19 @@ struct ExampleModel: ComponentModel {
 
     enum Action: Equatable {
         case tap(Int)
+        case open
     }
 
     enum Output {
         case finished
     }
 
+    enum Input {
+        case child(ExampleChildModel.Output)
+    }
+
     enum Route {
-        case open(Int)
+        case open(ComponentRoute<ExampleChildModel>)
     }
 
     func appear(store: Store) async {
@@ -30,12 +35,27 @@ struct ExampleModel: ComponentModel {
             store.loading = false
         }
     }
-    
+
+    func connect(route: Route, store: Store) -> Connection {
+        switch route {
+        case .open(let route):
+            return store.connect(route, output: Input.child)
+        }
+    }
+
     func handle(action: Action, store: Store) async {
         switch action {
             case .tap(let int):
                 store.date = now()
                 store.output(.finished)
+            case .open:
+                store.route(to: Route.open, state: .init(name: store.name))
+        }
+    }
+
+    func handle(input: Input, store: Store) async {
+        switch input {
+        case .child(let output): break
         }
     }
 }
@@ -45,9 +65,11 @@ struct ExampleChildModel: ComponentModel {
     struct State: Equatable {
         var name: String
     }
+
     enum Action: Equatable {
         case tap(Int)
     }
+
     enum Output {
         case finished
     }
@@ -64,8 +86,8 @@ struct ExampleView: ComponentView {
 
     func routeView(_ route: ExampleModel.Route) -> some View {
         switch route {
-            case .open(let id):
-                Text(id.description)
+            case .open(let route):
+            ExampleChildView(model: route.viewModel)
         }
     }
 
@@ -78,6 +100,15 @@ struct ExampleView: ComponentView {
             Text(model.date.formatted())
             model.button(.tap(1), "Tap")
         }
+    }
+}
+
+struct ExampleChildView: ComponentView {
+
+    @ObservedObject var model: ViewModel<ExampleChildModel>
+
+    var view: some View {
+        Text(model.name)
     }
 }
 
@@ -98,7 +129,7 @@ struct ExampleComponent: PreviewProvider, Component {
     }
 
     static var routes: Routes {
-        Route("thing", .open(2))
+        Route("thing", .open(.init(state: .init(name: "routeds"))))
     }
 
     static var tests: Tests {
@@ -113,6 +144,14 @@ struct ExampleComponent: PreviewProvider, Component {
             Step.setBinding(\.name, "test")
                 .expectState { $0.name = "invalid" }
                 .expectState { $0.date = Date() }
+        }
+
+        Test("Opens child", state: .init(name: "Main"), appear: false, assertions: [.output]) {
+            Step.action(.open)
+                .expectRoute(/Model.Route.open, state: .init(name: "Main"))
+            Step.route(/Model.Route.open) {
+                TestStep<ExampleChildModel>.action(.tap(2))
+            }
         }
     }
 }

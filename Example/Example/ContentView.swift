@@ -14,7 +14,7 @@ struct ItemModel: ComponentModel {
     }
 
     enum Route {
-        case detail(ItemDetailModel.State)
+        case detail(ComponentRoute<ItemDetailModel>)
     }
 
     enum Action {
@@ -26,6 +26,13 @@ struct ItemModel: ComponentModel {
 
     enum Input {
         case detail(ItemDetailModel.Output)
+    }
+
+    func connect(route: Route, store: Store) -> Connection {
+        switch route {
+            case .detail(let route):
+                return store.connect(route, output: Input.detail)
+        }
     }
 
     func appear(store: Store) async {
@@ -43,7 +50,7 @@ struct ItemModel: ComponentModel {
             case .openDetail:
                 store.presentDetail = store.detail
             case .pushItem:
-                store.present(.detail(store.detail))
+                store.route(to: Route.detail, state: store.detail)
             case .updateDetail:
                 store.detail.name = Int.random(in: 0...1000).description
         }
@@ -81,8 +88,8 @@ struct ItemView: ComponentView {
 
     func routeView(_ route: ItemModel.Route) -> some View {
         switch route {
-            case .detail(let state):
-                ItemDetailView(model: model.scope(state: state, output: Model.Input.detail))
+            case .detail(let route):
+                ItemDetailView(model: route.viewModel)
         }
     }
 
@@ -156,7 +163,7 @@ struct ItemDetailModel: ComponentModel {
 
 struct ItemDetailView: ComponentView {
 
-    @ObservedObject var model: Store<ItemDetailModel>
+    @ObservedObject var model: ViewModel<ItemDetailModel>
 
     var view: some View {
         VStack {
