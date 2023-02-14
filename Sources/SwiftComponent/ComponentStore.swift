@@ -58,14 +58,12 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     private init(path: ComponentPath?, route: Model.Route? = nil) {
-        self.route = route
         self.model = Model()
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
         self.modelStore = ComponentModelStore(store: self)
         if let route = route {
-            Task { @MainActor in
-                model.connect(route: route, store: modelStore)
-            }
+            model.connect(route: route, store: modelStore)
+            self.route = route
         }
     }
 

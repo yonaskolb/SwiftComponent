@@ -166,24 +166,26 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
         switch type {
             case .enumType(let cases):
                 ForEach(cases, id: \.name) { enumCase in
-                    HStack {
+                    HStack(alignment: .top) {
                         Text(enumCase.name)
                             .bold()
                         Spacer()
                         Text(enumCase.payloads.joined(separator: ", "))
                             .bold()
+                            .multilineTextAlignment(.trailing)
                     }
                     .item()
                     .frame(maxWidth: maxPillWidth)
                 }
             case .structType(let properties):
                 ForEach(properties, id: \.name) { property in
-                    HStack {
+                    HStack(alignment: .top) {
                         Text(property.name)
                             .bold()
                         Spacer()
                         Text(property.type)
                             .bold()
+                            .multilineTextAlignment(.trailing)
                     }
                     .item()
                     .frame(maxWidth: maxPillWidth)

@@ -67,6 +67,17 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         runningTests = false
     }
 
+    func selectState(_ state: ComponentState<ComponentType.Model>) {
+        withAnimation {
+            model.state = state.state
+        }
+        if let route = state.route {
+            model.store.present(route, source: .capture())
+        } else {
+            model.store.dismissRoute(source: .capture())
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             if showView {
@@ -142,9 +153,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         Section(header: Text("States")) {
             ForEach(ComponentType.states, id: \.name) { state in
                 Button {
-                    withAnimation {
-                        model.state = state.state
-                    }
+                    selectState(state)
                 } label: {
                     Text(state.name)
                 }
@@ -261,7 +270,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 struct ComponentDashboard_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ComponentDashboardView<ExampleComponent>(model: .init(state: ExampleComponent.states[0].state))
+            ComponentDashboardView<ExampleComponent>(model: ExampleComponent.states[0].viewModel())
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

@@ -5,8 +5,8 @@ public protocol Component: PreviewProvider {
     associatedtype Model: ComponentModel
     associatedtype ViewType: View
 
-    typealias States = [ComponentState<Model.State>]
-    typealias State = ComponentState<Model.State>
+    typealias States = [ComponentState<Model>]
+    typealias State = ComponentState<Model>
 
     typealias Tests = [Test<Model>]
     typealias Step = TestStep<Model>
@@ -69,24 +69,32 @@ extension Component {
 
 @resultBuilder
 public struct StateBuilder {
-    public static func buildBlock<State>() -> [ComponentState<State>] { [] }
-    public static func buildBlock<State>(_ states: ComponentState<State>...) -> [ComponentState<State>] { states }
-    public static func buildBlock<State>(_ states: [ComponentState<State>]) -> [ComponentState<State>] { states }
+    public static func buildBlock<Model: ComponentModel>() -> [ComponentState<Model>] { [] }
+    public static func buildBlock<Model: ComponentModel>(_ states: ComponentState<Model>...) -> [ComponentState<Model>] { states }
+    public static func buildBlock<Model: ComponentModel>(_ states: [ComponentState<Model>]) -> [ComponentState<Model>] { states }
 }
 
-public struct ComponentState<State> {
+public struct ComponentState<Model: ComponentModel> {
     public let name: String
-    public let state: State
+    public let state: Model.State
+    public let route: Model.Route?
     public let size: CGSize?
 
-    public init(_ name: String? = nil, size: CGSize? = nil, _ state: () -> State) {
-        self.init(name, size: size, state())
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, _ state: () -> Model.State) {
+        self.init(name, size: size, route: route, state: state())
     }
 
-    public init(_ name: String? = nil, size: CGSize? = nil, _ state: State) {
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, state: Model.State) {
         self.name = name ?? "Default"
         self.size = size
+        self.route = route
         self.state = state
+    }
+}
+
+extension ComponentState {
+    public func viewModel() -> ViewModel<Model> {
+        ViewModel(state: state, route: route)
     }
 }
 
