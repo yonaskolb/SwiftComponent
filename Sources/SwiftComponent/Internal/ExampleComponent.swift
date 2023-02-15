@@ -135,13 +135,13 @@ struct ExampleComponent: PreviewProvider, Component {
     static var tests: Tests {
         Test("Sets correct date", state: .init(name: "Main"), appear: false) {
             let date = Date().addingTimeInterval(10000)
-            Step.setDependency(\.date, .constant(date))
+            Step.dependency(\.date, .constant(date))
             Step.action(.tap(2))
                 .expectState { $0.date = date }
         }
 
         Test("Fill out", state: .init(name: "Main"), appear: true) {
-            Step.setBinding(\.name, "test")
+            Step.binding(\.name, "test")
                 .expectState { $0.name = "invalid" }
                 .expectState { $0.date = Date() }
         }
