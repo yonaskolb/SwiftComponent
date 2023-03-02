@@ -102,6 +102,10 @@ extension ViewModel {
     public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
         store.scope(state: state, file: file, line: line, output: toInput).viewModel()
     }
+
+    public func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>) -> ViewModel<Child> {
+        return connection.convert(self)
+    }
 }
 
 extension ComponentStore {

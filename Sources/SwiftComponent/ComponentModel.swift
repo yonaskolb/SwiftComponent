@@ -17,6 +17,7 @@ public protocol ComponentModel<State, Action> {
     nonisolated init()
 
     typealias Store = ComponentModelStore<Self>
+    typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 
 public protocol ModelTask {
@@ -64,4 +65,21 @@ public extension ComponentModel where Route == Never {
 public extension ComponentModel {
     func binding(keyPath: PartialKeyPath<State>, store: Store) async { }
     func appear(store: Store) async { store.handledAppear = false }
+}
+
+public class ComponentConnection<From: ComponentModel, To: ComponentModel> {
+
+    private let scope: (ViewModel<From>) -> ViewModel<To>
+    private var viewModel: ViewModel<To>?
+    public init(_ scope: @escaping (ViewModel<From>) -> ViewModel<To>) {
+        self.scope = scope
+    }
+
+    func convert(_ from: ViewModel<From>) -> ViewModel<To> {
+        if let viewModel {
+            return viewModel
+        }
+        viewModel = scope(from)
+        return viewModel!
+    }
 }

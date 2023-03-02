@@ -172,6 +172,28 @@ extension TestStep {
             }
         }
     }
+
+    public static func scope<Child: ComponentModel>(_ model: Child.Type, file: StaticString = #file, line: UInt = #line, scope: @escaping (ViewModel<Model>) -> ViewModel<Child>, @TestStepBuilder steps: @escaping () -> [TestStep<Child>]) -> Self {
+        .init(title: "Scope", details: Child.baseName, source: .capture(file: file, line: line)) { context in
+            let viewModel = scope(context.model)
+            let steps = steps()
+            var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay)
+            for step in steps {
+                await step.run(&childContext)
+            }
+        }
+    }
+
+    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder steps: @escaping () -> [TestStep<Child>]) -> Self {
+        .init(title: "Scope", details: Child.baseName, source: .capture(file: file, line: line)) { context in
+            let viewModel = connection.convert(context.model)
+            let steps = steps()
+            var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay)
+            for step in steps {
+                await step.run(&childContext)
+            }
+        }
+    }
 }
 
 public struct TestContext<Model: ComponentModel> {
