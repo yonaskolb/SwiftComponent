@@ -129,7 +129,7 @@ extension TestStep {
     }
 
     public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        return .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", source: .capture(file: file, line: line)) { context in
+        .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", source: .capture(file: file, line: line)) { context in
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
                 var currentString = ""

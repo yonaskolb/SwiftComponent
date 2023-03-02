@@ -12,7 +12,6 @@ class ComponentStore<Model: ComponentModel> {
     var previewTaskDelay: TimeInterval = 0
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
-    var childStore: Any?
 
     var state: Model.State {
         get {
