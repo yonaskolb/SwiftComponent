@@ -168,7 +168,8 @@ extension TestStep {
             let steps = steps()
             var childContext = TestContext<Child>(model: componentRoute.viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
             for step in steps {
-                await step.run(&childContext)
+                let results = await step.runTest(context: &childContext)
+                context.childStepResults.append(results)
             }
         }
     }
@@ -179,7 +180,8 @@ extension TestStep {
             let steps = steps()
             var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
             for step in steps {
-                await step.run(&childContext)
+                let results = await step.runTest(context: &childContext)
+                context.childStepResults.append(results)
             }
         }
     }
@@ -190,7 +192,8 @@ extension TestStep {
             let steps = steps()
             var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
             for step in steps {
-                await step.run(&childContext)
+                let results = await step.runTest(context: &childContext)
+                context.childStepResults.append(results)
             }
         }
     }
@@ -201,6 +204,7 @@ public struct TestContext<Model: ComponentModel> {
     public var dependencies: DependencyValues
     public var delay: TimeInterval
     public var assertions: [TestAssertion]
+    public var childStepResults: [TestStepResult] = []
 
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
 }
@@ -357,16 +361,41 @@ public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     }
 }
 
-public struct TestStepResult<Model: ComponentModel>: Identifiable {
-    public var id: UUID { step.id }
-    public var step: TestStep<Model>
+public struct TestStepResult: Identifiable {
+
+    public var id: UUID
+    public var title: String
+    public var details: String?
+    public var expectations: [String]
     public var events: [Event]
     public var errors: [TestError]
-    public var success: Bool { errors.isEmpty }
+    public var allErrors: [TestError] {
+        errors + childResults.reduce([]) { $0 + $1.errors }
+    }
+    public var childResults: [TestStepResult]
+    public var success: Bool { allErrors.isEmpty }
+
+    init<Model>(step: TestStep<Model>, events: [Event], errors: [TestError], childResults: [TestStepResult]) {
+        self.id = step.id
+        self.title = step.title
+        self.details = step.details
+        self.expectations = step.expectations.map(\.description)
+        self.events = events
+        self.errors = errors
+        self.childResults = childResults
+    }
+
+    public var description: String {
+        var string = title
+        if let details {
+            string += ".\(details)"
+        }
+        return string
+    }
 }
 
 public struct TestResult<Model: ComponentModel> {
-    public let steps: [TestStepResult<Model>]
+    public let steps: [TestStepResult]
     public var success: Bool { errors.isEmpty && steps.allSatisfy(\.success) }
     public var stepErrors: [TestError] { steps.reduce([]) { $0 + $1.errors } }
     public var errors: [TestError] { stepErrors }
@@ -375,7 +404,7 @@ public struct TestResult<Model: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult<Model>) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
 
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
@@ -413,10 +442,10 @@ extension ViewModel {
             await appear(first: true)
         }
 
-        var stepResults: [TestStepResult<Model>] = []
+        var stepResults: [TestStepResult] = []
         var context = TestContext<Model>(model: self, dependencies: testDependencyValues, delay: delay, assertions: assertions)
         for step in test.steps {
-            let result = await step.run(context: &context)
+            let result = await step.runTest(context: &context)
             stepComplete?(result)
             stepResults.append(result)
         }
@@ -427,7 +456,7 @@ extension ViewModel {
 extension TestStep {
 
     @MainActor
-    func run(context: inout TestContext<Model>) async -> TestStepResult<Model> {
+    func runTest(context: inout TestContext<Model>) async -> TestStepResult {
         var stepEvents: [Event] = []
         let path = context.model.store.path
         let stepEventsSubscription = context.model.store.events.sink { event in
@@ -574,7 +603,7 @@ extension TestStep {
                 case .dependency: break
             }
         }
-        return TestStepResult(step: self, events: stepEvents, errors: stepErrors)
+        return TestStepResult(step: self, events: stepEvents, errors: stepErrors, childResults: context.childStepResults)
     }
 }
 

@@ -37,7 +37,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
 
     @State var testState: [String: TestState<Model>] = [:]
     @State var testResults: [String: [TestStep<Model>.ID]] = [:]
-    @State var testStepResults: [TestStep<Model>.ID: TestStepResult<Model>] = [:]
+    @State var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
     @State var showEvents = false
     @State var showDependencies = false
     @State var showExpectations = false
@@ -96,7 +96,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
             if let steps = testResults[test.name] {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(steps, id: \.self) { step in
-                        if let stepResult = testStepResults[step], showDependencies || stepResult.step.title != "Dependency" {
+                        if let stepResult = testStepResults[step], showDependencies || stepResult.title != "Dependency" {
                             stepResultRow(stepResult, test: test)
                         }
                     }
@@ -106,7 +106,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func stepColor(stepResult: TestStepResult<Model>, test: Test<Model>) -> Color {
+    func stepColor(stepResult: TestStepResult, test: Test<Model>) -> Color {
         switch getTestState(test) {
             case .complete(let result):
                 if result.success {
@@ -118,7 +118,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func stepResultRow(_ stepResult: TestStepResult<Model>, test: Test<Model>) -> some View {
+    func stepResultRow(_ stepResult: TestStepResult, test: Test<Model>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             // groups are to fix a rare compiler type inference error
             Group {
@@ -134,8 +134,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
                 }
             }
             Group {
-                if showExpectations, !stepResult.step.expectations.isEmpty {
-                    stepExpectations(stepResult.step.expectations)
+                if showExpectations, !stepResult.expectations.isEmpty {
+                    stepExpectations(stepResult.expectations)
                         .padding(.leading, 28)
                         .padding(.top, 8)
                 }
@@ -147,10 +147,22 @@ struct ComponentTestsView<ComponentType: Component>: View {
                         .padding(.top, 2)
                 }
             }
+            Group {
+                if !stepResult.childResults.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(stepResult.childResults, id: \.id) { result in
+                            // AnyView fixes compiler error
+                            AnyView(self.stepResultRow(result, test: test))
+                        }
+                    }
+                    .padding(.leading, 28)
+                    .padding(.top, 10)
+                }
+            }
         }
     }
 
-    func stepTitle(_ stepResult: TestStepResult<Model>, test: Test<Model>) -> some View {
+    func stepTitle(_ stepResult: TestStepResult, test: Test<Model>) -> some View {
         HStack {
             Group {
                 if stepResult.success {
@@ -161,7 +173,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
             }
             .foregroundColor(stepColor(stepResult: stepResult, test: test))
 
-            Text(stepResult.step.description)
+            Text(stepResult.description)
                 .bold()
                 .lineLimit(1)
                 .foregroundColor(stepColor(stepResult: stepResult, test: test))
@@ -182,11 +194,11 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func stepExpectations(_ expectations: [TestStep<Model>.Expectation]) -> some View {
+    func stepExpectations(_ expectations: [String]) -> some View {
         VStack(alignment: .leading, spacing:8) {
-            ForEach(expectations, id: \.description) { expectation in
+            ForEach(expectations, id: \.self) { expectation in
                 HStack {
-                    Text(expectation.description)
+                    Text(expectation)
                 }
                 .foregroundColor(.secondary)
             }
