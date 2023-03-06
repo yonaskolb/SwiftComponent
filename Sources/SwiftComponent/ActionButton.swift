@@ -44,7 +44,7 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
 
     @State var actioned = false
     @Environment(\.showActionButtonFlash) var showActionButtonFlash
-    let dissmissAfter: TimeInterval = 0.3
+    let dismissAfter: TimeInterval = 0.3
 
     /// Reference to dispatch work, to be able to cancel it when needed
     @State fileprivate var dispatchWorkContainer = DispatchWorkContainer()
@@ -77,7 +77,7 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
         dispatchWorkContainer.work = DispatchWorkItem(block: { actioned = false })
 
         if let work = dispatchWorkContainer.work {
-            DispatchQueue.main.asyncAfter(deadline: .now() + dissmissAfter, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + dismissAfter, execute: work)
         }
     }
 

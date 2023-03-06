@@ -82,6 +82,7 @@ public enum EventType {
     case appear(first: Bool)
     case task(TaskResult)
     case route(Any)
+    case dismissRoute
 
     var type: EventSimpleType {
         switch self {
@@ -93,6 +94,7 @@ public enum EventType {
             case .appear: return .appear
             case .task: return .task
             case .route: return .route
+            case .dismissRoute: return .dismissRoute
         }
     }
 }
@@ -132,7 +134,9 @@ extension EventType {
             case .mutation:
                 return "Path"
             case .route:
-                return "Destination"
+                return "Route"
+            case .dismissRoute:
+                return ""
         }
     }
 
@@ -157,6 +161,8 @@ extension EventType {
                 }
             case .route:
                 return "Destination"
+            case .dismissRoute:
+                return ""
         }
     }
 
@@ -178,6 +184,8 @@ extension EventType {
                 return result.name
             case .route(let route):
                 return getEnumCase(route).name
+            case .dismissRoute:
+                return ""
         }
     }
 
@@ -202,6 +210,8 @@ extension EventType {
                 }
             case .route(let route):
                 return route
+            case .dismissRoute:
+                return ""
         }
     }
 }
@@ -215,6 +225,7 @@ enum EventSimpleType: String, CaseIterable {
     case mutation
     case route
     case output
+    case dismissRoute
 
     static var set: Set<EventSimpleType> { Set(allCases) }
 
@@ -228,6 +239,7 @@ enum EventSimpleType: String, CaseIterable {
             case .task: return "Task"
             case .mutation: return "Mutation"
             case .route: return "Route"
+            case .dismissRoute: return "Dismiss Route"
         }
     }
 
@@ -247,7 +259,7 @@ enum EventSimpleType: String, CaseIterable {
                 return .green // changed to green or red in event
             case .mutation:
                 return .yellow
-            case .route:
+            case .route, .dismissRoute:
                 return .orange
         }
     }

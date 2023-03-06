@@ -6,6 +6,7 @@ public enum TestAssertion: String, CaseIterable {
     case route
     case mutation
     case dependency
+    case emptyRoute
 }
 
 extension Set where Element == TestAssertion {
@@ -15,6 +16,7 @@ extension Set where Element == TestAssertion {
         .output,
         .task,
         .route,
+        .emptyRoute,
     ]) }
 
 }
@@ -45,6 +47,14 @@ extension TestAssertion {
                     switch event.type {
                         case .route(let route):
                             errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source))
+                        default: break
+                    }
+                }
+            case .emptyRoute:
+                for event in events {
+                    switch event.type {
+                        case .dismissRoute:
+                            errors.append(TestError(error: "Unexpected empty route", source: source))
                         default: break
                     }
                 }

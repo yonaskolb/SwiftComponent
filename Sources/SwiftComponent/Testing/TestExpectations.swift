@@ -58,6 +58,12 @@ extension TestStep {
 
     public func expectEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
         addExpectation(title: "Expect empty route", file: file, line: line) { context in
+            context.findEventValue { event in
+                if case .dismissRoute = event.type {
+                    return ()
+                }
+                return nil
+            }
             if let route = context.model.route {
                 context.error("Unexpected Route \(getEnumCase(route).name.quoted)")
             }

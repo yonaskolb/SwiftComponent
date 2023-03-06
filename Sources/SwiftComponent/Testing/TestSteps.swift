@@ -106,7 +106,7 @@ extension TestStep {
     }
 
     public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
-        .init(title: name, file: file, line: line) { context in
+        .init(title: "Fork", details: name, file: file, line: line) { context in
             let steps = steps()
             let state = context.model.state
             for step in steps {
