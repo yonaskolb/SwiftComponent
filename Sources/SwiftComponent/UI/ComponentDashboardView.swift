@@ -16,6 +16,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @State var runningTests = false
     @State var render = UUID()
     @State var previewTestDelay = 0.3
+    @State var showEvents: Set<EventSimpleType> = Set(EventSimpleType.allCases)//.subtracting([.mutation, .binding])
 
     var events: [Event] {
         EventStore.shared.events
@@ -271,12 +272,16 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     var eventsSection: some View {
         Section(header: eventsHeader) {
             ComponentEventList(
-                events: events.sorted { $0.start > $1.start },
+                events: Array(events
+                    .filter { showEvents.contains($0.type.type) }
+                    .sorted { $0.start > $1.start }
+                    .prefix(500)
+                ),
                 allEvents: events.sorted { $0.start > $1.start },
                 indent: false)
                 .id(render)
         }
-        .onReceive(EventStore.shared.eventPublisher) { events in
+        .onReceive(EventStore.shared.eventPublisher) { _ in
             render = UUID()
         }
     }
