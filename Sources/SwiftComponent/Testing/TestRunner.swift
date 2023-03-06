@@ -41,6 +41,7 @@ extension ViewModel {
         }
 
         state = initialState
+        route = nil
 
         if test.appear {
             await appear(first: true)
