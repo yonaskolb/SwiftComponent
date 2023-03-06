@@ -8,7 +8,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var details: String?
     public var source: Source
     public let id = UUID()
-    public var expectations: [Expectation] = []
+    public var expectations: [TestExpectation<Model>] = []
     private var _run: (inout TestContext<Model>) async -> Void
 
     public init(title: String, details: String? = nil, file: StaticString = #file, line: UInt = #line, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
@@ -33,16 +33,6 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
             string += ".\(details)"
         }
         return string
-    }
-
-    public enum Expectation {
-        case validateState(name: String, validateState: (Model.State) -> Bool)
-        case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
-        case expectRoute(name: String, state: Any, getState: (Model.Route) -> Any?)
-        case expectEmptyRoute
-        case expectState((inout Model.State) -> Void)
-        case expectOutput(Model.Output)
-        case expectTask(String, successful: Bool = true)
     }
 }
 

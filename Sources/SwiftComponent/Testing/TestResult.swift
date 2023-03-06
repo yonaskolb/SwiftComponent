@@ -7,20 +7,23 @@ public struct TestStepResult: Identifiable {
     public var details: String?
     public var expectations: [String]
     public var events: [Event]
-    public var errors: [TestError]
+    public var expectationErrors: [TestError]
+    public var assertionErrors: [TestError]
+    public var errors: [TestError] { expectationErrors + assertionErrors }
     public var allErrors: [TestError] {
         errors + children.reduce([]) { $0 + $1.errors }
     }
     public var children: [TestStepResult]
     public var success: Bool { allErrors.isEmpty }
 
-    init<Model>(step: TestStep<Model>, events: [Event], errors: [TestError], children: [TestStepResult]) {
+    init<Model>(step: TestStep<Model>, events: [Event], expectationErrors: [TestError], assertionErrors: [TestError], children: [TestStepResult]) {
         self.id = step.id
         self.title = step.title
         self.details = step.details
         self.expectations = step.expectations.map(\.description)
         self.events = events
-        self.errors = errors
+        self.expectationErrors = expectationErrors
+        self.assertionErrors = assertionErrors
         self.children = children
     }
 

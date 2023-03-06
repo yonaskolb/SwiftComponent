@@ -19,45 +19,44 @@ extension Set where Element == TestAssertion {
 
 }
 
-extension [TestAssertion] {
+extension TestAssertion {
+
     func assert(events: [Event], source: Source) -> [TestError] {
         var errors: [TestError] = []
-        for assertion in self {
-            switch assertion {
-                case .output:
-                    for event in events {
-                        switch event.type {
-                            case .output(let output):
-                                errors.append(TestError(error: "Unexpected output \(getEnumCase(output).name.quoted)", source: source))
-                            default: break
-                        }
+        switch self {
+            case .output:
+                for event in events {
+                    switch event.type {
+                        case .output(let output):
+                            errors.append(TestError(error: "Unexpected output \(getEnumCase(output).name.quoted)", source: source))
+                        default: break
                     }
-                case .task:
-                    for event in events {
-                        switch event.type {
-                            case .task(let result):
-                                errors.append(TestError(error: "Unexpected task \(result.name.quoted)", source: source))
-                            default: break
-                        }
+                }
+            case .task:
+                for event in events {
+                    switch event.type {
+                        case .task(let result):
+                            errors.append(TestError(error: "Unexpected task \(result.name.quoted)", source: source))
+                        default: break
                     }
-                case .route:
-                    for event in events {
-                        switch event.type {
-                            case .route(let route):
-                                errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source))
-                            default: break
-                        }
+                }
+            case .route:
+                for event in events {
+                    switch event.type {
+                        case .route(let route):
+                            errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source))
+                        default: break
                     }
-                case .mutation:
-                    for event in events {
-                        switch event.type {
-                            case .mutation(let mutation):
-                                errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
-                            default: break
-                        }
+                }
+            case .mutation:
+                for event in events {
+                    switch event.type {
+                        case .mutation(let mutation):
+                            errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
+                        default: break
                     }
-                case .dependency: break
-            }
+                }
+            case .dependency: break
         }
         return errors
     }
