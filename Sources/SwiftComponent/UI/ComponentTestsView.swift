@@ -148,11 +148,13 @@ struct ComponentTestsView<ComponentType: Component>: View {
                 }
             }
             Group {
-                if !stepResult.childResults.isEmpty {
+                if !stepResult.children.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        ForEach(stepResult.childResults, id: \.id) { result in
-                            // AnyView fixes compiler error
-                            AnyView(self.stepResultRow(result, test: test))
+                        ForEach(stepResult.children, id: \.id) { result in
+                            if showDependencies || result.title != "Dependency" {
+                                // AnyView fixes compiler error
+                                AnyView(self.stepResultRow(result, test: test))
+                            }
                         }
                     }
                     .padding(.leading, 28)

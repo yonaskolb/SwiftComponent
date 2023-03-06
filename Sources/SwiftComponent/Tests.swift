@@ -197,6 +197,19 @@ extension TestStep {
             }
         }
     }
+
+    public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder steps: @escaping () -> [TestStep<Model>]) -> Self {
+        .init(title: name, source: .capture(file: file, line: line)) { context in
+            let steps = steps()
+            let state = context.model.state
+            for step in steps {
+                let results = await step.runTest(context: &context)
+                context.childStepResults.append(results)
+            }
+            // reset state
+            context.model.state = state
+        }
+    }
 }
 
 public struct TestContext<Model: ComponentModel> {
@@ -370,19 +383,19 @@ public struct TestStepResult: Identifiable {
     public var events: [Event]
     public var errors: [TestError]
     public var allErrors: [TestError] {
-        errors + childResults.reduce([]) { $0 + $1.errors }
+        errors + children.reduce([]) { $0 + $1.errors }
     }
-    public var childResults: [TestStepResult]
+    public var children: [TestStepResult]
     public var success: Bool { allErrors.isEmpty }
 
-    init<Model>(step: TestStep<Model>, events: [Event], errors: [TestError], childResults: [TestStepResult]) {
+    init<Model>(step: TestStep<Model>, events: [Event], errors: [TestError], children: [TestStepResult]) {
         self.id = step.id
         self.title = step.title
         self.details = step.details
         self.expectations = step.expectations.map(\.description)
         self.events = events
         self.errors = errors
-        self.childResults = childResults
+        self.children = children
     }
 
     public var description: String {
@@ -459,6 +472,7 @@ extension TestStep {
     func runTest(context: inout TestContext<Model>) async -> TestStepResult {
         var stepEvents: [Event] = []
         let path = context.model.store.path
+        context.childStepResults = []
         let stepEventsSubscription = context.model.store.events.sink { event in
             if event.componentPath == path {
                 stepEvents.append(event)
@@ -603,7 +617,7 @@ extension TestStep {
                 case .dependency: break
             }
         }
-        return TestStepResult(step: self, events: stepEvents, errors: stepErrors, childResults: context.childStepResults)
+        return TestStepResult(step: self, events: stepEvents, errors: stepErrors, children: context.childStepResults)
     }
 }
 
