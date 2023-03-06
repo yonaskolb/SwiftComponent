@@ -430,12 +430,6 @@ extension ViewModel {
             testDependencyValues.context = .preview
         }
 
-        // handle events
-//        var events: [ComponentEvent] = []
-//        let eventsSubscription = self.events.sink { event in
-//            events.append(event)
-//        }
-
         let sendEventsValue = store.sendGlobalEvents
         store.sendGlobalEvents = sendEvents
         defer {
@@ -478,6 +472,7 @@ extension TestStep {
                 stepEvents.append(event)
             }
         }
+        _ = stepEventsSubscription // hide warning
         await withDependencies { dependencyValues in
             dependencyValues = context.dependencies
         } operation: { @MainActor in
