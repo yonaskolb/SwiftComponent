@@ -11,14 +11,10 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var expectations: [TestExpectation<Model>] = []
     private var _run: (inout TestContext<Model>) async -> Void
 
-    public init(title: String, details: String? = nil, file: StaticString = #file, line: UInt = #line, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
-        self.init(title: title, details: details, source: .capture(file: file, line: line), run: run)
-    }
-
-    init(title: String, details: String? = nil, source: Source, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
+    public init(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
         self.title = title
         self.details = details
-        self.source = source
+        self.source = .capture(file: file, line: line)
         self._run = run
     }
 
