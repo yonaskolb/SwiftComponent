@@ -270,7 +270,10 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var eventsSection: some View {
         Section(header: eventsHeader) {
-            ComponentEventList(events: events.sorted { $0.start < $1.start }, allEvents: events.sorted { $0.start < $1.start })
+            ComponentEventList(
+                events: events.sorted { $0.start > $1.start },
+                allEvents: events.sorted { $0.start > $1.start },
+                indent: false)
                 .id(render)
         }
         .onReceive(EventStore.shared.eventPublisher) { events in
