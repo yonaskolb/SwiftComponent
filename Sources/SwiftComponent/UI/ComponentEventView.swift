@@ -7,11 +7,13 @@ struct ComponentEventList: View {
     let events: [Event]
     let allEvents: [Event]
     var depth: Int = 0
+    var indent = true
     @State var showEvent: UUID?
     @State var showMutation: UUID?
 
     func eventDepth(_ event: Event) -> Int {
-        max(0, event.depth - depth)
+        guard indent else { return 0 }
+        return max(0, event.depth - depth)
     }
 
     var body: some View {
