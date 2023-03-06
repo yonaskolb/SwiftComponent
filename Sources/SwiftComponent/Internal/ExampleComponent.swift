@@ -150,7 +150,7 @@ struct ExampleComponent: PreviewProvider, Component {
             Step.action(.open)
                 .expectRoute(/Model.Route.open, state: .init(name: "Main"))
             Step.route(/Model.Route.open) {
-                TestStep<ExampleChildModel>.action(.tap(2))
+                $0.action(.tap(2))
             }
         }
     }
