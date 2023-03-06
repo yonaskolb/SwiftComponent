@@ -109,12 +109,14 @@ extension TestStep {
         .init(title: "Fork", details: name, file: file, line: line) { context in
             let steps = steps()
             let state = context.model.state
+            let route = context.model.route
             for step in steps {
                 let results = await step.runTest(context: &context)
                 context.childStepResults.append(results)
             }
             // reset state
             context.model.state = state
+            context.model.route = route
         }
     }
 }
