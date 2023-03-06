@@ -273,6 +273,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             ComponentEventList(events: events.sorted { $0.start < $1.start }, allEvents: events.sorted { $0.start < $1.start })
                 .id(render)
         }
+        .onReceive(EventStore.shared.eventPublisher) { events in
+            render = UUID()
+        }
     }
 
     var eventsHeader: some View {
