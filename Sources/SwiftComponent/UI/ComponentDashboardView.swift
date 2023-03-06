@@ -132,13 +132,14 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 statesSection
             }
             stateSection
+            routeSection
             if !ComponentType.tests.isEmpty {
 //                testSettingsSection
                 testSection
             }
             eventsSection
         }
-        .animation(.default, value: events.count)
+        .animation(.default, value: events.count + (model.route == nil ? 1 : 0))
     }
 
     var testSettingsSection: some View {
@@ -165,6 +166,25 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         Section(header: Text("State")) {
             SwiftView(value: model.binding(\.self), config: Config(editing: true))
                 .showRootNavTitle(false)
+        }
+    }
+
+    @ViewBuilder
+    var routeSection: some View {
+        if ComponentType.Model.Route.self != Never.self {
+            Section(header: Text("Route")) {
+                if let route = model.route {
+                    HStack {
+                        Text(getEnumCase(route).name)
+                        Spacer()
+                        Button(action: { withAnimation { model.route = nil } }) {
+                            Text("Dismiss")
+                        }
+                    }
+                } else {
+                    Text("none")
+                }
+            }
         }
     }
 
