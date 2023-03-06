@@ -35,7 +35,7 @@ extension Component {
     public static var previews: some View {
         Group {
             componentPreview
-                .previewDisplayName(Model.baseName + " Component")
+                .previewDisplayName(Model.baseName)
             ForEach(states, id: \.name) { state in
                 view(model: ViewModel(state: state.state))
                     .previewDisplayName("State: \(state.name)")
