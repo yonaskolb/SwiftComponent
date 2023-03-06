@@ -5,7 +5,7 @@ import CasePaths
 
 public struct Test<Model: ComponentModel> {
 
-    public init(_ name: String, state: Model.State, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String, state: Model.State, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
         self.appear = appear
@@ -14,7 +14,7 @@ public struct Test<Model: ComponentModel> {
         self.steps = steps()
     }
 
-    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String, stateName: String, appear: Bool = false, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.stateName = stateName
         self.appear = appear
@@ -155,7 +155,7 @@ extension TestStep {
         }
     }
 
-    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder _ steps: @escaping () -> [TestStep<Child>]) -> Self {
+    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Route", details: Child.baseName, source: .capture(file: file, line: line)) { context in
             guard let route = context.model.store.route else { return }
             guard let componentRoute = path.extract(from: route) else { return }
@@ -174,7 +174,7 @@ extension TestStep {
         }
     }
 
-    public static func scope<Child: ComponentModel>(_ model: Child.Type, file: StaticString = #file, line: UInt = #line, scope: @escaping (ViewModel<Model>) -> ViewModel<Child>, @TestStepBuilder steps: @escaping () -> [TestStep<Child>]) -> Self {
+    public static func scope<Child: ComponentModel>(_ model: Child.Type, file: StaticString = #file, line: UInt = #line, scope: @escaping (ViewModel<Model>) -> ViewModel<Child>, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, source: .capture(file: file, line: line)) { context in
             let viewModel = scope(context.model)
             let steps = steps()
@@ -186,7 +186,7 @@ extension TestStep {
         }
     }
 
-    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder steps: @escaping () -> [TestStep<Child>]) -> Self {
+    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, source: .capture(file: file, line: line)) { context in
             let viewModel = connection.convert(context.model)
             let steps = steps()
@@ -198,7 +198,7 @@ extension TestStep {
         }
     }
 
-    public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder steps: @escaping () -> [TestStep<Model>]) -> Self {
+    public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
         .init(title: name, source: .capture(file: file, line: line)) { context in
             let steps = steps()
             let state = context.model.state
@@ -352,11 +352,15 @@ public struct TestBuilder {
     public static func buildBlock<ComponentType: ComponentModel>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
 }
 
+// Type inference in builders doesn't work properly
+// https://forums.swift.org/t/function-builder-cannot-infer-generic-parameters-even-though-direct-call-to-buildblock-can/35886/25
+// https://forums.swift.org/t/result-builder-expressiveness-and-type-inference/56417
 @resultBuilder
-public struct TestStepBuilder {
-    public static func buildBlock<Model: ComponentModel>() -> [TestStep<Model>] { [] }
-    public static func buildBlock<Model: ComponentModel>(_ tests: TestStep<Model>...) -> [TestStep<Model>] { tests }
-    public static func buildBlock<Model: ComponentModel>(_ tests: [TestStep<Model>]) -> [TestStep<Model>] { tests }
+public struct TestStepBuilder<Model: ComponentModel> {
+    public static func buildBlock() -> [TestStep<Model>] { [] }
+    public static func buildBlock(_ tests: TestStep<Model>...) -> [TestStep<Model>] { tests }
+    public static func buildBlock(_ tests: [TestStep<Model>]) -> [TestStep<Model>] { tests }
+    public static func buildArray(_ tests: [[TestStep<Model>]]) -> [TestStep<Model>] { Array(tests.joined()) }
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
