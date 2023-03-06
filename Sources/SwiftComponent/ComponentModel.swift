@@ -67,19 +67,14 @@ public extension ComponentModel {
     func appear(store: Store) async { store.handledAppear = false }
 }
 
-public class ComponentConnection<From: ComponentModel, To: ComponentModel> {
+public struct ComponentConnection<From: ComponentModel, To: ComponentModel> {
 
     private let scope: (ViewModel<From>) -> ViewModel<To>
-    private var viewModel: ViewModel<To>?
     public init(_ scope: @escaping (ViewModel<From>) -> ViewModel<To>) {
         self.scope = scope
     }
 
     func convert(_ from: ViewModel<From>) -> ViewModel<To> {
-        if let viewModel {
-            return viewModel
-        }
-        viewModel = scope(from)
-        return viewModel!
+        from.store.graph.getScopedModel(model: from, child: To.self) ?? scope(from)
     }
 }

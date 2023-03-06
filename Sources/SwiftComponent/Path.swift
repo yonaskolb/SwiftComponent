@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ComponentPath: CustomStringConvertible, Equatable {
+public struct ComponentPath: CustomStringConvertible, Equatable, Hashable {
     public static func == (lhs: ComponentPath, rhs: ComponentPath) -> Bool {
         lhs.string == rhs.string
     }
@@ -58,5 +58,9 @@ public struct ComponentPath: CustomStringConvertible, Equatable {
         } else {
             return nil
         }
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(pathString)
     }
 }

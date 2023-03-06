@@ -22,11 +22,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public convenience init(state: Model.State, route: Model.Route? = nil) {
-        self.init(store: .init(state: state, route: route))
+        self.init(store: .init(state: state, graph: .init(), route: route))
     }
 
     public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) {
-        self.init(store: .init(state: state, route: route))
+        self.init(store: .init(state: state, graph: .init(), route: route))
     }
 
     init(store: ComponentStore<Model>) {
@@ -39,6 +39,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
             self?.objectWillChange.send()
         }
         .store(in: &cancellables)
+        store.graph.add(self)
+    }
+
+    deinit {
+        store.graph.remove(self)
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {

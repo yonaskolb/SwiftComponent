@@ -11,7 +11,7 @@ extension ComponentModelStore {
 extension ComponentModelStore {
 
     public func connect<Child>(_ route: ComponentRoute<Child>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> Connection {
-        let childStore = ComponentStore<Child>(state: route.state, path: self.store.path, route: route.route)
+        let childStore = ComponentStore<Child>(state: route.state, path: self.store.path, graph: self.store.graph, route: route.route)
         route.store = childStore
         _ = childStore.onOutput { output in
             let input = toInput(output)
@@ -21,7 +21,7 @@ extension ComponentModelStore {
     }
 
     public func connect<Child>(_ route: ComponentRoute<Child>, file: StaticString = #file, line: UInt = #line) -> Connection where Child.Output == Never {
-        route.store = ComponentStore(state: route.state, path: self.store.path, route: route.route)
+        route.store = ComponentStore(state: route.state, path: self.store.path, graph: self.store.graph, route: route.route)
         return Connection()
     }
 }

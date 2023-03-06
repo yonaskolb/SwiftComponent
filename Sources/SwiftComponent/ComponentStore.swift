@@ -7,6 +7,7 @@ class ComponentStore<Model: ComponentModel> {
     private var stateBinding: Binding<Model.State>?
     private var ownedState: Model.State?
     var path: ComponentPath
+    let graph: ComponentGraph
     var componentName: String { Model.baseName }
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
@@ -46,18 +47,19 @@ class ComponentStore<Model: ComponentModel> {
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
 
-    convenience init(state: Model.State, path: ComponentPath? = nil, route: Model.Route? = nil) {
-        self.init(path: path, route: route)
+    convenience init(state: Model.State, path: ComponentPath? = nil, graph: ComponentGraph, route: Model.Route? = nil) {
+        self.init(path: path, graph: graph, route: route)
         self.ownedState = state
     }
 
-    convenience init(state: Binding<Model.State>, path: ComponentPath? = nil, route: Model.Route? = nil) {
-        self.init(path: path, route: route)
+    convenience init(state: Binding<Model.State>, path: ComponentPath? = nil, graph: ComponentGraph, route: Model.Route? = nil) {
+        self.init(path: path, graph: graph, route: route)
         self.stateBinding = state
     }
 
-    private init(path: ComponentPath?, route: Model.Route? = nil) {
+    private init(path: ComponentPath?, graph: ComponentGraph , route: Model.Route? = nil) {
         self.model = Model()
+        self.graph = graph
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
         self.modelStore = ComponentModelStore(store: self)
         if let route = route {
@@ -147,10 +149,10 @@ extension ComponentStore {
             get: { self.state[keyPath: keyPath] },
             set: { value in
                 let start = Date()
-                self.startEvent()
                 // don't continue if change doesn't lead to state change
                 guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
 
+                self.startEvent()
                 //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
                 self.state[keyPath: keyPath] = value
 
@@ -282,7 +284,7 @@ extension ComponentStore {
 
     // state binding and output
     func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        let store = ComponentStore<Child>(state: binding, path: self.path)
+        let store = ComponentStore<Child>(state: binding, path: self.path, graph: graph)
             .onOutput { [weak self] output in
                 guard let self else { return }
                 let input = toInput(output)
@@ -298,7 +300,7 @@ extension ComponentStore {
 
     // state binding
     func scope<Child: ComponentModel>(state binding: Binding<Child.State>) -> ComponentStore<Child> where Child.Output == Never {
-        let store = ComponentStore<Child>(state: binding, path: self.path)
+        let store = ComponentStore<Child>(state: binding, path: self.path, graph: graph)
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -329,7 +331,7 @@ extension ComponentStore {
 
     // state
     func scope<Child: ComponentModel>(state: Child.State) -> ComponentStore<Child> where Child.Output == Never {
-        let store = ComponentStore<Child>(state: state, path: self.path)
+        let store = ComponentStore<Child>(state: state, path: self.path, graph: graph)
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -340,7 +342,7 @@ extension ComponentStore {
 
     // state and output
     func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        let store = ComponentStore<Child>(state: state, path: self.path)
+        let store = ComponentStore<Child>(state: state, path: self.path, graph: graph)
             .onOutput { [weak self] output in
                 guard let self else { return }
                 let input = toInput(output)
