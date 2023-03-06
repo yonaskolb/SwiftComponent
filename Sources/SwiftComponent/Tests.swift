@@ -86,7 +86,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public enum Expectation {
         case validateState(name: String, validateState: (Model.State) -> Bool)
         case validateDependency(error: String, dependency: String, validateDependency: (DependencyValues) -> Bool)
-        case expectRoute((Model.Route) -> Any?)
+        case expectRoute(name: String, state: Any, getState: (Model.Route) -> Any?)
         case expectEmptyRoute
         case expectState((inout Model.State) -> Void)
         case expectOutput(Model.Output)
@@ -289,7 +289,7 @@ extension TestStep {
     public func expectRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #file, line: UInt = #line) -> Self {
         let componentRoute = ComponentRoute<Child>(state: state, route: childRoute)
         componentRoute.store = .init(state: state)
-        return addExpectation(.expectRoute { route in
+        return addExpectation(.expectRoute(name: Child.baseName, state: state) { route in
             path.extract(from: route)?.state
         }, source: .capture(file: file, line: line))
     }
@@ -335,8 +335,8 @@ extension TestStep.Expectation {
                 return getEnumCase(output).name.quoted
             case .validateDependency(_, let path, _ ):
                 return path.quoted
-            case .expectRoute(let route):
-                return getEnumCase(route).name.quoted
+            case .expectRoute(let name, _, _):
+                return name.quoted
             case .expectEmptyRoute:
                 return nil
             case .expectTask(let name, let success):
@@ -517,27 +517,24 @@ extension TestStep {
                     if let difference = diff(expectedState, currentState) {
                         stepErrors.append(TestError(error: "Unexpected State", diff: difference, source: source))
                     }
-                case .expectRoute(let getRoute):
+                case .expectRoute(_, let expectedState, let getRoute):
                     let foundRoute: Model.Route? = findEventValue { event in
                         if case .route(let route) = event.type, let route = route as? Model.Route {
                             return route
                         }
                         return nil
                     }
-                    if let foundRoute {
-                        if let route = context.model.route {
-                            let foundState = getRoute(foundRoute)
-                            let currentState = getRoute(route)
-                            if let difference = diff(foundState, currentState) {
-                                stepErrors.append(TestError(error: "Unexpected route value \(getEnumCase(foundRoute).name.quoted)", diff: difference, source: source))
+                    if let route = foundRoute {
+                        if let foundState = getRoute(route) {
+                            if let difference = diff(foundState, expectedState) {
+                                stepErrors.append(TestError(error: "Unexpected route state \(getEnumCase(route).name.quoted)", diff: difference, source: source))
                             }
-                            // TODO: compare nested route
                         } else {
-                            stepErrors.append(TestError(error: "Unexpected empty route", source: source))
+                            stepErrors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source))
                         }
-
+                        // TODO: compare nested route
                     } else {
-                        stepErrors.append(TestError(error: "Route \(getEnumCase(context.model.route).name.quoted) was not sent", source: source))
+                        stepErrors.append(TestError(error: "Unexpected empty route", source: source))
                     }
                 case .expectEmptyRoute:
                     if let route = context.model.route {
