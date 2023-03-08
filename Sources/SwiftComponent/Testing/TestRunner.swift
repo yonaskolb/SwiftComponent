@@ -66,7 +66,8 @@ extension TestStep {
         let path = context.model.store.path
         context.childStepResults = []
         let stepEventsSubscription = context.model.store.events.sink { event in
-            if event.componentPath == path {
+            // TODO: should probabyl check id instead
+            if event.path == path {
                 stepEvents.append(event)
             }
         }

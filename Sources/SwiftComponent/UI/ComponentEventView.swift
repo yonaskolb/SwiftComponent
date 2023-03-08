@@ -29,7 +29,7 @@ struct ComponentEventList: View {
 //                            .padding(.top, 14)
 //                    }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(event.componentPath.string)
+                        Text(event.path.string)
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
@@ -86,7 +86,7 @@ struct ComponentEventView: View {
             }
 
             Section {
-                if let path = event.componentPath.parent {
+                if let path = event.path.parent {
                     line("Path") {
                         Text(path.string)
                             .lineLimit(1)

@@ -15,7 +15,7 @@ public class EventStore {
     #endif
 
     func componentEvents(for path: ComponentPath, includeChildren: Bool) -> [Event] {
-        events.filter { includeChildren ? $0.componentPath.contains(path) : $0.componentPath == path }
+        events.filter { includeChildren ? $0.path.contains(path) : $0.path == path }
     }
 
     func send(_ event: Event) {
@@ -37,9 +37,9 @@ public struct Event: Identifiable {
     public let type: EventType
     public let depth: Int
     public let source: Source
-    public var componentType: any ComponentModel.Type { componentPath.path.last! }
-    public var componentName: String { componentType.baseName }
-    public var componentPath: ComponentPath
+    public var modelType: any ComponentModel.Type { path.path.last! }
+    public var componentName: String { modelType.baseName }
+    public var path: ComponentPath
     public var mutations: [Mutation]
 
     init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, source: Source) {
@@ -47,7 +47,7 @@ public struct Event: Identifiable {
         self.start = start
         self.end = end
         self.mutations = mutations
-        self.componentPath = componentPath
+        self.path = componentPath
         self.depth = depth
         self.source = source
     }
@@ -69,7 +69,7 @@ public struct Event: Identifiable {
 extension Event: CustomStringConvertible {
 
     public var description: String {
-        "\(componentPath) \(type.title.lowercased()): \(type.details)"
+        "\(path) \(type.title.lowercased()): \(type.details)"
     }
 }
 
