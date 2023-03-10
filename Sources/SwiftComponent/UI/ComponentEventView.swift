@@ -139,6 +139,7 @@ struct ComponentEventView: View {
 let previewEvents: [Event] = [
         Event(
             type: .appear(first: true),
+            storeID: UUID(),
             componentPath: .init([ExampleModel.self]),
             start: Date().addingTimeInterval(-1.05),
             end: Date(),
@@ -152,6 +153,7 @@ let previewEvents: [Event] = [
 
         Event(
             type: .action(ExampleModel.Action.tap(2)),
+            storeID: UUID(),
             componentPath: .init([ExampleModel.self, ExampleChildModel.self]),
             start: Date(),
             end: Date(),
@@ -165,6 +167,7 @@ let previewEvents: [Event] = [
 
         Event(
             type: .binding(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
@@ -175,6 +178,7 @@ let previewEvents: [Event] = [
 
         Event(
             type: .mutation(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
@@ -185,6 +189,7 @@ let previewEvents: [Event] = [
 
         Event(
             type: .task(TaskResult.init(name: "get item", result: .success(()))),
+            storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date().addingTimeInterval(-2.3),
             end: Date(),
@@ -195,6 +200,7 @@ let previewEvents: [Event] = [
 
         Event(
             type: .output(ExampleModel.Output.finished),
+            storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),

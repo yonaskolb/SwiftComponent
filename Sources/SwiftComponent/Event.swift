@@ -32,6 +32,7 @@ public class EventStore {
 
 public struct Event: Identifiable {
     public var id = UUID()
+    public let storeID: UUID
     public let start: Date
     public let end: Date
     public let type: EventType
@@ -42,8 +43,9 @@ public struct Event: Identifiable {
     public var path: ComponentPath
     public var mutations: [Mutation]
 
-    init(type: EventType, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, source: Source) {
+    init(type: EventType, storeID: UUID, componentPath: ComponentPath, start: Date, end: Date, mutations: [Mutation], depth: Int, source: Source) {
         self.type = type
+        self.storeID = storeID
         self.start = start
         self.end = end
         self.mutations = mutations
@@ -70,6 +72,51 @@ extension Event: CustomStringConvertible {
 
     public var description: String {
         "\(path) \(type.title.lowercased()): \(type.details)"
+    }
+}
+
+public enum ModelEvent<Model: ComponentModel> {
+
+    case mutation(Mutation)
+    case binding(Mutation)
+    case action(Model.Action)
+    case input(Model.Input)
+    case output(Model.Output)
+    case appear(first: Bool)
+    case task(TaskResult)
+    case route(Model.Route)
+    case dismissRoute
+}
+
+extension Event {
+
+    public func asModel<Model: ComponentModel>(_ model: Model.Type) -> ModelEvent<Model>? {
+        guard modelType == model else { return nil }
+        switch type {
+            case .mutation(let mutation):
+                return .mutation(mutation)
+            case .binding(let mutation):
+                return .mutation(mutation)
+            case .action(let action):
+                return .action(action as! Model.Action)
+            case .input(let input):
+                return .input(input as! Model.Input)
+            case .output(let output):
+                return .output(output as! Model.Output)
+            case .appear(let first):
+                return .appear(first: first)
+            case .task(let result):
+                return .task(result)
+            case .route(let route):
+                return .route(route as! Model.Route)
+            case .dismissRoute:
+                return .dismissRoute
+        }
+    }
+
+    public func forModel<Model: ComponentModel>(_ model: Model.Type = Model.self, _ run: (ModelEvent<Model>) -> Void) {
+        guard let event = self.asModel(Model.self) else { return }
+        run(event)
     }
 }
 
@@ -298,6 +345,8 @@ public struct TaskResult {
     public let result: Result<Any, Error>
 }
 
+// TODO: add before and after state
+// TODO: then add a typed version for the typed event
 public struct Mutation: Identifiable {
     public let value: Any
     public let property: String
@@ -309,3 +358,4 @@ public struct Mutation: Identifiable {
         self.property = keyPath.propertyName ?? "self"
     }
 }
+

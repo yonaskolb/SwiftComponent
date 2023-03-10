@@ -80,6 +80,19 @@ struct ExampleChildModel: ComponentModel {
                 store.name += int.description
         }
     }
+
+    func handle(event: Event) {
+        event.forModel(ExampleChildModel.self) { event in
+            switch event {
+                case .output(let output):
+                    switch output {
+                        case .finished:
+                            break
+                    }
+                default: break
+            }
+        }
+    }
 }
 
 struct ExampleView: ComponentView {

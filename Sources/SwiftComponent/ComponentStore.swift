@@ -66,6 +66,10 @@ class ComponentStore<Model: ComponentModel> {
             model.connect(route: route, store: modelStore)
             self.route = route
         }
+        events.sink { [weak self] event in
+            self?.model.handle(event: event)
+        }
+        .store(in: &subscriptions)
     }
 
     private func startEvent() {
@@ -77,10 +81,8 @@ class ComponentStore<Model: ComponentModel> {
         if eventsInProgress < 0 {
             assertionFailure("Parent count is \(eventsInProgress), but should only be 0 or more")
         }
-        let event = Event(type: type, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, source: source)
-//        print("\(event.type.emoji) \(path) \(event.type.title): \(event.type.details)")
+        let event = Event(type: type, storeID: id, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, source: source)
         events.send(event)
-
         guard sendGlobalEvents else { return }
         EventStore.shared.send(event)
     }
