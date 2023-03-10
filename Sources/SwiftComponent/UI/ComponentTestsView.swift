@@ -19,7 +19,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @State var testResults: [TestStepResult] = []
     @State var errorDiffVisibility: [UUID: Bool] = [:]
     @State var scrollToStep: UUID?
-    @State var fixing: [AnyHashable: Bool] = [:]
+    @State var fixing: [UUID: Bool] = [:]
     var verticalSpacing = 10.0
     var diffAddedColor: Color = .green
     var diffRemovedColor: Color = .red
@@ -164,15 +164,15 @@ struct ComponentTestsView<ComponentType: Component>: View {
         scrollToStep = result.id
     }
 
-    func fix(at source: Source, with fixit: String) {
+    func fix(error: TestError, with fixit: String) {
         // read file
-        guard let data = FileManager.default.contents(atPath: source.file.description) else { return }
+        guard let data = FileManager.default.contents(atPath: error.source.file.description) else { return }
         guard var sourceFile = String(data: data, encoding: .utf8) else { return }
 
-        fixing[source] = true
+        fixing[error.id] = true
 
         var lines = sourceFile.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        let line = Int(source.line)
+        let line = Int(error.source.line)
 
         // edit file
         guard line > 0, line < lines.count - 1 else { return }
@@ -581,22 +581,13 @@ struct ComponentTestsView<ComponentType: Component>: View {
                                 .bold()
                                 .padding(.vertical, 10)
                             Spacer()
-                            if let fixit = error.fixit {
-                                Group {
-
-                                    if fixing[error.source] == true {
-                                        ProgressView()
-                                            .progressViewStyle(.circular)
-                                            .foregroundColor(.white)
-                                    } else {
-                                        Button(action: { fix(at: error.source, with: fixit) }) {
-                                            Text("Fix")
-                                                .bold()
-                                                .padding(-2)
-                                        }
-                                        .buttonStyle(.bordered)
-                                    }
+                            if let fixit = error.fixit, fixing[error.id] != true {
+                                Button(action: { fix(error: error, with: fixit) }) {
+                                    Text("Fix")
+                                        .bold()
+                                        .padding(-2)
                                 }
+                                .buttonStyle(.bordered)
                             }
                             if error.diff != nil {
                                 collapseIcon(collapsed: !showErrorDiff(error.id))

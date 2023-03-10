@@ -12,6 +12,9 @@ class ComponentStore<Model: ComponentModel> {
     var componentName: String { Model.baseName }
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
+    private var tasksByID: [String: CancellableTask] = [:]
+    private var tasks: [CancellableTask] = []
+    private var appearanceTask: CancellableTask?
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
 
@@ -59,7 +62,7 @@ class ComponentStore<Model: ComponentModel> {
         self.stateBinding = state
     }
 
-    private init(path: ComponentPath?, graph: ComponentGraph , route: Model.Route? = nil) {
+    private init(path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) {
         self.model = Model()
         self.graph = graph
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
@@ -77,7 +80,14 @@ class ComponentStore<Model: ComponentModel> {
 
     deinit {
         modelStore.cancellables = []
-//        print("deinit Store \(Model.baseName)")
+        cancelTasks()
+    }
+
+    func cancelTasks() {
+        tasksByID.forEach { $0.value.cancel() }
+        tasksByID = [:]
+        tasks.forEach { $0.cancel() }
+        tasks = []
     }
 
     private func startEvent() {
@@ -97,8 +107,9 @@ class ComponentStore<Model: ComponentModel> {
 
     func processAction(_ action: Model.Action, source: Source) {
         lastSource = source
-        Task { @MainActor in
-            await processAction(action, source: source)
+        addTask { @MainActor [weak self]  in
+            guard let self else { return }
+            await self.processAction(action, source: source)
         }
     }
 
@@ -113,8 +124,9 @@ class ComponentStore<Model: ComponentModel> {
 
     func processInput(_ input: Model.Input, source: Source) {
         lastSource = source
-        Task { @MainActor in
-            await processInput(input, source: source)
+        addTask { @MainActor [weak self]  in
+            guard let self else { return }
+            await self.processInput(input, source: source)
         }
     }
 
@@ -170,7 +182,8 @@ extension ComponentStore {
 
                 //print(diff(oldState, self.state) ?? "  No state changes")
 
-                Task { @MainActor in
+                self.addTask { @MainActor [weak self]  in
+                    guard let self else { return }
                     await self.model.binding(keyPath: keyPath, store: self.modelStore)
                 }
 
@@ -188,24 +201,34 @@ extension ComponentStore {
 // MARK: ComponentView Accessors
 extension ComponentStore {
 
-    @MainActor
-    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
-        let start = Date()
-        startEvent()
-        mutations = []
-        handledAppear = true
-        await model.appear(store: modelStore)
-        self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture(file: file, line: line))
+    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) {
+        appearanceTask = addTask { @MainActor [weak self]  in
+
+            let start = Date()
+            self?.startEvent()
+            self?.mutations = []
+            self?.handledAppear = true
+            if let store = self?.modelStore {
+                await self?.model.appear(store: store)
+            }
+            if let self {
+                self.sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+            }
+        }
     }
 
     func disappear(file: StaticString = #file, line: UInt = #line) {
-        Task { @MainActor in
+        addTask { @MainActor [weak self]  in
+            guard let self else { return }
             let start = Date()
-            startEvent()
-            mutations = []
-            handledDisappear = true
-            await model.disappear(store: modelStore)
-            self.sendEvent(type: .disappear, start: start, mutations: mutations, source: .capture(file: file, line: line))
+            self.startEvent()
+            self.mutations = []
+            self.handledDisappear = true
+            await self.model.disappear(store: self.modelStore)
+            self.sendEvent(type: .disappear, start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+
+            appearanceTask?.cancel()
+            appearanceTask = nil
         }
     }
 }
@@ -239,11 +262,21 @@ extension ComponentStore {
     }
 
     @MainActor
-    func task<R>(_ name: String, source: Source, _ task: () async -> R) async -> R {
+    func task<R>(_ name: String, cancellable: Bool, source: Source,  _ task: @escaping () async -> R) async -> R {
+        let cancelID = name
+
         let start = Date()
         startEvent()
         mutations = []
-        let value = await task()
+        if cancellable {
+            cancelTask(cancelID: cancelID)
+        }
+        let task = Task { @MainActor in
+            await task()
+        }
+        addTask(task, cancelID: cancelID)
+        let value = await task.value
+        tasksByID[cancelID] = nil
         let result = TaskResult(name: name, result: .success(value))
         if previewTaskDelay > 0 {
             try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
@@ -253,13 +286,23 @@ extension ComponentStore {
     }
 
     @MainActor
-    func task<R>(_ name: String, source: Source, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
+    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+        let cancelID = name
         let start = Date()
         startEvent()
         mutations = []
         let result: TaskResult
         do {
-            let value = try await task()
+            if cancellable {
+                cancelTask(cancelID: cancelID)
+            }
+
+            let task = Task { @MainActor in
+                try await task()
+            }
+            addTask(task, cancelID: cancelID)
+            let value = try await task.value
+            tasksByID[cancelID] = nil
             result = TaskResult(name: name, result: .success(value))
         } catch {
             catchError(error)
@@ -269,6 +312,26 @@ extension ComponentStore {
             try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
         }
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
+    }
+
+    func cancelTask(cancelID: String) {
+        if let previousTask = tasksByID[cancelID] {
+            previousTask.cancel()
+            tasksByID[cancelID] = nil
+        }
+    }
+
+    func addTask(_ task: CancellableTask, cancelID: String) {
+        tasksByID[cancelID] = task
+    }
+
+    @discardableResult
+    func addTask(_ handle: @escaping () async -> Void) -> CancellableTask {
+        let task = Task { @MainActor in
+            await handle()
+        }
+        tasks.append(task)
+        return task
     }
 
     @MainActor
@@ -289,6 +352,12 @@ extension ComponentStore {
         }
     }
 }
+
+protocol CancellableTask {
+    func cancel()
+}
+
+extension Task: CancellableTask {}
 
 // MARK: Scoping
 extension ComponentStore {

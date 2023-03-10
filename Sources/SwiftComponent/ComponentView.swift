@@ -49,11 +49,11 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
     var body: some View {
         view
-        .task { @MainActor in
+        .onAppear {
             if !isPreviewReference {
                 let first = !hasAppeared
                 hasAppeared = true
-                await model.appear(first: first)
+                model.appear(first: first)
             }
         }
         .onDisappear {

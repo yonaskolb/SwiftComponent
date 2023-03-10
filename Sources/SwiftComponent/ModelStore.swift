@@ -38,12 +38,22 @@ public class ComponentModelStore<Model: ComponentModel> {
         }
     }
 
-    public func task(_ taskID: Model.Task, file: StaticString = #file, line: UInt = #line, _ task: () async -> Void) async {
-        await store.task(taskID.taskName, source: .capture(file: file, line: line), task)
+    public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async -> Void) {
+        store.addTask { @MainActor [weak self] in
+            await self?.store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
+        }
     }
 
-    public func task<R>(_ taskID: Model.Task, file: StaticString = #file, line: UInt = #line, _ task: () async throws -> R, catch catchError: (Error) -> Void) async {
-        await store.task(taskID.taskName, source: .capture(file: file, line: line), task, catch: catchError)
+    public func task(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async -> Void) async {
+        await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
+    }
+
+    public func task<R>(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+        await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
+    }
+
+    public func cancelTask(_ taskID: Model.Task) {
+        store.cancelTask(cancelID: taskID.taskName)
     }
 
     public func dismissRoute(file: StaticString = #file, line: UInt = #line) {
@@ -75,14 +85,14 @@ func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> St
 extension ComponentModelStore {
 
     @MainActor
-    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #file, line: UInt = #line, load: @MainActor () async throws -> ResourceState) async {
+    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #file, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
         let name = getResourceTaskName(keyPath)
-        await store.task(name, source: .capture(file: file, line: line)) {
+        await store.task(name, cancellable: true, source: .capture(file: file, line: line)) {
             let content = try await load()
-            mutate(keyPath.appending(path: \.content), content, animation: animation)
-            if store.state[keyPath: keyPath.appending(path: \.error)] != nil {
-                mutate(keyPath.appending(path: \.error), nil, animation: animation)
+            self.mutate(keyPath.appending(path: \.content), content, animation: animation)
+            if self.store.state[keyPath: keyPath.appending(path: \.error)] != nil {
+                self.mutate(keyPath.appending(path: \.error), nil, animation: animation)
             }
             return content
         } catch: { error in

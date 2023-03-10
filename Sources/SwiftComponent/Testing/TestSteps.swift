@@ -8,15 +8,9 @@ extension TestStep {
         }
     }
     
-    public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func appear(first: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", file: file, line: line) { context in
-            if `await` {
-                await context.model.appear(first: first)
-            } else {
-                Task { [context] in
-                    await context.model.appear(first: first)
-                }
-            }
+            context.model.appear(first: first)
         }
     }
 
@@ -131,7 +125,7 @@ extension TestStep {
 
     public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
-            //TODO: get the model that the view is using so it can be visualised
+            //TODO: get the model that the view is using so it can playback in the preview
             let viewModel = connection.convert(context.model)
             let steps = steps()
             var childContext = TestContext<Child>(model: viewModel, delay: context.delay, assertions: context.assertions, state: viewModel.state)

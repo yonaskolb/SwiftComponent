@@ -158,6 +158,7 @@ struct ExampleComponent: Component, PreviewProvider {
         Test("Fill out", state: .init(name: "Main")) {
             Step.appear()
             Step.binding(\.name, "test")
+                .expectTask("get thing", successful: true)
                 .expectState(\.name, "invalid")
                 .expectState(\.date, Date())
         }
