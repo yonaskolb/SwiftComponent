@@ -117,6 +117,9 @@ extension TestStep {
             // reset state
             context.model.state = state
             context.model.route = route
+
+            // don't assert on this step
+            context.assertions = []
         }
     }
 }

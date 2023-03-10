@@ -65,9 +65,11 @@ extension TestStep {
         var stepEvents: [Event] = []
         let path = context.model.store.path
         context.childStepResults = []
+        var originalAssertions = context.assertions
+        let storeID = context.model.store.id
         let stepEventsSubscription = context.model.store.events.sink { event in
-            // TODO: should probabyl check id instead
-            if event.path == path {
+            // TODO: should probably check id instead
+            if event.storeID == storeID {
                 stepEvents.append(event)
             }
         }
@@ -90,7 +92,7 @@ extension TestStep {
         for assertion in context.assertions {
             assertionErrors += assertion.assert(events: stepEvents, source: source)
         }
-
+        context.assertions = originalAssertions
         return TestStepResult(
             step: self,
             events: stepEvents,
