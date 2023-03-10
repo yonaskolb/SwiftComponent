@@ -3,6 +3,7 @@ import Foundation
 
 extension KeyPath {
 
+    //TODO: parse debug subscription in swift 5.8, for computed variable names https://github.com/apple/swift-evolution/blob/main/proposals/0369-add-customdebugdescription-conformance-to-anykeypath.md
     var propertyName: String? {
         guard let offset = MemoryLayout<Root>.offset(of: self) else {
             return nil
