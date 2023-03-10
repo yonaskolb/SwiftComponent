@@ -30,7 +30,7 @@ public struct TestStepResult: Identifiable {
     public var description: String {
         var string = title
         if let details {
-            string += ".\(details)"
+            string += " \(details)"
         }
         return string
     }

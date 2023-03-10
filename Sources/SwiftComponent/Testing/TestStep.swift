@@ -26,7 +26,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var description: String {
         var string = title
         if let details {
-            string += ".\(details)"
+            string += " \(details)"
         }
         return string
     }
