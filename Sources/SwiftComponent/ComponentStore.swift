@@ -260,9 +260,11 @@ extension ComponentStore {
 
     func dismissRoute(source: Source) {
         if route != nil {
-            startEvent()
-            route = nil
-            sendEvent(type: .dismissRoute, start: Date(), mutations: [], source: source)
+            DispatchQueue.main.async {
+                self.startEvent()
+                self.route = nil
+                self.sendEvent(type: .dismissRoute, start: Date(), mutations: [], source: source)
+            }
         }
     }
 }
