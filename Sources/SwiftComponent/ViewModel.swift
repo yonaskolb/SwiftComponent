@@ -32,7 +32,9 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     init(store: ComponentStore<Model>) {
         self.store = store
         self.store.stateChanged.sink { [weak self] _ in
-            self?.objectWillChange.send()
+            DispatchQueue.main.async {
+                self?.objectWillChange.send()
+            }
         }
         .store(in: &cancellables)
         self.store.routeChanged.sink { [weak self] _ in
