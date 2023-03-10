@@ -68,44 +68,64 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 // MARK: Scoping
 extension ViewModel {
 
-    // state binding and output
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: state, file: file, line: line, output: toInput).viewModel()
+    // state binding and output -> input
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: state, file: file, line: line, output: output).viewModel()
     }
 
-    // state binding
+    // state binding and output -> output
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: state, file: file, line: line, output: output).viewModel()
+    }
+
+    // state binding and output -> Never
     public func scope<Child: ComponentModel>(state: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
         store.scope(state: state).viewModel()
     }
 
-    // statePath and output
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(statePath: statePath, file: file, line: line, output: toInput).viewModel()
+    // statePath and output -> input
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(statePath: state, file: file, line: line, output: output).viewModel()
     }
 
-    // optional statePath and output
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(statePath: statePath, value: value, file: file, line: line, output: toInput).viewModel()
+    // statePath and output -> output
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(statePath: state, file: file, line: line, output: output).viewModel()
     }
 
-    // optional statePath
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(statePath: statePath, value: value).viewModel()
+    // optional statePath and output -> input
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(statePath: state, value: value, file: file, line: line, output: output).viewModel()
     }
 
-    // statePath
-    public func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(statePath: statePath).viewModel()
+    // optional statePath and output -> output
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(statePath: state, value: value, file: file, line: line, output: output).viewModel()
     }
 
-    // state
+    // optional statePath and output -> Never
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(statePath: state, value: value).viewModel()
+    }
+
+    // statePath and output -> Never
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(statePath: state).viewModel()
+    }
+
+    // state and output -> Never
     public func scope<Child: ComponentModel>(state: Child.State) -> ViewModel<Child> where Child.Output == Never {
         store.scope(state: state).viewModel()
     }
 
-    // state and output
-    public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: state, file: file, line: line, output: toInput).viewModel()
+    // state and output -> input
+    public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: state, file: file, line: line, output: output).viewModel()
+    }
+
+    // state and output -> output
+    public func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: state, file: file, line: line, output: output).viewModel()
     }
 
     public func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>) -> ViewModel<Child> {
