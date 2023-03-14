@@ -77,6 +77,6 @@ public struct ComponentConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     func convert(_ from: ViewModel<From>) -> ViewModel<To> {
-        from.store.graph.getScopedModel(model: from, child: To.self) ?? scope(from)
+        scope(from)
     }
 }

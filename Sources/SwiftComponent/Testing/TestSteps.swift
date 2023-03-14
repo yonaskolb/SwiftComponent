@@ -95,6 +95,7 @@ extension TestStep {
 
     public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping (TestStepContext<Child>.Type) -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
+            //TODO: get the model that the view is using so it can be visualised
             let viewModel = connection.convert(context.model)
             let steps = steps(TestStepContext<Child>.self)
             var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
