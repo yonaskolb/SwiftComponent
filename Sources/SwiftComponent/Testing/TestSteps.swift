@@ -31,6 +31,9 @@ extension TestStep {
 
     public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Input", details: getEnumCase(input).name, file: file, line: line) { context in
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+            }
             await context.model.store.processInput(input, source: .capture(file: file, line: line))
         }
     }
@@ -108,6 +111,10 @@ extension TestStep {
 
     public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
         .init(title: "Fork", details: name, file: file, line: line) { context in
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+            }
+
             let steps = steps()
             let state = context.model.state
             let route = context.model.route
@@ -121,6 +128,10 @@ extension TestStep {
 
             // don't assert on this step
             context.assertions = []
+
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+            }
         }
     }
 }
