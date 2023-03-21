@@ -1,12 +1,14 @@
 import Foundation
+import CustomDump
 
 public enum TestAssertion: String, CaseIterable {
-    case output
     case task
     case route
-    case mutation
     case dependency
     case emptyRoute
+    case state
+    case output
+    //    case mutation
 }
 
 extension Set where Element == TestAssertion {
@@ -23,7 +25,7 @@ extension Set where Element == TestAssertion {
 
 extension TestAssertion {
 
-    func assert(events: [Event], source: Source) -> [TestError] {
+    func assert<Model: ComponentModel>(events: [Event], context: TestContext<Model>, source: Source) -> [TestError] {
         var errors: [TestError] = []
         switch self {
             case .output:
@@ -58,15 +60,19 @@ extension TestAssertion {
                         default: break
                     }
                 }
-            case .mutation:
-                for event in events {
-                    switch event.type {
-                        case .mutation(let mutation):
-                            errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
-                        default: break
-                    }
+            case .state:
+                if let diff = diff(context.state, context.model.state) {
+                    errors.append(.init(error: "Unexpected state", diff: diff, source: source))
                 }
             case .dependency: break
+//            case .mutation:
+//                for event in events {
+//                    switch event.type {
+//                        case .mutation(let mutation):
+//                            errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
+//                        default: break
+//                    }
+//                }
         }
         return errors
     }

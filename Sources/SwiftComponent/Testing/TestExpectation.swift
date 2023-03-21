@@ -17,7 +17,7 @@ public struct TestExpectation<Model: ComponentModel> {
     }
 
     public struct Context {
-        let testContext: TestContext<Model>
+        var testContext: TestContext<Model>
         let source: Source
         var events: [Event]
         var errors: [TestError] = []

@@ -81,7 +81,7 @@ extension TestStep {
             if let route = foundRoute {
                 if let foundComponentRoute = path.extract(from: route) {
                     if let difference = diff(foundComponentRoute.state, expectedState) {
-                        context.error("Unexpected route state \(getEnumCase(route).name.quoted)", diff: difference)
+                        context.error("Unexpected state in route \(getEnumCase(route).name.quoted)", diff: difference)
                     }
                     // TODO: compare nested route
                 } else {
@@ -120,6 +120,7 @@ extension TestStep {
             let currentState = context.model.state
             var expectedState = currentState
             modify(&expectedState)
+            modify(&context.testContext.state)
             if let difference = diff(expectedState, currentState) {
                 context.error("Unexpected State", diff: difference)
             }
@@ -128,12 +129,13 @@ extension TestStep {
 
     /// expect state to have a keypath set to a value
     public func expectState<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
-        addExpectation(title: "Expect State", details: keyPath.propertyName, file: file, line: line) { context in
+        addExpectation(title: "Expect \(keyPath.propertyName ?? "State")", file: file, line: line) { context in
             let currentState = context.model.state
             var expectedState = currentState
             expectedState[keyPath: keyPath] = value
+            context.testContext.state[keyPath: keyPath] = value
             if let difference = diff(expectedState, currentState) {
-                context.error("Unexpected State", diff: difference)
+                context.error("Unexpected \(keyPath.propertyName?.quoted ?? "State")", diff: difference)
             }
         }
     }

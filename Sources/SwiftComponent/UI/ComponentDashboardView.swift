@@ -12,7 +12,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @AppStorage("previewTests") var previewTests = true
     @State var showTestEvents = true
     @State var autoRunTests = true
-    @State var testState: [String: TestState<ComponentType.Model>] = [:]
+    @State var testRun: TestRun<ComponentType.Model> = TestRun()
     @State var runningTests = false
     @State var render = UUID()
     @State var previewTestDelay = 0.3
@@ -20,10 +20,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var events: [Event] {
         EventStore.shared.events
-    }
-
-    func getTestState(_ test: Test<ComponentType.Model>) -> TestState<ComponentType.Model> {
-        testState[test.name] ?? .notRun
     }
 
     func clearEvents() {
@@ -39,7 +35,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     @MainActor
     func runAllTestsOnMain(delay: TimeInterval) async {
-        ComponentType.tests.forEach { testState[$0.name] = .pending }
+        testRun.reset(ComponentType.tests)
         for test in ComponentType.tests {
             await runTest(test, delay: delay)
         }
@@ -48,10 +44,10 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @MainActor
     func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval) async {
         runningTests = true
-        testState[test.name] = .running
+        testRun.startTest(test)
 
         guard let state = ComponentType.state(for: test) else {
-            testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
+            testRun.testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }
 
@@ -64,7 +60,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         model.store.path.suffix = " Test: \(test.name)"
         let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: delay, sendEvents: delay > 0 && showTestEvents)
         model.store.path.suffix = nil
-        testState[test.name] = .complete(result)
+        testRun.completeTest(test, result: result)
         runningTests = false
     }
 
@@ -192,6 +188,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     var testSection: some View {
         Section(header: testHeader) {
             ForEach(ComponentType.tests, id: \.name) { test in
+                let testResult = testRun.getTestState(test)
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
                         Task { @MainActor in
@@ -202,7 +199,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                             HStack(spacing: 8) {
                                 ZStack {
                                     ProgressView().hidden()
-                                    switch getTestState(test) {
+                                    switch testResult {
                                         case .running:
                                             ProgressView().progressViewStyle(CircularProgressViewStyle())
                                         case .failedToRun:
@@ -219,11 +216,11 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                                             Image(systemName: "play.circle").foregroundColor(.gray)
                                     }
                                 }
-                                .foregroundColor(getTestState(test).color)
+                                .foregroundColor(testResult.color)
                                 Text(test.name)
-                                    .foregroundColor(getTestState(test).color)
+                                    .foregroundColor(testResult.color)
                                 Spacer()
-                                if let error = getTestState(test).errors?.first {
+                                if let error = testResult.errors?.first {
                                     Text(error.error).foregroundColor(.red)
                                         .lineLimit(1)
                                 }
@@ -232,7 +229,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                                     .disabled(runningTests)
                             }
                             .animation(nil)
-                            if let error = getTestState(test).errors?.first {
+                            if let error = testResult.errors?.first {
                                 VStack(alignment: .leading) {
                                     //                                    Text(error.error)
                                     //                                        .foregroundColor(.red)
@@ -242,6 +239,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                                         VStack(alignment: .leading) {
                                             diff
                                                 .diffText()
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .textContainer()
+                                                .cornerRadius(8)
                                         }
                                         .padding(4)
                                     }

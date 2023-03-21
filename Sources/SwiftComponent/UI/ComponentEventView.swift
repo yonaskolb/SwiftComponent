@@ -121,6 +121,16 @@ struct ComponentEventView: View {
                     ComponentEventList(events: childEvents, allEvents: allEvents, depth: event.depth + 1)
                 }
             }
+            switch event.type {
+                case .mutation(let mutation), .binding(let mutation):
+                    if let diff = mutation.stateDiff {
+                        Section("Mutation") {
+                            diff.diffText(textColor: .secondary)
+                        }
+                    }
+                default:
+                    EmptyView()
+            }
         }
         .navigationTitle(Text(event.type.title))
         .navigationBarTitleDisplayMode(.inline)
@@ -144,8 +154,8 @@ let previewEvents: [Event] = [
             start: Date().addingTimeInterval(-1.05),
             end: Date(),
             mutations: [
-                Mutation(keyPath: \ExampleModel.State.name, value: "new1"),
-                Mutation(keyPath: \ExampleModel.State.name, value: "new2"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new1", oldState: ExampleModel.State(name: "old1")),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new2", oldState: ExampleModel.State(name: "old2")),
             ],
             depth: 0,
             source: .capture()
@@ -158,31 +168,31 @@ let previewEvents: [Event] = [
             start: Date(),
             end: Date(),
             mutations: [
-                Mutation(keyPath: \ExampleModel.State.name, value: "new1"),
-                Mutation(keyPath: \ExampleModel.State.name, value: "new2"),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new1", oldState: ExampleModel.State(name: "old1")),
+                Mutation(keyPath: \ExampleModel.State.name, value: "new2", oldState: ExampleModel.State(name: "old2")),
             ],
             depth: 0,
             source: .capture()
         ),
 
         Event(
-            type: .binding(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            type: .binding(Mutation(keyPath: \ExampleModel.State.name, value: "Hello", oldState: ExampleModel.State(name: "old1"))),
             storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
-            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello")],
+            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello", oldState: ExampleModel.State(name: "old1"))],
             depth: 1,
             source: .capture()
         ),
 
         Event(
-            type: .mutation(Mutation(keyPath: \ExampleModel.State.name, value: "Hello")),
+            type: .mutation(Mutation(keyPath: \ExampleModel.State.name, value: "Hello", oldState: ExampleModel.State(name: "old1"))),
             storeID: UUID(),
             componentPath: .init(ExampleModel.self),
             start: Date(),
             end: Date(),
-            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello")],
+            mutations: [Mutation(keyPath: \ExampleModel.State.name, value: "Hello", oldState: ExampleModel.State(name: "old1"))],
             depth: 2,
             source: .capture()
         ),

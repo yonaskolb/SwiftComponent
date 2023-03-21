@@ -151,8 +151,10 @@ extension ComponentStore {
             get: { self.state[keyPath: keyPath] },
             set: { value in
                 let start = Date()
+                let oldState = self.state
+                let oldValue = self.state[keyPath: keyPath]
                 // don't continue if change doesn't lead to state change
-                guard !areMaybeEqual(self.state[keyPath: keyPath], value) else { return }
+                guard !areMaybeEqual(oldValue, value) else { return }
 
                 self.startEvent()
                 //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
@@ -164,7 +166,7 @@ extension ComponentStore {
                     await self.model.binding(keyPath: keyPath, store: self.modelStore)
                 }
 
-                let mutation = Mutation(keyPath: keyPath, value: value)
+                let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
                 self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
 
                 if let onSet, let action = onSet(value) {
@@ -198,8 +200,8 @@ extension ComponentStore {
         let start = Date()
         startEvent()
 
-//        let oldState = state
-        let mutation = Mutation(keyPath: keyPath, value: value)
+        let oldState = state
+        let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
         self.mutations.append(mutation)
         if let animation {
             withAnimation(animation) {

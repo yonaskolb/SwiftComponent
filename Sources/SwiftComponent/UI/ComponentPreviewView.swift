@@ -43,8 +43,9 @@ struct ComponentPreviewView<ComponentType: Component>: View {
                     } label: {
                         Text("Mode")
                     }
+//                    .scaleEffect(1.5)
                     .pickerStyle(.segmented)
-                    .fixedSize()
+//                    .fixedSize()
                 }
             }
             .navigationViewStyle(.stack)

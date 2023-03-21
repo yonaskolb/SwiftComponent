@@ -349,13 +349,33 @@ public struct TaskResult {
 // TODO: then add a typed version for the typed event
 public struct Mutation: Identifiable {
     public let value: Any
+    public let oldState: Any
     public let property: String
     public var valueType: String { String(describing: type(of: value)) }
     public let id = UUID()
+    public var newState: Any { getNewState() }
+    public var oldValue: Any { getOldValue() }
+    private var getOldValue: () -> Any
+    private var getNewState: () -> Any
 
-    init<State, T>(keyPath: KeyPath<State, T>, value: T) {
+    init<State, T>(keyPath: WritableKeyPath<State, T>, value: T, oldState: State) {
+        self.oldState = oldState
         self.value = value
         self.property = keyPath.propertyName ?? "self"
+        self.getOldValue = { oldState[keyPath: keyPath] }
+        self.getNewState = {
+            var state = oldState
+            state[keyPath: keyPath] = value
+            return state
+        }
+    }
+
+    public var stateDiff: String? {
+        CustomDump.diff(oldState, newState)
+    }
+
+    public var valueDiff: String? {
+        CustomDump.diff(oldValue, value)
     }
 }
 

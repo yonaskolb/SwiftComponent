@@ -46,6 +46,7 @@ extension TestStep {
                 for character in string {
                     currentString.append(character)
                     context.model.store.mutate(keyPath, value: currentString as! Value, source: .capture(file: file, line: line))
+                    context.state[keyPath: keyPath] = currentString as! Value
                     if sleepTime > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                     }
@@ -55,6 +56,30 @@ extension TestStep {
                     try? await Task.sleep(nanoseconds: context.delayNanoseconds)
                 }
                 context.model.store.mutate(keyPath, value: value, source: .capture(file: file, line: line))
+                context.state[keyPath: keyPath] = value
+            }
+        }
+    }
+
+    public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value?>, _ value: Value?, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value != nil ? String(describing: value!) : "nil")", file: file, line: line) { context in
+            if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
+                let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
+                var currentString = ""
+                for character in string {
+                    currentString.append(character)
+                    context.model.store.mutate(keyPath, value: currentString as? Value, source: .capture(file: file, line: line))
+                    context.state[keyPath: keyPath] = currentString as? Value
+                    if sleepTime > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(sleepTime))
+                    }
+                }
+            } else {
+                if context.delay > 0 {
+                    try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                }
+                context.model.store.mutate(keyPath, value: value, source: .capture(file: file, line: line))
+                context.state[keyPath: keyPath] = value
             }
         }
     }
@@ -82,7 +107,8 @@ extension TestStep {
             }
 
             let steps = steps(TestStepContext<Child>.self)
-            var childContext = TestContext<Child>(model: componentRoute.viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
+            let model = componentRoute.viewModel
+            var childContext = TestContext<Child>(model: model, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: model.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
                 context.childStepResults.append(results)
@@ -101,7 +127,7 @@ extension TestStep {
             //TODO: get the model that the view is using so it can be visualised
             let viewModel = connection.convert(context.model)
             let steps = steps(TestStepContext<Child>.self)
-            var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions)
+            var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: viewModel.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
                 context.childStepResults.append(results)
@@ -124,10 +150,11 @@ extension TestStep {
             }
             // reset state
             context.model.state = state
+            context.state = state
             context.model.route = route
 
             // don't assert on this step
-            context.assertions = []
+            context.runAssertions = false
 
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)

@@ -130,21 +130,21 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
                 typeSection("Input", icon: "arrow.forward.square", componentDescription.model.input)
                 typeSection("Output", icon: "arrow.backward.square", componentDescription.model.output)
                 typeSection("Route", icon: "arrow.uturn.right.square", componentDescription.model.route)
-                section("States", icon: "square.text.square") {
+                section("States", icon: "square.text.square", color: .teal) {
                     ForEach(componentDescription.component.states, id: \.self) { state in
                         Text(state)
                             .bold()
                     }
-                    .item()
+                    .item(color: .teal)
                     .frame(maxWidth: maxPillWidth)
                 }
                 .isUsed(!componentDescription.component.states.isEmpty)
-                section("Tests", icon: "checkmark.square") {
+                section("Tests", icon: "checkmark.square", color: .teal) {
                     ForEach(componentDescription.component.tests, id: \.self) { test in
                         Text(test)
                             .bold()
                     }
-                    .item()
+                    .item(color: .teal)
                     .frame(maxWidth: maxPillWidth)
                 }
                 .isUsed(!componentDescription.component.tests.isEmpty)
@@ -196,7 +196,7 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
 
     }
 
-    func section(_ name: String, icon: String, @ViewBuilder content: () -> some View) -> some View {
+    func section(_ name: String, icon: String, color: Color = .blue, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading) {
             HStack {
                 Image(systemName: icon)
@@ -205,7 +205,7 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
             }
             .font(.title2)
             .padding(.bottom, 4)
-            .foregroundColor(.blue)
+            .foregroundColor(color)
             content()
         }
         .padding()
@@ -238,7 +238,7 @@ fileprivate extension View {
 //        self.opacity(used ? 1 : 0.2)
     }
 
-    func item() -> some View {
+    func item(color: Color = Color.blue.opacity(0.8)) -> some View {
         self
             .foregroundColor(.white)
 //            .foregroundColor(.primary.opacity(0.6))
@@ -246,7 +246,7 @@ fileprivate extension View {
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: 6).fill(Color.blue.opacity(0.8))
+                RoundedRectangle(cornerRadius: 6).fill(color)
             }
     }
 

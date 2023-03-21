@@ -1,56 +1,78 @@
 import Foundation
 import SwiftUI
 
-enum TestState<Model: ComponentModel> {
-    case notRun
-    case running
-    case failedToRun(TestError)
-    case complete(TestResult<Model>)
-    case pending
-
-    var errors: [TestError]? {
-        switch self {
-            case .complete(let result):
-                let errors = result.errors
-                if !errors.isEmpty { return errors}
-            case .failedToRun(let error):
-                return [error]
-            default: break
-        }
-        return nil
-    }
-
-    var color: Color {
-        switch self {
-            case .notRun: return .accentColor
-            case .running: return .gray
-            case .failedToRun: return .red
-            case .complete(let result): return result.success ? .green : .red
-            case .pending: return .gray
-        }
-    }
-}
-
 struct ComponentTestsView<ComponentType: Component>: View {
 
     typealias Model = ComponentType.Model
+    @State var testRun = TestRun<Model>()
+    @AppStorage("testPreview.showStepTitles") var showStepTitles = true
+    @AppStorage("testPreview.showEvents") var showEvents = false
+    @AppStorage("testPreview.showMutations") var showMutations = false
+    @AppStorage("testPreview.showDependencies") var showDependencies = false
+    @AppStorage("testPreview.showExpectations") var showExpectations = false
+    @AppStorage("testPreview.showErrors") var showErrors = true
+    @AppStorage("testPreview.showWarnings") var showWarnings = true
+    @AppStorage("testPreview.showErrorDiffs") var showErrorDiffs = true
+    @AppStorage("testPreview.testFilter") var testFilter: TestFilter?
+    @State var collapsedTests: [String: Bool] = [:]
+    @State var showViewOptions = false
+    @State var testResults: [TestStepResult] = []
+    @State var errorDiffVisibility: [UUID: Bool] = [:]
+    @State var scrollToStep: UUID?
+    var verticalSpacing = 10.0
+    var diffAddedColor: Color = .green
+    var diffRemovedColor: Color = .red
+    var diffErrorExpectedColor: Color = .green
+    var diffErrorRecievedColor: Color = .red
+    var diffWarningRecievedColor: Color = .orange
 
-    @State var testState: [String: TestState<Model>] = [:]
-    @State var testResults: [String: [TestStep<Model>.ID]] = [:]
-    @State var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
-    @State var showEvents = false
-    @State var showDependencies = false
-    @State var showExpectations = false
-    @State var showErrors = true
-    @State var showStepTitles = true
+    typealias CollapsedTests = [String: [String: Bool]]
 
-    func getTestState(_ test: Test<Model>) -> TestState<Model> {
-        testState[test.name] ?? .notRun
+    enum TestFilter: String {
+        case passed
+        case failed
+    }
+
+    func toggleErrorDiffVisibility(_ id: UUID) {
+        withAnimation {
+            errorDiffVisibility[id] = !showErrorDiff(id)
+        }
+    }
+
+    func showErrorDiff(_ id: UUID) -> Bool {
+        errorDiffVisibility[id] ?? showErrorDiffs
+    }
+
+    func getCollapsedTests() -> [String: Bool] {
+        let collapsedTests =
+        UserDefaults.standard.value(forKey: "testPreview.collapsedTests") as? CollapsedTests ?? [:]
+        return collapsedTests[ComponentType.Model.baseName] ?? [:]
+    }
+
+    func testIsCollapsed(_ test: Test<Model>) -> Bool {
+        collapsedTests[test.name] ?? false
+    }
+
+    func collapseTest(_ test: Test<Model>, _ collapsed: Bool) {
+        withAnimation {
+            collapsedTests[test.name] = collapsed
+        }
+
+        var collapsedAllTests =
+        UserDefaults.standard.value(forKey: "testPreview.collapsedTests") as? CollapsedTests ?? [:]
+        collapsedAllTests[ComponentType.Model.baseName, default: [:]][test.name] = collapsed
+        UserDefaults.standard.setValue(collapsedAllTests, forKey: "testPreview.collapsedTests")
+    }
+
+    func collapseAll() {
+        let allCollapsed = ComponentType.tests.reduce(true) { $0 && testIsCollapsed($1) }
+        ComponentType.tests.forEach { collapseTest($0, !allCollapsed) }
     }
 
     func runAllTests() {
+        collapsedTests = getCollapsedTests()
         Task { @MainActor in
-            ComponentType.tests.forEach { testState[$0.name] = .pending }
+            testRun.reset(ComponentType.tests)
             for test in ComponentType.tests {
                 await runTest(test)
             }
@@ -60,139 +82,417 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @MainActor
     func runTest(_ test: Test<Model>) async {
 
-        guard let state = ComponentType.state(for: test) else { return }
-        testState[test.name] = .running
+        guard let state = ComponentType.state(for: test) else {
+            testRun.testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
+            return
+        }
+        testRun.startTest(test)
 
         let model = ViewModel<Model>(state: state)
         let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
-            Task { @MainActor in
-                testResults[test.name, default: []].append(result.id)
-                testStepResults[result.id] = result
+            DispatchQueue.main.async {
+                testRun.addStepResult(result, test: test)
+                //        withAnimation {
+                testResults = testRun.getTestResults(for: ComponentType.tests)
+                //        }
             }
         }
-        testState[test.name] = .complete(result)
+        testRun.completeTest(test, result: result)
+    }
+
+    func setFilter(_ filter: TestFilter?) {
+        withAnimation {
+            self.testFilter = filter
+        }
+    }
+
+    func showTest(_ test: Test<Model>) -> Bool {
+        switch testFilter {
+            case .none:
+                return true
+            case .passed:
+                return testRun.testState[test.name]?.passed ?? false
+            case .failed:
+                return testRun.testState[test.name]?.failed ?? false
+        }
+    }
+
+    func tap(_ result: TestStepResult) {
+        scrollToStep = result.id
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                ForEach(ComponentType.tests, id: \.name) { test in
-                    testRow(test)
-                    Divider()
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            resultBar
+            Divider()
+            ScrollView {
+                ScrollViewReader { scrollProxy in
+                    LazyVStack(spacing: 20) {
+                        ForEach(ComponentType.tests, id: \.name) { test in
+                            if showTest(test) {
+                                testRow(test)
+                                    .background(Color(white: 1))
+                                    .cornerRadius(12)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 12).stroke(Color(white: 0.8))
+                                    }
+                                //                            .shadow(color: Color(white: 0, opacity: 0.1), radius: 6)
+                            }
+                        }
+                    }
+                    .onChange(of: scrollToStep) { step in
+                        if let step {
+                            withAnimation {
+                                scrollProxy.scrollTo(step, anchor: .top)
+                            }
+                        }
+                    }
                 }
+                .padding(20)
             }
-            //            .animation(.default)
-            .padding(20)
+            .background(Color(white: 0.9))
+            .animation(.default, value: showStepTitles)
+            .animation(.default, value: showDependencies)
+            .animation(.default, value: showEvents)
+            .animation(.default, value: showMutations)
+            .animation(.default, value: showExpectations)
+            .animation(.default, value: showErrors)
+            .animation(.default, value: showErrorDiffs)
+            .animation(.default, value: showWarnings)
+            .animation(.default, value: testFilter)
         }
         .task {
             runAllTests()
         }
     }
 
-    func testRow(_ test: Test<Model>) -> some View {
+    func filterButton(_ filter: TestFilter?, @ViewBuilder label: () -> Text) -> some View {
+        Button(action: { setFilter(filter) }) {
+            label()
+//                .fontWeight(.bold)
+//                .fontWeight(testFilter == filter ? .bold : .medium)
+                .underline(self.testFilter == filter)
+//                .padding(.vertical, 12)
+//                .padding(.horizontal, 16)
+//                .background(Color(white: 0.95))
+//                .cornerRadius(6)
+//                .overlay {
+//                    RoundedRectangle(cornerRadius: 6).stroke(self.testFilter == filter ? Color.gray : Color.clear, lineWidth: 2)
+//                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    var header: some View {
         VStack(alignment: .leading) {
-            testHeader(test)
-                .padding(.bottom, 8)
-            if let steps = testResults[test.name] {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(steps, id: \.self) { step in
-                        if let stepResult = testStepResults[step], showDependencies || stepResult.title != "Dependency" {
-                            stepResultRow(stepResult, test: test)
+            HStack(alignment: .bottom, spacing: 20) {
+                filterButton(.none) {
+                    Text("All Tests \(ComponentType.tests.count)")
+                        .foregroundColor(.testContent)
+                }
+                filterButton(.passed) {
+                    Text("Passed \(testRun.testState.values.filter { $0.passed }.count)")
+                        .foregroundColor(.green)
+                }
+                filterButton(.failed) {
+                    Text("Failed \(testRun.testState.values.filter { $0.failed }.count)")
+                        .foregroundColor(.red)
+                }
+                Spacer()
+                HStack(spacing: 30) {
+                    Button(action: { showViewOptions = true }) {
+                        Text("Configuration")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showViewOptions) {
+                        VStack(alignment: .trailing, spacing: 12) {
+                            Toggle("Show step titles", isOn: $showStepTitles)
+                            Toggle("Show dependencies", isOn: showStepTitles ? $showDependencies : .constant(false))
+                                .disabled(!showStepTitles)
+                            Toggle("Show events", isOn: $showEvents)
+                            Toggle("Show mutation diffs", isOn: $showMutations)
+                            Toggle("Show expectations", isOn: $showExpectations.animation())
+                            Toggle("Show assertion warnings", isOn: $showWarnings)
+                            Toggle("Show errors", isOn: $showErrors)
+                            Toggle("Show error diffs", isOn: showErrors ? $showErrorDiffs : .constant(false))
+                                .disabled(!showErrors)
                         }
+                        .padding(24)
+                    }
+                    Button(action: collapseAll) {
+                        Text("Collapse all")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .font(.title3)
+        }
+        .padding()
+    }
+
+    var resultBar: some View {
+        HStack(spacing: 0) {
+            ForEach(testResults, id: \.id) { result in
+                Button(action: { tap(result) }) {
+                    if result.success {
+                        if showWarnings, !result.assertionWarnings.isEmpty {
+                            Color.orange
+                        } else {
+                            Color.green
+                        }
+                    } else {
+                        Color.red
                     }
                 }
-                .padding(.leading, 30)
+                .frame(height: 30)
+//                .transition(.move(edge: .trailing))
+            }
+        }
+        .frame(height: 30)
+        .cornerRadius(6)
+        .clipped()
+        .padding(.horizontal)
+        .padding(.bottom)
+    }
+
+    func testRow(_ test: Test<Model>) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            testHeader(test)
+                .padding(16)
+                .background(Color(white: 0.98))
+            if !testIsCollapsed(test) {
+                Divider()
+                    .padding(.bottom, 8)
+                if let steps = testRun.testResults[test.name] {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(steps, id: \.self) { step in
+                            if let stepResult = testRun.testStepResults[step], showDependencies || stepResult.title != "Dependency" {
+                                stepResultRow(stepResult, test: test)
+                                    .id(step)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
+                }
             }
         }
     }
 
+    func testHeader(_ test: Test<Model>) -> some View {
+        Button {
+            collapseTest(test, !testIsCollapsed(test))
+//            Task { @MainActor in
+//                await runTest(test)
+//            }
+        } label: {
+            let testResult = testRun.getTestState(test)
+            HStack {
+                HStack(spacing: 8) {
+                    ZStack {
+                        switch testResult {
+                            case .running:
+                                Image(systemName: "circle")
+                            case .complete(let result):
+                                if result.success {
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                                } else {
+                                    Image(systemName: "exclamationmark.octagon.fill").foregroundColor(.red)
+                                }
+                            case .notRun:
+                                Image(systemName: "circle")
+                            case .pending:
+                                Image(systemName: "play.circle").foregroundColor(.gray)
+                            case .failedToRun:
+                                Image(systemName: "x.circle.fill").foregroundColor(.red)
+                        }
+                    }
+                    .foregroundColor(testResult.color)
+                    Text(test.name)
+                        .bold()
+                        .foregroundColor(testResult.color)
+                }
+                .font(.title3)
+                Spacer()
+                switch testResult {
+                    case .complete(let result):
+                        Text(result.formattedDuration)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                    default:
+                        EmptyView()
+                }
+                //                if !runningTests {
+                //                    Image(systemName: "play.circle")
+                //                        .font(.title3)
+                //                }
+                collapseIcon(collapsed: testIsCollapsed(test))
+                    .foregroundColor(.secondary)
+
+            }
+            .contentShape(Rectangle())
+            //            .animation(nil)
+        }
+        .buttonStyle(.plain)
+    }
+
+    func collapseIcon(collapsed: Bool) -> some View {
+        ZStack {
+            Image(systemName: "chevron.right")
+                .opacity(collapsed ? 1 : 0)
+            Image(systemName: "chevron.down")
+                .opacity(!collapsed ? 1 : 0)
+        }
+    }
+
     func stepColor(stepResult: TestStepResult, test: Test<Model>) -> Color {
-        switch getTestState(test) {
+        switch testRun.getTestState(test) {
             case .complete(let result):
                 if result.success {
                     return .green
                 } else {
                     return stepResult.success ? .secondary : .red
                 }
-            default: return .primary
+            default: return .secondary
         }
     }
 
     func stepResultRow(_ stepResult: TestStepResult, test: Test<Model>) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // groups are to fix a rare compiler type inference error
-            Group {
-                if showStepTitles {
-                    stepTitle(stepResult, test: test)
+        HStack(alignment: .top, spacing: 0) {
+            if showStepTitles {
+                HStack {
+//                                Group {
+//                                    if stepResult.success {
+//                                        Image(systemName: "checkmark.circle.fill")
+//                                    } else {
+//                                        Image(systemName: "x.circle.fill")
+//                                    }
+//                                }
+                    bullet
+                        .padding(4)
+                        .foregroundColor(stepColor(stepResult: stepResult, test: test))
+                        .padding(.trailing, 4)
+                        .padding(.top, verticalSpacing)
                 }
             }
-            Group {
-                if showEvents, !stepResult.events.isEmpty {
-                    stepEvents(stepResult.events)
-                        .padding(.leading, 28)
-                        .padding(.top, 8)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // groups are to fix a rare compiler type inference error
+                Group {
+                    if showStepTitles {
+                        HStack(spacing: 0) {
+                            Text(stepResult.title)
+                                .bold()
+                            if let details = stepResult.details {
+                                Text(" " + details)
+                            }
+                        }
+                            .lineLimit(1)
+//                            .foregroundColor(stepColor(stepResult: stepResult, test: test))
+                            .foregroundColor(.testContent)
+                            .padding(.top, verticalSpacing)
+                    }
                 }
-            }
-            Group {
-                if showExpectations, !stepResult.expectations.isEmpty {
-                    stepExpectations(stepResult.expectations)
-                        .padding(.leading, 28)
-                        .padding(.top, 8)
+                Group {
+                    if showEvents, !stepResult.events.isEmpty {
+                        stepEvents(stepResult.events)
+                            .padding(.top, verticalSpacing)
+                    }
                 }
-            }
-            Group {
-                if showErrors, !stepResult.errors.isEmpty {
-                    stepResultErrors(stepResult.errors)
-                        .padding(.leading, 28)
-                        .padding(.top, 2)
+                Group {
+                    if !showEvents, showMutations, !stepResult.mutations.isEmpty {
+                        stepMutations(stepResult.mutations)
+                            .padding(.top, verticalSpacing)
+                    }
                 }
-            }
-            Group {
-                if !stepResult.children.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(stepResult.children, id: \.id) { result in
-                            if showDependencies || result.title != "Dependency" {
-                                // AnyView fixes compiler error
-                                AnyView(self.stepResultRow(result, test: test))
+                Group {
+                    if !stepResult.children.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(stepResult.children, id: \.id) { result in
+                                if showDependencies || result.title != "Dependency" {
+                                    // AnyView fixes compiler error
+                                    AnyView(self.stepResultRow(result, test: test))
+                                }
                             }
                         }
                     }
-                    .padding(.leading, 28)
-                    .padding(.top, 10)
+                }
+                Group {
+                    if showExpectations, !stepResult.expectations.isEmpty {
+                        stepExpectations(stepResult.expectations)
+                            .padding(.top, verticalSpacing)
+                    }
+                }
+                Group {
+                    if showErrors, !stepResult.errors.isEmpty {
+                        stepResultErrors(stepResult.errors)
+                            .padding(.top, verticalSpacing)
+                    }
+                }
+                Group {
+                    if showWarnings, !stepResult.assertionWarnings.isEmpty {
+                        stepResultErrors(stepResult.assertionWarnings, warning: true)
+                            .padding(.top, verticalSpacing)
+                    }
                 }
             }
-        }
-    }
-
-    func stepTitle(_ stepResult: TestStepResult, test: Test<Model>) -> some View {
-        HStack {
-            Group {
-                if stepResult.success {
-                    Image(systemName: "checkmark.circle.fill")
-                } else {
-                    Image(systemName: "x.circle.fill")
-                }
-            }
-            .foregroundColor(stepColor(stepResult: stepResult, test: test))
-
-            Text(stepResult.description)
-                .bold()
-                .lineLimit(1)
-                .foregroundColor(stepColor(stepResult: stepResult, test: test))
         }
     }
 
     func stepEvents(_ events: [Event]) -> some View {
         VStack(alignment: .leading, spacing:8) {
             ForEach(events.sorted { $0.start < $1.start }) { event in
-                HStack {
-                    //                            Text(event.type.emoji)
-                    Text("Event: ") +
-                    Text(event.type.title).bold() +
-                    Text(" " + event.type.details)
+                VStack(alignment: .leading) {
+                    NavigationLink {
+                        ComponentEventView(event: event, allEvents: events)
+                    } label: {
+                        HStack {
+                            //                            Text(event.type.emoji)
+                            Text("Event: ") +
+                            Text(event.type.title).bold() +
+                            Text(" " + event.type.details)
+                            Spacer()
+                            Text(event.path.droppingRoot?.string ?? "")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    switch event.type {
+                        case .mutation(let mutation):
+                            if showMutations {
+                                mutationView(mutation)
+                            }
+                        default:
+                            EmptyView()
+                    }
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(.testContent)
             }
+        }
+    }
+
+    func stepMutations(_ mutations: [Mutation]) -> some View {
+        VStack(alignment: .leading, spacing:8) {
+            ForEach(mutations, id: \.id) { mutation in
+                mutationView(mutation)
+            }
+        }
+    }
+
+    @ViewBuilder
+    func mutationView(_ mutation: Mutation) -> some View {
+        if let diff = mutation.stateDiff {
+            VStack(alignment: .leading) {
+                diff
+                    .diffText(removedColor: diffRemovedColor, addedColor: diffAddedColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .textContainer()
+            .cornerRadius(8)
+            .padding(.bottom, 8)
         }
     }
 
@@ -202,111 +502,125 @@ struct ComponentTestsView<ComponentType: Component>: View {
                 HStack {
                     Text(expectation)
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(.testContent)
             }
         }
     }
 
-    func stepResultErrors(_ errors: [TestError]) -> some View {
-        ForEach(errors, id: \.id) { error in
-            VStack(alignment: .leading, spacing: 4) {
-                Text(error.error)
-                    .foregroundColor(.red)
-                if let diff = error.diff {
-                    VStack(alignment: .leading, spacing: 4) {
-                        diff
-                            .diffText()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(16)
-                    .background {
-                        RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1))
-                    }
-                    .background {
-                        RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2))
-                    }
-                }
-            }
-        }
-    }
-
-    func testHeader(_ test: Test<Model>) -> some View {
-        Button {
-            Task { @MainActor in
-                await runTest(test)
-            }
-        } label: {
-            HStack(spacing: 8) {
-                ZStack {
-                    ProgressView().hidden()
-                    switch getTestState(test) {
-                        case .running:
-                            ProgressView().progressViewStyle(CircularProgressViewStyle())
-                        case .complete(let result):
-                            if result.success {
-                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                            } else {
-                                Image(systemName: "x.circle.fill").foregroundColor(.red)
+    func stepResultErrors(_ errors: [TestError], warning: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(errors, id: \.id) { error in
+                VStack(alignment: .leading, spacing: 0) {
+                    Button(action: { toggleErrorDiffVisibility(error.id) }) {
+                        HStack {
+                            Image(systemName: warning ? "exclamationmark.triangle.fill" : "exclamationmark.octagon.fill")
+                            Text(error.error)
+                                .bold()
+                            Spacer()
+                            if error.diff != nil {
+                                collapseIcon(collapsed: !showErrorDiff(error.id))
                             }
-                        case .notRun:
-                            Image(systemName: "circle")
-                        case .pending:
-                            Image(systemName: "play.circle").foregroundColor(.gray)
-                        case .failedToRun:
-                            Image(systemName: "x.circle.fill").foregroundColor(.red)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                        .background {
+                            warning ? Color.orange : Color.red
+                        }
+                        .contentShape(Rectangle())
+                        //                    .shadow(radius: 10)
+                    }
+                    .buttonStyle(.plain)
+                    if showErrorDiffs, showErrorDiff(error.id), let diff = error.diff {
+//                        Divider()
+                        diff
+                            .diffText(removedColor: warning ? diffWarningRecievedColor : diffErrorRecievedColor, addedColor: diffErrorExpectedColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textContainer()
                     }
                 }
-                .foregroundColor(getTestState(test).color)
-                Text(test.name)
-                    .bold()
-                    .foregroundColor(getTestState(test).color)
-                Spacer()
-                //                if !runningTests {
-                //                    Image(systemName: "play.circle")
-                //                        .font(.title3)
-                //                }
+                .cornerRadius(8)
+                .clipped()
             }
-            .animation(nil)
-            .font(.title3)
         }
-        .buttonStyle(.plain)
+    }
+
+    var bullet: some View {
+        Circle().frame(width: 12, height: 12)
+    }
+}
+
+extension Color {
+
+    static let testContent: Color = Color(white: 0.4)
+}
+
+extension View {
+
+    func textContainer() -> some View {
+        self
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .background(Color(white: 0.15))
     }
 }
 
 extension String {
 
-    private func getLine(_ line: String) -> Text {
+    private func getLine(_ line: String, textColor: Color, removedColor: Color, addedColor: Color, multiline: Bool) -> Text {
         var line = String(line)
-        var color = Color.secondary
+        var color = textColor
         var change: Bool = false
         if line.hasPrefix("+") {
             line = " " + String(line.dropFirst(1))
-            color = .green
+            color = addedColor
             change = true
         } else if line.hasPrefix("-") {
             line = " " + String(line.dropFirst(1))
-            color = .red
+            color = removedColor
             change = true
         }
-        var text = Text(line)
-            .foregroundColor(color)
+        let parts = line.split(separator: ":")
+        let text: Text
+        let recolorPropertyNames = false
+        if recolorPropertyNames, parts.count > 1, multiline {
+            let property = Text(parts[0] + ":")
+//                .foregroundColor(color)
+                .foregroundColor(color.opacity(0.5))
+//                .foregroundColor(textColor)
+//                .bold()
+            let rest = Text(parts.dropFirst().joined(separator: ":"))
+                .foregroundColor(color)
+            text = property + rest
+        } else {
+            text = Text(line)
+                .foregroundColor(color)
+        }
         if change {
-            // text = text.bold()
+//             text = text.bold()
         }
         return text
     }
 
-    func diffText() -> some View {
-        var trimmedDiff = self
-            .trimmingCharacters(in: CharacterSet([",", "(", ")"]))
-        return ForEach(Array(trimmedDiff.components(separatedBy: "\n").enumerated()), id: \.0) { _, line in
-            getLine(line)
+    func diffText(textColor: Color = Color(white: 0.8), removedColor: Color = .red, addedColor: Color = .green) -> some View {
+        var text = Text("")
+        let lines = self.components(separatedBy: "\n")
+        for (index, line) in lines.enumerated() {
+            var line = line
+            if index != lines.count - 1 {
+                line += "\n"
+            }
+            text = text + getLine(line, textColor: textColor, removedColor: removedColor, addedColor: addedColor, multiline: lines.count > 2)
         }
+        return text.fixedSize(horizontal: false, vertical: true)
     }
 }
 
 struct ComponentTests_Previews: PreviewProvider {
     static var previews: some View {
-        ComponentTestsView<ExampleComponent>()
+        NavigationView {
+            ComponentTestsView<ExampleComponent>()
+        }
+        .navigationViewStyle(.stack)
     }
 }
