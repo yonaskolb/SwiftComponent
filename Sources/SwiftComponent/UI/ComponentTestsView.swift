@@ -565,9 +565,9 @@ extension View {
     }
 }
 
-extension String {
+extension [String] {
 
-    private func getLine(_ line: String, textColor: Color, removedColor: Color, addedColor: Color, multiline: Bool) -> Text {
+    private func getTextLine(_ line: String, textColor: Color, removedColor: Color, addedColor: Color, multiline: Bool) -> Text {
         var line = String(line)
         var color = textColor
         var change: Bool = false
@@ -604,13 +604,13 @@ extension String {
 
     func diffText(textColor: Color = Color(white: 0.8), removedColor: Color = .red, addedColor: Color = .green) -> some View {
         var text = Text("")
-        let lines = self.components(separatedBy: "\n")
+        let lines = self
         for (index, line) in lines.enumerated() {
             var line = line
             if index != lines.count - 1 {
                 line += "\n"
             }
-            text = text + getLine(line, textColor: textColor, removedColor: removedColor, addedColor: addedColor, multiline: lines.count > 2)
+            text = text + getTextLine(line, textColor: textColor, removedColor: removedColor, addedColor: addedColor, multiline: lines.count > 2)
         }
         return text.fixedSize(horizontal: false, vertical: true)
     }

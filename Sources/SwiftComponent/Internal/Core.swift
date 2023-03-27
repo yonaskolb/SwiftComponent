@@ -26,6 +26,31 @@ func dumpLine(_ value: Any) -> String {
     return string
 }
 
+struct StateDump {
+
+    static func diff(_ old: Any, _ new: Any) -> [String]? {
+        guard let diff = CustomDump.diff(old, new) else { return nil }
+        let lines = diff.components(separatedBy: "\n")
+        return lines
+            .map { line in
+                if line.hasSuffix(",") || line.hasSuffix("(") {
+                    return String(line.dropLast())
+                } else if line.hasSuffix(" [") {
+                    return String(line.dropLast(2))
+                } else {
+                    return line
+                }
+            }
+            .filter {
+                let actual = $0
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "+"))
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+                    .trimmingCharacters(in: .whitespaces)
+                return actual != ")" && actual != "]"
+            }
+    }
+}
+
 /// returns true if lhs and rhs are equatable and are equal
 func areMaybeEqual(_ lhs: Any, _ rhs: Any) -> Bool {
     if let lhs = lhs as? any Equatable {

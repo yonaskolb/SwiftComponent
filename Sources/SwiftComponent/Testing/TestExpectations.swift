@@ -1,5 +1,4 @@
 import Foundation
-import CustomDump
 
 extension TestStep {
 
@@ -13,7 +12,7 @@ extension TestStep {
                 return nil
             }
             if let foundOutput {
-                if let difference = diff(foundOutput, output) {
+                if let difference = StateDump.diff(foundOutput, output) {
                     context.error("Unexpected output value \(getEnumCase(foundOutput).name.quoted)", diff: difference)
                 }
             } else {
@@ -80,7 +79,7 @@ extension TestStep {
             }
             if let route = foundRoute {
                 if let foundComponentRoute = path.extract(from: route) {
-                    if let difference = diff(foundComponentRoute.state, expectedState) {
+                    if let difference = StateDump.diff(foundComponentRoute.state, expectedState) {
                         context.error("Unexpected state in route \(getEnumCase(route).name.quoted)", diff: difference)
                     }
                     // TODO: compare nested route
@@ -121,7 +120,7 @@ extension TestStep {
             var expectedState = currentState
             modify(&expectedState)
             modify(&context.testContext.state)
-            if let difference = diff(expectedState, currentState) {
+            if let difference = StateDump.diff(expectedState, currentState) {
                 context.error("Unexpected State", diff: difference)
             }
         }
@@ -134,7 +133,7 @@ extension TestStep {
             var expectedState = currentState
             expectedState[keyPath: keyPath] = value
             context.testContext.state[keyPath: keyPath] = value
-            if let difference = diff(expectedState, currentState) {
+            if let difference = StateDump.diff(expectedState, currentState) {
                 context.error("Unexpected \(keyPath.propertyName?.quoted ?? "State")", diff: difference)
             }
         }

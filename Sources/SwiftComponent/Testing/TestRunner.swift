@@ -1,5 +1,4 @@
 import Foundation
-import CustomDump
 
 public struct TestContext<Model: ComponentModel> {
     public let model: ViewModel<Model>

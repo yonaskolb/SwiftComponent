@@ -1,6 +1,5 @@
 import Foundation
 import Combine
-import CustomDump
 import SwiftUI
 
 public class EventStore {
@@ -370,12 +369,11 @@ public struct Mutation: Identifiable {
         }
     }
 
-    public var stateDiff: String? {
-        CustomDump.diff(oldState, newState)
+    public var stateDiff: [String]? {
+        StateDump.diff(oldState, newState)
     }
 
-    public var valueDiff: String? {
-        CustomDump.diff(oldValue, value)
+    public var valueDiff: [String]? {
+        StateDump.diff(oldValue, value)
     }
 }
-

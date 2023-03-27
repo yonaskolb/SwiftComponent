@@ -1,5 +1,4 @@
 import Foundation
-import CustomDump
 
 public enum TestAssertion: String, CaseIterable {
     case task
@@ -61,7 +60,7 @@ extension TestAssertion {
                     }
                 }
             case .state:
-                if let diff = diff(context.state, context.model.state) {
+                if let diff = StateDump.diff(context.state, context.model.state) {
                     errors.append(.init(error: "Unexpected state", diff: diff, source: source))
                 }
             case .dependency: break

@@ -1,5 +1,4 @@
 import Foundation
-import CustomDump
 
 public struct TestExpectation<Model: ComponentModel> {
 
@@ -33,7 +32,7 @@ public struct TestExpectation<Model: ComponentModel> {
             return nil
         }
 
-        mutating func error(_ error: String, diff: String? = nil) {
+        mutating func error(_ error: String, diff: [String]? = nil) {
             errors.append(TestError(error: error, diff: diff, source: source))
         }
     }

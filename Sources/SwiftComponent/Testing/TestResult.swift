@@ -80,14 +80,14 @@ public struct TestResult<Model: ComponentModel> {
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     public var error: String
-    public var diff: String?
+    public var diff: [String]?
     public let source: Source
     public let id = UUID()
 
     public var description: String {
         var string = error
         if let diff {
-            string += ":\n\(diff)"
+            string += ":\n\(diff.joined(separator: "\n"))"
         }
         return string
     }

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftGUI
-import CustomDump
 
 struct ComponentDebugView<Model: ComponentModel>: View {
 
