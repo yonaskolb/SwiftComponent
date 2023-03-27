@@ -167,19 +167,18 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func filterButton(_ filter: TestFilter?, @ViewBuilder label: () -> Text) -> some View {
-        Button(action: { setFilter(filter) }) {
-            label()
-//                .fontWeight(.bold)
-//                .fontWeight(testFilter == filter ? .bold : .medium)
-                .underline(self.testFilter == filter)
-//                .padding(.vertical, 12)
-//                .padding(.horizontal, 16)
-//                .background(Color(white: 0.95))
-//                .cornerRadius(6)
-//                .overlay {
-//                    RoundedRectangle(cornerRadius: 6).stroke(self.testFilter == filter ? Color.gray : Color.clear, lineWidth: 2)
-//                }
+    func filterButton(_ filter: TestFilter?, color: Color, label: String, count: Int) -> some View {
+        let selected = testFilter == filter
+        return Button(action: { setFilter(filter) }) {
+           Text("\(label) \(count)")
+                .foregroundColor(selected ? .white : color)
+                .fontWeight(.bold)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(selected ? color : Color(white: 0.95))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6).stroke(color, lineWidth: 2)
+                }
         }
         .buttonStyle(.plain)
     }
@@ -187,22 +186,13 @@ struct ComponentTestsView<ComponentType: Component>: View {
     var header: some View {
         VStack(alignment: .leading) {
             HStack(alignment: .bottom, spacing: 20) {
-                filterButton(.none) {
-                    Text("All Tests \(ComponentType.tests.count)")
-                        .foregroundColor(.testContent)
-                }
-                filterButton(.passed) {
-                    Text("Passed \(testRun.testState.values.filter { $0.passed }.count)")
-                        .foregroundColor(.green)
-                }
-                filterButton(.failed) {
-                    Text("Failed \(testRun.testState.values.filter { $0.failed }.count)")
-                        .foregroundColor(.red)
-                }
+                filterButton(.none, color: Color(white: 0.6), label: "Tests", count: ComponentType.tests.count)
+                filterButton(.passed, color: .green, label: "Passed", count: testRun.testState.values.filter { $0.passed }.count)
+                filterButton(.failed, color: .red, label: "Failed", count: testRun.testState.values.filter { $0.failed }.count)
                 Spacer()
                 HStack(spacing: 30) {
                     Button(action: { showViewOptions = true }) {
-                        Text("Configuration")
+                        Text("Settings")
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
@@ -222,11 +212,12 @@ struct ComponentTestsView<ComponentType: Component>: View {
                         .padding(24)
                     }
                     Button(action: collapseAll) {
-                        Text("Collapse all")
+                        Text("Collapse")
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
+                .padding(.trailing, 16)
             }
             .font(.title3)
         }
@@ -523,7 +514,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
                         .background {
                             warning ? Color.orange : Color.red
                         }
