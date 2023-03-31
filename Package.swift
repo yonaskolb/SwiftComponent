@@ -14,7 +14,7 @@ let package = Package(
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "0.1.4"),
         .package(url: "https://github.com/pointfreeco/swift-parsing", from: "0.10.0"),
-        .package(url: "https://github.com/Sherlouk/AccessibilitySnapshot", branch: "update-snapshot-testing"),
+        .package(url: "https://github.com/cashapp/AccessibilitySnapshot", from: "0.6.0"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.4"),
     ],
     targets: [

@@ -3,10 +3,10 @@
     {
       "identity" : "accessibilitysnapshot",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Sherlouk/AccessibilitySnapshot",
+      "location" : "https://github.com/cashapp/AccessibilitySnapshot",
       "state" : {
-        "branch" : "update-snapshot-testing",
-        "revision" : "01c85000a0700ec226720b0b646fc3e3d260642a"
+        "revision" : "482db2fd4251cce237d8106073a53ad5289ce739",
+        "version" : "0.6.0"
       }
     },
     {
@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-snapshot-testing.git",
       "state" : {
-        "revision" : "f29e2014f6230cf7d5138fc899da51c7f513d467",
-        "version" : "1.10.0"
+        "revision" : "cef5b3f6f11781dd4591bdd1dd0a3d22bd609334",
+        "version" : "1.11.0"
       }
     },
     {
