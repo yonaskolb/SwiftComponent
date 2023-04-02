@@ -3,8 +3,16 @@ import Foundation
 
 extension KeyPath {
 
-    //TODO: parse debug subscription in swift 5.8, for computed variable names https://github.com/apple/swift-evolution/blob/main/proposals/0369-add-customdebugdescription-conformance-to-anykeypath.md
     var propertyName: String? {
+        if #available(iOS 16.4, *) {
+            // Is in format "\State.standup.name" so drop the slash and type
+            return debugDescription.dropFirst().split(separator: ".").dropFirst().joined(separator: ".")
+        } else {
+            return mirrorPropertyName
+        }
+    }
+
+    private var mirrorPropertyName: String? {
         guard let offset = MemoryLayout<Root>.offset(of: self) else {
             return nil
         }
