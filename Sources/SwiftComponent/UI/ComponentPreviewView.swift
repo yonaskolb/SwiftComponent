@@ -10,7 +10,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
         case dashboard = "Component"
         case view = "View"
         case description = "Description"
-        //case code = "Code"
+        case code = "Code"
         case tests = "Tests"
     }
 
@@ -28,8 +28,8 @@ struct ComponentPreviewView<ComponentType: Component>: View {
                             .previewReference()
                     case .tests:
                         ComponentTestsView<ComponentType>()
-    //                case .code:
-    //                    ComponentEditorView<ComponentType>()
+                    case .code:
+                        ComponentEditorView<ComponentType>()
                     case .description:
                         ComponentDescriptionView<ComponentType>()
                 }

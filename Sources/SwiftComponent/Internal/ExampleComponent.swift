@@ -97,14 +97,14 @@ struct ExampleChildModel: ComponentModel {
 
 struct ExampleView: ComponentView {
 
+    @ObservedObject var model: ViewModel<ExampleModel>
+
     func routeView(_ route: ExampleModel.Route) -> some View {
         switch route {
             case .open(let route):
-            ExampleChildView(model: route.viewModel)
+                ExampleChildView(model: route.viewModel)
         }
     }
-
-    @ObservedObject var model: ViewModel<ExampleModel>
 
     var view: some View {
         VStack {
