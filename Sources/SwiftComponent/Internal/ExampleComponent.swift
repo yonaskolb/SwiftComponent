@@ -164,7 +164,7 @@ struct ExampleComponent: PreviewProvider, Component {
             Step.action(.open)
                 .expectRoute(/Model.Route.open, state: .init(name: "Main"))
             Step.route(/Model.Route.open) {
-                $0.action(.tap(2))
+                Step.action(.tap(2))
             }
         }
     }

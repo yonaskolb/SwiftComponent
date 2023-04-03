@@ -30,8 +30,9 @@ public struct Test<Model: ComponentModel> {
 }
 
 @resultBuilder
-public struct TestBuilder {
-    public static func buildBlock<ComponentType: ComponentModel>() -> [Test<ComponentType>] { [] }
-    public static func buildBlock<ComponentType: ComponentModel>(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { tests }
-    public static func buildBlock<ComponentType: ComponentModel>(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { tests }
+public struct TestBuilder<Model: ComponentModel> {
+    public static func buildBlock() -> [Test<Model>] { [] }
+    public static func buildBlock(_ tests: Test<Model>...) -> [Test<Model>] { tests }
+    public static func buildBlock(_ tests: [Test<Model>]) -> [Test<Model>] { tests }
+    public static func buildExpression(_ test: Test<Model>) -> Test<Model> { test }
 }

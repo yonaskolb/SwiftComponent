@@ -1,6 +1,7 @@
 import Foundation
 
 public typealias TestStepContext<Model: ComponentModel> = TestStep<Model>
+public typealias Step = TestStep
 
 public struct TestStep<Model: ComponentModel>: Identifiable {
 
@@ -40,5 +41,5 @@ public struct TestStepBuilder<Model: ComponentModel> {
     public static func buildBlock() -> [TestStep<Model>] { [] }
     public static func buildBlock(_ tests: TestStep<Model>...) -> [TestStep<Model>] { tests }
     public static func buildBlock(_ tests: [TestStep<Model>]) -> [TestStep<Model>] { tests }
-    public static func buildArray(_ tests: [[TestStep<Model>]]) -> [TestStep<Model>] { Array(tests.joined()) }
+    public static func buildExpression(_ test: TestStep<Model>) -> TestStep<Model> { test }
 }

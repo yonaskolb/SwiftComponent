@@ -9,13 +9,12 @@ public protocol Component: PreviewProvider {
     typealias State = ComponentState<Model>
 
     typealias Tests = [Test<Model>]
-    typealias Step = TestStep<Model>
 
     typealias Route = ComponentModelRoute<Model.Route>
     typealias Routes = [Route]
 
     @StateBuilder static var states: States { get }
-    @TestBuilder static var tests: Tests { get }
+    @TestBuilder<Model> static var tests: Tests { get }
     @RouteBuilder static var routes: Routes { get }
     @ViewBuilder static func view(model: ViewModel<Model>) -> ViewType
     static var testAssertions: Set<TestAssertion> { get }

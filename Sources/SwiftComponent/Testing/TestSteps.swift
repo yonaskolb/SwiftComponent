@@ -91,12 +91,6 @@ extension TestStep {
     }
 
     public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
-        Self.route(path, file: file, line: line) { _ in
-            steps()
-        }
-    }
-
-    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping (TestStepContext<Child>.Type) -> [TestStep<Child>]) -> Self {
         .init(title: "Route", details: Child.baseName, file: file, line: line) { context in
             guard let route = context.model.store.route else { return }
             guard let componentRoute = path.extract(from: route) else { return }
@@ -106,7 +100,7 @@ extension TestStep {
                 try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
             }
 
-            let steps = steps(TestStepContext<Child>.self)
+            let steps = steps()
             let model = componentRoute.viewModel
             var childContext = TestContext<Child>(model: model, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: model.state)
             for step in steps {
@@ -117,16 +111,10 @@ extension TestStep {
     }
 
     public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
-        Self.scope(connection, file: file, line: line) { _ in
-            steps()
-        }
-    }
-
-    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping (TestStepContext<Child>.Type) -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
             //TODO: get the model that the view is using so it can be visualised
             let viewModel = connection.convert(context.model)
-            let steps = steps(TestStepContext<Child>.self)
+            let steps = steps()
             var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: viewModel.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
