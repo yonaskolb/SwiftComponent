@@ -85,7 +85,7 @@ extension TestStep {
     }
 
     public static func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Dependency", details: "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
+        .init(title: "Dependency", details: keyPath.propertyName ?? "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
             context.dependencies[keyPath: keyPath] = dependency
         }
     }
