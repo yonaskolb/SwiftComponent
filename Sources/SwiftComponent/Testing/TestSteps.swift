@@ -20,6 +20,12 @@ extension TestStep {
         }
     }
 
+    public static func disappear(file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Disappear", file: file, line: line) { context in
+            context.model.disappear()
+        }
+    }
+
     public static func action(_ action: Model.Action, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Action", details: getEnumCase(action).name, file: file, line: line) { context in
             if context.delay > 0 {

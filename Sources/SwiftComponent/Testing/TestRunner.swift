@@ -44,10 +44,6 @@ extension ViewModel {
         state = initialState
         route = nil
 
-        if test.appear {
-            await appear(first: true)
-        }
-
         var stepResults: [TestStepResult] = []
         var context = TestContext<Model>(model: self, dependencies: testDependencyValues, delay: delay, assertions: assertions, state: initialState)
         for step in test.steps {

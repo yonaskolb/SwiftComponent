@@ -40,6 +40,7 @@ class ComponentStore<Model: ComponentModel> {
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
     var handledAppear = false
+    var handledDisappear = false
     var mutationAnimation: Animation?
     var sendGlobalEvents = true
     private var lastSource: Source? // used to get at the original source of a mutation, due to no source info on dynamic member lookup
@@ -188,6 +189,17 @@ extension ComponentStore {
         handledAppear = true
         await model.appear(store: modelStore)
         self.sendEvent(type: .appear(first: first), start: start, mutations: mutations, source: .capture(file: file, line: line))
+    }
+
+    func disappear(file: StaticString = #file, line: UInt = #line) {
+        Task { @MainActor in
+            let start = Date()
+            startEvent()
+            mutations = []
+            handledDisappear = true
+            await model.disappear(store: modelStore)
+            self.sendEvent(type: .disappear, start: start, mutations: mutations, source: .capture(file: file, line: line))
+        }
     }
 }
 

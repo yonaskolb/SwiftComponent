@@ -50,11 +50,15 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
     var body: some View {
         view
         .task { @MainActor in
-            // don't call this for other reference views
             if !isPreviewReference {
                 let first = !hasAppeared
                 hasAppeared = true
                 await model.appear(first: first)
+            }
+        }
+        .onDisappear {
+            if !isPreviewReference {
+                model.disappear()
             }
         }
 #if DEBUG

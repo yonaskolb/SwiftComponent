@@ -82,6 +82,7 @@ public enum ModelEvent<Model: ComponentModel> {
     case input(Model.Input)
     case output(Model.Output)
     case appear(first: Bool)
+    case disappear
     case task(TaskResult)
     case route(Model.Route)
     case dismissRoute
@@ -104,6 +105,8 @@ extension Event {
                 return .output(output as! Model.Output)
             case .appear(let first):
                 return .appear(first: first)
+            case .disappear:
+                return .disappear
             case .task(let result):
                 return .task(result)
             case .route(let route):
@@ -126,6 +129,7 @@ public enum EventType {
     case input(Any)
     case output(Any)
     case appear(first: Bool)
+    case disappear
     case task(TaskResult)
     case route(Any)
     case dismissRoute
@@ -138,6 +142,7 @@ public enum EventType {
             case .output: return .output
             case .input: return .input
             case .appear: return .appear
+            case .disappear: return .disappear
             case .task: return .task
             case .route: return .route
             case .dismissRoute: return .dismissRoute
@@ -175,6 +180,8 @@ extension EventType {
                 return "Input Name"
             case .appear:
                 return ""
+            case .disappear:
+                return ""
             case .task:
                 return "Name"
             case .mutation:
@@ -199,6 +206,8 @@ extension EventType {
             case .input:
                 return "Input"
             case .appear:
+                return ""
+            case .disappear:
                 return ""
             case .task(let result):
                 switch result.result {
@@ -226,6 +235,8 @@ extension EventType {
                 return getEnumCase(event).name
             case .appear:
                 return ""
+            case .disappear:
+                return ""
             case .task(let result):
                 return result.name
             case .route(let route):
@@ -249,6 +260,8 @@ extension EventType {
                 return input
             case .appear:
                 return ""
+            case .disappear:
+                return ""
             case .task(let result):
                 switch result.result {
                     case .success(let value): return value
@@ -264,6 +277,7 @@ extension EventType {
 
 enum EventSimpleType: String, CaseIterable {
     case appear
+    case disappear
     case action
     case binding
     case task
@@ -282,6 +296,7 @@ enum EventSimpleType: String, CaseIterable {
             case .output: return "Output"
             case .input: return "Input"
             case .appear: return "Appear"
+            case .disappear: return "Disappear"
             case .task: return "Task"
             case .mutation: return "Mutation"
             case .route: return "Route"
@@ -300,6 +315,8 @@ enum EventSimpleType: String, CaseIterable {
             case .input:
                 return .white
             case .appear:
+                return .blue
+            case .disappear:
                 return .blue
             case .task:
                 return .green // changed to green or red in event

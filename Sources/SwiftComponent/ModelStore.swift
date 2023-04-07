@@ -8,11 +8,6 @@ public class ComponentModelStore<Model: ComponentModel> {
 
     weak var store: ComponentStore<Model>!
 
-    var handledAppear: Bool {
-        get { store.handledAppear }
-        set { store.handledAppear = newValue }
-    }
-
     public var cancellables: Set<AnyCancellable> = []
 
     init(store: ComponentStore<Model>) {

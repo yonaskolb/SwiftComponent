@@ -10,6 +10,7 @@ public protocol ComponentModel<State, Action> {
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
     @MainActor func appear(store: Store) async
+    @MainActor func disappear(store: Store) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, store: Store) async
     @MainActor func handle(action: Action, store: Store) async
     @MainActor func handle(input: Input, store: Store) async
@@ -65,7 +66,8 @@ public extension ComponentModel where Route == Never {
 
 public extension ComponentModel {
     func binding(keyPath: PartialKeyPath<State>, store: Store) async { }
-    func appear(store: Store) async { store.handledAppear = false }
+    func appear(store: Store) async { store.store.handledAppear = false }
+    func disappear(store: Store) async { store.store.handledDisappear = false }
     @MainActor func handle(event: Event) { }
 }
 

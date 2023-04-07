@@ -65,6 +65,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     public func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
         await store.appear(first: first, file: file, line: line)
     }
+
+    @MainActor
+    public func disappear(file: StaticString = #file, line: UInt = #line) {
+        store.disappear(file: file, line: line)
+    }
 }
 
 // MARK: Scoping
