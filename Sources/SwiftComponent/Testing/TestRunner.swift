@@ -121,6 +121,7 @@ extension TestStep {
 #if DEBUG
 extension Component {
 
+    @MainActor
     public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
         guard let state = Self.state(for: test) else {
             fatalError("Could not find state")
