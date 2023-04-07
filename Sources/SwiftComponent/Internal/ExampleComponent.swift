@@ -147,20 +147,21 @@ struct ExampleComponent: PreviewProvider, Component {
     }
 
     static var tests: Tests {
-        Test("Sets correct date", state: .init(name: "Main"), appear: false) {
+        Test("Set date", state: .init(name: "Main")) {
             let date = Date().addingTimeInterval(10000)
             Step.dependency(\.date, .constant(date))
             Step.action(.tap(2))
                 .expectState { $0.date = date }
         }
 
-        Test("Fill out", state: .init(name: "Main"), appear: true) {
+        Test("Fill out", state: .init(name: "Main")) {
+            Step.appear()
             Step.binding(\.name, "test")
                 .expectState(\.name, "invalid")
                 .expectState(\.date, Date())
         }
 
-        Test("Opens child", state: .init(name: "Main"), appear: false, assertions: [.output]) {
+        Test("Open child", state: .init(name: "Main"), assertions: [.output]) {
             Step.action(.open)
                 .expectRoute(/Model.Route.open, state: .init(name: "Main"))
             Step.route(/Model.Route.open) {

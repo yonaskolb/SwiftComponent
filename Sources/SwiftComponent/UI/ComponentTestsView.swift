@@ -33,6 +33,18 @@ struct ComponentTestsView<ComponentType: Component>: View {
         case failed
     }
 
+    func barColor(_ result: TestStepResult) -> Color {
+        if result.success {
+            if showWarnings, !result.assertionWarnings.isEmpty {
+                return Color.orange
+            } else {
+                return Color.green
+            }
+        } else {
+            return Color.red
+        }
+    }
+
     func toggleErrorDiffVisibility(_ id: UUID) {
         withAnimation {
             errorDiffVisibility[id] = !showErrorDiff(id)
@@ -167,26 +179,44 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
+    @ViewBuilder
     func filterButton(_ filter: TestFilter?, color: Color, label: String, count: Int) -> some View {
         let selected = testFilter == filter
-        return Button(action: { setFilter(filter) }) {
-           Text("\(label) \(count)")
+        Button(action: { setFilter(filter) }) {
+            HStack {
+                Text(count.description)
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
+                    .fixedSize()
+                    .monospacedDigit()
+                    .padding(4)
+                    .background {
+                        Circle().fill(color)
+                            .aspectRatio(contentMode: .fill)
+                    }
+                Text(label)
+                    .underline(selected)
+                    .foregroundColor(color)
+            }
+
                 .foregroundColor(selected ? .white : color)
-                .fontWeight(.bold)
-                .padding(.vertical, 8)
+                .padding(.vertical, 4)
                 .padding(.horizontal, 14)
-                .background(selected ? color : Color(white: 0.95))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 6).stroke(color, lineWidth: 2)
-                }
+//                .background(selected ? color : Color(white: 0.95))
+//                .overlay {
+//                    RoundedRectangle(cornerRadius: 6).stroke(color, lineWidth: 2)
+//                }
+//                .cornerRadius(6)
         }
         .buttonStyle(.plain)
+        .disabled(count == 0)
     }
 
     var header: some View {
         VStack(alignment: .leading) {
             HStack(alignment: .bottom, spacing: 20) {
-                filterButton(.none, color: Color(white: 0.6), label: "Tests", count: ComponentType.tests.count)
+                filterButton(.none, color: Color(white: 0.4), label: "All Tests", count: ComponentType.tests.count)
                 filterButton(.passed, color: .green, label: "Passed", count: testRun.testState.values.filter { $0.passed }.count)
                 filterButton(.failed, color: .red, label: "Failed", count: testRun.testState.values.filter { $0.failed }.count)
                 Spacer()
@@ -217,32 +247,22 @@ struct ComponentTestsView<ComponentType: Component>: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .font(.headline)
                 .padding(.trailing, 16)
             }
-            .font(.title3)
         }
         .padding()
     }
 
     var resultBar: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(testResults, id: \.id) { result in
                 Button(action: { tap(result) }) {
-                    if result.success {
-                        if showWarnings, !result.assertionWarnings.isEmpty {
-                            Color.orange
-                        } else {
-                            Color.green
-                        }
-                    } else {
-                        Color.red
-                    }
+                    barColor(result)
                 }
-                .frame(height: 30)
-//                .transition(.move(edge: .trailing))
             }
         }
-        .frame(height: 30)
+        .frame(height: 12)
         .cornerRadius(6)
         .clipped()
         .padding(.horizontal)
@@ -379,7 +399,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                             Text(stepResult.title)
                                 .bold()
                             if let details = stepResult.details {
-                                Text(" " + details)
+                                Text(": " + details)
                             }
                         }
                             .lineLimit(1)
@@ -613,5 +633,6 @@ struct ComponentTests_Previews: PreviewProvider {
             ComponentTestsView<ExampleComponent>()
         }
         .navigationViewStyle(.stack)
+        .previewDevice(.largestDevice)
     }
 }

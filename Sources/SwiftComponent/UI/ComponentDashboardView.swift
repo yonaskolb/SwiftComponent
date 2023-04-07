@@ -64,6 +64,13 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         runningTests = false
     }
 
+    func selectTest(_ test: Test<ComponentType.Model>) {
+        clearEvents()
+        Task { @MainActor in
+            await runTest(test, delay: previewTestDelay)
+        }
+    }
+
     func selectState(_ state: ComponentState<ComponentType.Model>) {
         withAnimation {
             model.state = state.state
@@ -191,9 +198,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 let testResult = testRun.getTestState(test)
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
-                        Task { @MainActor in
-                            await runTest(test, delay: previewTestDelay)
-                        }
+                        selectTest(test)
                     } label: {
                         VStack(alignment: .leading) {
                             HStack(spacing: 8) {

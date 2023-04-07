@@ -27,7 +27,7 @@ extension TestStep {
     }
 
     public static func action(_ action: Model.Action, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Action", details: getEnumCase(action).name, file: file, line: line) { context in
+        .init(title: "Send Action", details: getEnumCase(action).name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
@@ -36,7 +36,7 @@ extension TestStep {
     }
 
     public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Input", details: getEnumCase(input).name, file: file, line: line) { context in
+        .init(title: "Recieve Input", details: getEnumCase(input).name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
@@ -45,7 +45,7 @@ extension TestStep {
     }
 
     public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", file: file, line: line) { context in
+        .init(title: "Set Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", file: file, line: line) { context in
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
                 var currentString = ""
@@ -68,7 +68,7 @@ extension TestStep {
     }
 
     public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value?>, _ value: Value?, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Binding", details: "\(keyPath.propertyName ?? "value") = \(value != nil ? String(describing: value!) : "nil")", file: file, line: line) { context in
+        .init(title: "Set Binding", details: "\(keyPath.propertyName ?? "value") = \(value != nil ? String(describing: value!) : "nil")", file: file, line: line) { context in
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
                 var currentString = ""
@@ -91,7 +91,7 @@ extension TestStep {
     }
 
     public static func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
-        .init(title: "Dependency", details: keyPath.propertyName ?? "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
+        .init(title: "Set Dependency", details: keyPath.propertyName ?? "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
             context.dependencies[keyPath: keyPath] = dependency
         }
     }
