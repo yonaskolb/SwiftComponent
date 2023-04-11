@@ -107,10 +107,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @MainActor
     func runTest(_ test: Test<Model>) async {
 
-        guard let state = ComponentType.state(for: test) else {
-            testRun.testState[test.id] = .failedToRun(TestError(error: "Could not find state", source: test.source))
-            return
-        }
+        let state = ComponentType.state(for: test)
         testRun.startTest(test)
 
         let model = ViewModel<Model>(state: state, environment: test.environment)

@@ -113,7 +113,7 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
         let component = ComponentInfo(
             name: String(describing: ComponentType.self),
             tests: ComponentType.tests.map { $0.testName },
-            states: ComponentType.states.map(\.name)
+            states: ComponentType.snapshots.map(\.name)
         )
         return ComponentDescription(model: model, view: view, component: component)
     }

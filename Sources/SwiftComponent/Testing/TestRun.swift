@@ -14,6 +14,7 @@ struct TestRun<Model: ComponentModel> {
     var testState: [Test<Model>.ID: TestState] = [:]
     var testResults: [Test<Model>.ID: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
+    var snapshots: [String: ComponentSnapshot<Model>] = [:]
     var testCoverage: TestCoverage = .init()
     var missingCoverage: TestCoverage = .init()
     var totalCoverage: TestCoverage = .init()
@@ -55,6 +56,9 @@ struct TestRun<Model: ComponentModel> {
 
     mutating func completeTest(_ test: Test<Model>, result: TestResult<Model>) {
         testState[test.id] = .complete(result)
+        for snapshot in result.snapshots {
+            snapshots[snapshot.name] = snapshot
+        }
     }
 
     mutating func checkCoverage() {

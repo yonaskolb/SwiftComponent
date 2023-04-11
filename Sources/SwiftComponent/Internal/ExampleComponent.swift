@@ -135,14 +135,7 @@ struct ExampleComponent: Component, PreviewProvider {
         ExampleView(model: model)
     }
 
-    static var states: States {
-        State {
-            .init(name: "Main")
-        }
-        State("Empty") {
-            .init(name: "")
-        }
-    }
+    static var preview = Snapshot(state: .init(name: "Main"))
 
     static var routes: Routes {
         Route("thing", .open(.init(state: .init(name: "routeds"))))
@@ -154,14 +147,17 @@ struct ExampleComponent: Component, PreviewProvider {
             Step.action(.tap(2))
                 .expectState { $0.date = date }
                 .dependency(\.date, .constant(date))
+            Step.snapshot("tapped")
         }
 
         Test("Fill out", state: .init(name: "Main")) {
+            Step.snapshot("empty")
             Step.appear()
             Step.binding(\.name, "test")
                 .expectTask("get thing", successful: true)
                 .expectState(\.name, "invalid")
                 .expectState(\.date, Date())
+            Step.snapshot("filled")
         }
 
         Test("Open child", state: .init(name: "Main"), assertions: [.output]) {

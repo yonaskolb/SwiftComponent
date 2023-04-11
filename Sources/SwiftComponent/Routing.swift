@@ -97,3 +97,19 @@ extension ComponentRoute where Model.Route == Never {
         self.init(state: state, route: nil)
     }
 }
+
+@resultBuilder
+public struct RouteBuilder {
+    public static func buildBlock<Route>() -> [ComponentModelRoute<Route>] { [] }
+    public static func buildBlock<Route>(_ routes: ComponentModelRoute<Route>...) -> [ComponentModelRoute<Route>] { routes }
+    public static func buildBlock<Route>(_ routes: [ComponentModelRoute<Route>]) -> [ComponentModelRoute<Route>] { routes }
+}
+
+public struct ComponentModelRoute<Route> {
+    public let name: String
+    public let route: Route
+    public init(_ name: String, _ route: Route) {
+        self.name = name
+        self.route = route
+    }
+}

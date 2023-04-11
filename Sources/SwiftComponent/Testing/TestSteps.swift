@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 extension TestStep {
 
@@ -132,6 +133,7 @@ extension TestStep {
         }
     }
 
+    // TODO: support snapshots by making connenctions bi-directoional or removing type from Snapshot
     public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
             //TODO: get the model that the view is using so it can playback in the preview
@@ -146,12 +148,13 @@ extension TestStep {
     }
 
     public static func branch(_ name: String, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
-        .init(title: "Branch", details: name, file: file, line: line) { context in
+        let steps = steps()
+        let snapshots = steps.flatMap(\.snapshots)
+        var step = TestStep<Model>(title: "Branch", details: name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
 
-            let steps = steps()
             let state = context.model.state
             let route = context.model.route
             for step in steps {
@@ -170,6 +173,8 @@ extension TestStep {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
         }
+        step.snapshots = snapshots
+        return step
     }
 }
 

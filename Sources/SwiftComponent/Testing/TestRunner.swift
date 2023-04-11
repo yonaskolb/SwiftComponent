@@ -9,6 +9,7 @@ public struct TestContext<Model: ComponentModel> {
     public var childStepResults: [TestStepResult] = []
     public var stepErrors: [TestError] = []
     public var testCoverage: TestCoverage = .init()
+    var snapshots: [ComponentSnapshot<Model>] = []
     var state: Model.State
 
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
@@ -51,7 +52,7 @@ extension ViewModel {
             stepComplete?(result)
             stepResults.append(result)
         }
-        return TestResult<Model>(start: start, end: Date(), steps: stepResults)
+        return TestResult<Model>(start: start, end: Date(), steps: stepResults, snapshots: context.snapshots)
     }
 }
 
@@ -155,10 +156,7 @@ extension Component {
 
     @MainActor
     public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
-        guard let state = Self.state(for: test) else {
-            fatalError("Could not find state")
-        }
-
+        let state = Self.state(for: test)
         let model = ViewModel<Model>(state: state, environment: test.environment)
         return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
     }

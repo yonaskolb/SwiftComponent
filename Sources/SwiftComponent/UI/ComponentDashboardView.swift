@@ -23,6 +23,11 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         EventStore.shared.events
     }
 
+    var snapshots: [ComponentSnapshot<ComponentType.Model>] {
+        ComponentType.snapshots +
+        ComponentType.snapshotNames.compactMap { testRun.snapshots[$0] }
+    }
+
     func clearEvents() {
         EventStore.shared.clear()
         render = UUID()
@@ -47,11 +52,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         runningTests = true
         testRun.startTest(test)
 
-        guard let state = ComponentType.state(for: test) else {
-            testRun.testState[test.id] = .failedToRun(TestError(error: "Could not find state", source: test.source))
-            return
-        }
-
+        let state = ComponentType.state(for: test)
         let model: ViewModel<ComponentType.Model>
         if delay > 0 {
             model = self.model
@@ -70,16 +71,15 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         }
     }
 
-    func selectState(_ state: ComponentState<ComponentType.Model>) {
+    func selectSnapshot(_ snapshot: ComponentSnapshot<ComponentType.Model>) {
         withAnimation {
-            model.state = state.state
-
-            if let route = state.route {
+            model.state = snapshot.state
+            model.store.environment = snapshot.environment
+            if let route = snapshot.route {
                 model.store.present(route, source: .capture())
             } else {
                 model.store.dismissRoute(source: .capture())
             }
-            model.store.dependencies = state.dependencies
         }
     }
 
@@ -143,8 +143,8 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var form: some View {
         Form {
-            if !ComponentType.states.isEmpty {
-                statesSection
+            if !snapshots.isEmpty {
+                snapshotsSection
             }
             if !(ComponentType.Model.State.self == Void.self) {
                 stateSection
@@ -167,13 +167,13 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         }
     }
 
-    var statesSection: some View {
-        Section(header: Text("States")) {
-            ForEach(ComponentType.states, id: \.name) { state in
+    var snapshotsSection: some View {
+        Section(header: Text("Snapshots")) {
+            ForEach(snapshots, id: \.name) { snapshot in
                 Button {
-                    selectState(state)
+                    selectSnapshot(snapshot)
                 } label: {
-                    Text(state.name)
+                    Text(snapshot.name)
                 }
             }
         }
@@ -319,7 +319,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 struct ComponentDashboard_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ComponentDashboardView<ExampleComponent>(model: ExampleComponent.states[0].viewModel())
+            ComponentDashboardView<ExampleComponent>(model: ExampleComponent.snapshots[0].viewModel())
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

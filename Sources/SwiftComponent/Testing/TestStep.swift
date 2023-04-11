@@ -11,6 +11,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public let id = UUID()
     public var expectations: [TestExpectation<Model>] = []
     var dependencies: ComponentDependencies
+    var snapshots: [String] = []
     fileprivate var _run: (inout TestContext<Model>) async -> Void
 
     public init(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
@@ -43,6 +44,16 @@ extension TestStep {
         step._run = { context in
             await run(&context)
             await stepRun(&context)
+        }
+        return step
+    }
+
+    public func afterRun(_ run: @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        var step = self
+        let stepRun = _run
+        step._run = { context in
+            await stepRun(&context)
+            await run(&context)
         }
         return step
     }
