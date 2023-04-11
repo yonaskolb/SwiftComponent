@@ -84,10 +84,18 @@ struct ComponentTestsView<ComponentType: Component>: View {
     func runAllTests() {
         collapsedTests = getCollapsedTests()
         Task { @MainActor in
+            print("\nRunning \(ComponentType.tests.count) Tests for \(Model.baseName)")
             testRun.reset(ComponentType.tests)
             for test in ComponentType.tests {
                 await runTest(test)
             }
+            let passed = testRun.testState.values.filter { $0.passed }.count
+            let failed = testRun.testState.values.filter { !$0.passed }.count
+            var string = "\n\(failed == 0 ? "✅" : "🛑") \(Model.baseName) Tests: \(passed) passed"
+            if failed > 0 {
+                string += ", \(failed) failed"
+            }
+            print(string)
         }
     }
 
@@ -110,6 +118,21 @@ struct ComponentTestsView<ComponentType: Component>: View {
             }
         }
         testRun.completeTest(test, result: result)
+
+        var string = ""
+        let indent = "   "
+        let newline = "\n"
+        string += result.success ? "✅" : "🛑"
+        string += " \(Model.baseName): \(test.name)"
+        for step in result.steps {
+            for error in step.allErrors {
+                string += newline + indent + error.error
+                if let diff = error.diff {
+                    string += ":" + newline + indent + diff.joined(separator: newline + indent)
+                }
+            }
+        }
+        print(string)
     }
 
     func setFilter(_ filter: TestFilter?) {
