@@ -4,6 +4,7 @@ import Foundation
 extension KeyPath {
 
     var propertyName: String? {
+#if swift(>=5.8)
         if #available(iOS 16.4, *) {
             // Is in format "\State.standup.name" so drop the slash and type
             return debugDescription
@@ -15,6 +16,9 @@ extension KeyPath {
         } else {
             return mirrorPropertyName
         }
+#else
+        mirrorPropertyName
+#endif
     }
 
     private var mirrorPropertyName: String? {
