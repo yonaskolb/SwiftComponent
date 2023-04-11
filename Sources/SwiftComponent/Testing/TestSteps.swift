@@ -97,9 +97,8 @@ extension TestStep {
     }
 
     public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
-        .init(title: "Route", details: Child.baseName, file: file, line: line) { context in
-            guard let route = context.model.store.route else { return }
-            guard let componentRoute = path.extract(from: route) else { return }
+        .init(title: "Route", details: "\(Child.baseName)", file: file, line: line) { context in
+            guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
 
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
@@ -112,6 +111,20 @@ extension TestStep {
             for step in steps {
                 let results = await step.runTest(context: &childContext)
                 context.childStepResults.append(results)
+            }
+        }
+    }
+
+    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, output: Child.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+        .init(title: "Route Output", details: "\(Child.baseName).\(getEnumCase(output).name)", file: file, line: line) { context in
+
+            guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
+
+            componentRoute.viewModel.store.output(output, source: .capture(file: file, line: line))
+            await Task.yield()
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
             }
         }
     }
@@ -154,5 +167,20 @@ extension TestStep {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
         }
+    }
+}
+
+extension TestContext {
+
+    mutating func getRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, source: Source) -> ComponentRoute<Child>? {
+        guard let route = model.store.route else {
+            stepErrors = [TestError(error: "Couldn't route to \(Child.baseName)", source: source)]
+            return nil
+        }
+        guard let componentRoute = path.extract(from: route) else {
+            stepErrors = [TestError(error: "Couldn't route to \(Child.baseName)", source: source)]
+            return nil
+        }
+        return componentRoute
     }
 }

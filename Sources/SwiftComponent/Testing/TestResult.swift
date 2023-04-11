@@ -7,10 +7,11 @@ public struct TestStepResult: Identifiable {
     public var details: String?
     public var expectations: [String]
     public var events: [Event]
+    public var stepErrors: [TestError]
     public var expectationErrors: [TestError]
     public var assertionErrors: [TestError]
     public var assertionWarnings: [TestError]
-    public var errors: [TestError] { expectationErrors + assertionErrors }
+    public var errors: [TestError] { stepErrors + expectationErrors + assertionErrors }
     public var allErrors: [TestError] {
         errors + children.reduce([]) { $0 + $1.allErrors }
     }
@@ -34,6 +35,7 @@ public struct TestStepResult: Identifiable {
         self.assertionErrors = assertionErrors
         self.assertionWarnings = assertionWarnings
         self.children = children
+        self.stepErrors = []
     }
 
     public var description: String {

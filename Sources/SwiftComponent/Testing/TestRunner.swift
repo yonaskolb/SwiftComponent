@@ -7,6 +7,7 @@ public struct TestContext<Model: ComponentModel> {
     public var assertions: [TestAssertion]
     public var runAssertions: Bool = true
     public var childStepResults: [TestStepResult] = []
+    public var stepErrors: [TestError] = []
     var state: Model.State
 
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
@@ -47,11 +48,13 @@ extension ViewModel {
         var stepResults: [TestStepResult] = []
         var context = TestContext<Model>(model: self, dependencies: testDependencyValues, delay: delay, assertions: assertions, state: initialState)
         for step in test.steps {
-            let result = await step.runTest(context: &context)
+            context.stepErrors = []
+            var result = await step.runTest(context: &context)
+            result.stepErrors.append(contentsOf: context.stepErrors)
             stepComplete?(result)
             stepResults.append(result)
         }
-        return TestResult(start: start, end: Date(), steps: stepResults)
+        return TestResult<Model>(start: start, end: Date(), steps: stepResults)
     }
 }
 
