@@ -12,9 +12,8 @@ public struct TestStepResult: Identifiable {
     public var assertionErrors: [TestError]
     public var assertionWarnings: [TestError]
     public var errors: [TestError] { stepErrors + expectationErrors + assertionErrors }
-    public var allErrors: [TestError] {
-        errors + children.reduce([]) { $0 + $1.allErrors }
-    }
+    public var allErrors: [TestError] { errors + children.reduce([]) { $0 + $1.allErrors } }
+    public var allWarnings: [TestError] { assertionWarnings + children.reduce([]) { $0 + $1.allWarnings } }
     public var children: [TestStepResult]
     public var success: Bool { allErrors.isEmpty }
 

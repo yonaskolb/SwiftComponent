@@ -14,6 +14,18 @@ struct TestRun<Model: ComponentModel> {
     var testResults: [String: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
 
+    var passedTestCount: Int {
+        testState.values.filter { $0.passed }.count
+    }
+
+    var failedTestCount: Int {
+        testState.values.filter { $0.failed }.count
+    }
+
+    var stepWarningsCount: Int {
+        testState.values.reduce(0) { $0 + $1.warningCount }
+    }
+
     func getTestState(_ test: Test<Model>) -> TestState {
         testState[test.name] ?? .notRun
     }
@@ -86,6 +98,15 @@ struct TestRun<Model: ComponentModel> {
                     return true
                 default:
                     return false
+            }
+        }
+
+        var warningCount: Int {
+            switch self {
+                case .complete(let result):
+                    return result.steps.reduce(0) { $0 + $1.allWarnings.count  }
+                default:
+                    return 0
             }
         }
 

@@ -31,11 +31,12 @@ struct ComponentTestsView<ComponentType: Component>: View {
     enum TestFilter: String {
         case passed
         case failed
+        case warnings
     }
 
     func barColor(_ result: TestStepResult) -> Color {
         if result.success {
-            if showWarnings, !result.assertionWarnings.isEmpty {
+            if showWarnings || testFilter == .warnings, !result.assertionWarnings.isEmpty {
                 return Color.orange
             } else {
                 return Color.green
@@ -137,7 +138,11 @@ struct ComponentTestsView<ComponentType: Component>: View {
 
     func setFilter(_ filter: TestFilter?) {
         withAnimation {
-            self.testFilter = filter
+            if testFilter != nil, self.testFilter == filter {
+                self.testFilter = nil
+            } else {
+                self.testFilter = filter
+            }
         }
     }
 
@@ -145,6 +150,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
         switch testFilter {
             case .none:
                 return true
+            case .warnings:
+                return (testRun.testState[test.name]?.warningCount ?? 0) > 0
             case .passed:
                 return testRun.testState[test.name]?.passed ?? false
             case .failed:
@@ -208,40 +215,37 @@ struct ComponentTestsView<ComponentType: Component>: View {
         Button(action: { setFilter(filter) }) {
             HStack {
                 Text(count.description)
-                    .font(.caption)
-                    .foregroundColor(.white)
                     .fontWeight(.bold)
+                    .foregroundColor(.white)
                     .fixedSize()
                     .monospacedDigit()
-                    .padding(4)
-                    .background {
-                        Circle().fill(color)
-                            .aspectRatio(contentMode: .fill)
-                    }
                 Text(label)
-                    .underline(selected)
-                    .foregroundColor(color)
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
             }
-
-                .foregroundColor(selected ? .white : color)
-                .padding(.vertical, 4)
-                .padding(.horizontal, 14)
-//                .background(selected ? color : Color(white: 0.95))
-//                .overlay {
-//                    RoundedRectangle(cornerRadius: 6).stroke(color, lineWidth: 2)
-//                }
-//                .cornerRadius(6)
+            .font(.title2)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 6).fill(count == 0 ? Color.gray : color)
+            }
+            .padding(3)
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: 9).stroke(.primary, lineWidth: 3)
+                }
+            }
         }
         .buttonStyle(.plain)
-        .disabled(count == 0)
     }
 
     var header: some View {
         VStack(alignment: .leading) {
             HStack(alignment: .bottom, spacing: 20) {
-                filterButton(.none, color: Color(white: 0.4), label: "All Tests", count: ComponentType.tests.count)
-                filterButton(.passed, color: .green, label: "Passed", count: testRun.testState.values.filter { $0.passed }.count)
-                filterButton(.failed, color: .red, label: "Failed", count: testRun.testState.values.filter { $0.failed }.count)
+//                filterButton(.none, color: Color(white: 0.4), label: "All Tests", count: ComponentType.tests.count)
+                filterButton(.passed, color: .green, label: "Passed", count: testRun.passedTestCount)
+                filterButton(.failed, color: .red, label: "Failed", count: testRun.failedTestCount)
+                filterButton(.warnings, color: .orange, label: "Improvements", count: testRun.stepWarningsCount)
                 Spacer()
                 HStack(spacing: 30) {
                     Button(action: { showViewOptions = true }) {
@@ -257,7 +261,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
                             Toggle("Show events", isOn: $showEvents)
                             Toggle("Show mutation diffs", isOn: $showMutations)
                             Toggle("Show expectations", isOn: $showExpectations.animation())
-                            Toggle("Show assertion warnings", isOn: $showWarnings)
+                            Toggle("Show assertion warnings", isOn: testFilter == .warnings ? .constant(true) : $showWarnings)
+                                .disabled(testFilter == .warnings)
                             Toggle("Show errors", isOn: $showErrors)
                             Toggle("Show error diffs", isOn: showErrors ? $showErrorDiffs : .constant(false))
                                 .disabled(!showErrors)
@@ -468,7 +473,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                     }
                 }
                 Group {
-                    if showWarnings, !stepResult.assertionWarnings.isEmpty {
+                    if showWarnings || testFilter == .warnings, !stepResult.assertionWarnings.isEmpty {
                         stepResultErrors(stepResult.assertionWarnings, warning: true)
                             .padding(.top, verticalSpacing)
                     }
