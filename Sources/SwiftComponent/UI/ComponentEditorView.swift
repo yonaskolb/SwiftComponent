@@ -14,7 +14,6 @@ struct ComponentEditorView<ComponentType: Component>: View {
     @State var viewBlock: Codeblock?
     @State var componentBlock: Codeblock?
     @State var output = ""
-    @State var filePath = ""
     @State var showFile = false
     @State var hasChanges = false
     @State var sourceFileSyntax: SourceFileSyntax?
@@ -22,10 +21,7 @@ struct ComponentEditorView<ComponentType: Component>: View {
 
     func setup() {
 
-        guard let filePath = ComponentType.tests.first?.source.file.description else { return }
-        self.filePath = filePath
-        guard let data = fileManager.contents(atPath: filePath) else { return }
-        guard let source = String(data: data, encoding: .utf8) else { return }
+        guard let source = ComponentType.readSource() else { return }
         fileContent = source
         initialFileContent = source
 
@@ -53,8 +49,7 @@ struct ComponentEditorView<ComponentType: Component>: View {
         sourceFileSyntax = rewriter.rewrite(sourceFileSyntax)
         let sourceCode = sourceFileSyntax.description
 
-        guard let data = sourceCode.data(using: .utf8) else { return }
-        fileManager.createFile(atPath: filePath, contents: data)
+        ComponentType.writeSource(sourceCode)
         
         hasChanges = false
     }

@@ -19,6 +19,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @State var testResults: [TestStepResult] = []
     @State var errorDiffVisibility: [UUID: Bool] = [:]
     @State var scrollToStep: UUID?
+    @State var fixing: [AnyHashable: Bool] = [:]
     var verticalSpacing = 10.0
     var diffAddedColor: Color = .green
     var diffRemovedColor: Color = .red
@@ -161,6 +162,29 @@ struct ComponentTestsView<ComponentType: Component>: View {
 
     func tap(_ result: TestStepResult) {
         scrollToStep = result.id
+    }
+
+    func fix(at source: Source, with fixit: String) {
+        // read file
+        guard let data = FileManager.default.contents(atPath: source.file.description) else { return }
+        guard var sourceFile = String(data: data, encoding: .utf8) else { return }
+
+        fixing[source] = true
+
+        var lines = sourceFile.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let line = Int(source.line)
+
+        // edit file
+        guard line > 0, line < lines.count - 1 else { return }
+        let currentLine = lines[line - 1]
+        guard let currentIndentIndex = currentLine.firstIndex(where: { !$0.isWhitespace }) else { return }
+        let indent = String(currentLine[..<currentIndentIndex])
+        // TODO: check actual indent
+        lines.insert(indent + "    " + fixit, at: line)
+        sourceFile = lines.joined(separator: "\n")
+
+        // write file
+        ComponentType.writeSource(sourceFile)
     }
 
     var body: some View {
@@ -555,14 +579,31 @@ struct ComponentTestsView<ComponentType: Component>: View {
                             Image(systemName: warning ? "exclamationmark.triangle.fill" : "exclamationmark.octagon.fill")
                             Text(error.error)
                                 .bold()
+                                .padding(.vertical, 10)
                             Spacer()
+                            if let fixit = error.fixit {
+                                Group {
+
+                                    if fixing[error.source] == true {
+                                        ProgressView()
+                                            .progressViewStyle(.circular)
+                                            .foregroundColor(.white)
+                                    } else {
+                                        Button(action: { fix(at: error.source, with: fixit) }) {
+                                            Text("Fix")
+                                                .bold()
+                                                .padding(-2)
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
+                                }
+                            }
                             if error.diff != nil {
                                 collapseIcon(collapsed: !showErrorDiff(error.id))
                             }
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
                         .background {
                             warning ? Color.orange : Color.red
                         }

@@ -83,6 +83,7 @@ public struct TestError: CustomStringConvertible, Identifiable, Hashable {
     public var error: String
     public var diff: [String]?
     public let source: Source
+    public var fixit: String?
     public let id = UUID()
 
     public var description: String {

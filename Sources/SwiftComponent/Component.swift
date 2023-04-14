@@ -66,6 +66,24 @@ extension Component {
     }
 }
 
+extension Component {
+    // TODO: find filepath without tests or show warning in preview that can't access file, and to put a `var file: String { #file }`
+    static var filePath: String? { tests.first?.source.file.description }
+
+    static func readSource() -> String? {
+        guard let filePath = filePath else { return nil }
+        guard let data = FileManager.default.contents(atPath: filePath) else { return nil }
+        guard let source = String(data: data, encoding: .utf8) else { return nil }
+        return source
+    }
+
+    static func writeSource(_ source: String) {
+        guard let filePath = filePath else { return }
+        guard let data = source.data(using: .utf8) else { return }
+        FileManager.default.createFile(atPath: filePath, contents: data)
+    }
+}
+
 @resultBuilder
 public struct StateBuilder {
     public static func buildBlock<Model: ComponentModel>() -> [ComponentState<Model>] { [] }

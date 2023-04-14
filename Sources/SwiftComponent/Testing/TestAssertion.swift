@@ -24,6 +24,8 @@ extension Set where Element == TestAssertion {
 
 extension TestAssertion {
 
+    // snippet replacement <#State# > without space
+
     func assert<Model: ComponentModel>(events: [Event], context: TestContext<Model>, source: Source) -> [TestError] {
         var errors: [TestError] = []
         switch self {
@@ -31,7 +33,8 @@ extension TestAssertion {
                 for event in events {
                     switch event.type {
                         case .output(let output):
-                            errors.append(TestError(error: "Unexpected output \(getEnumCase(output).name.quoted)", source: source))
+                            let enumCase = getEnumCase(output)
+                            errors.append(TestError(error: "Unexpected output \(enumCase.name.quoted)", source: source, fixit: ".expectOutput(.\(enumCase.name)\(enumCase.values.isEmpty ? "" : "(<#output#>)"))"))
                         default: break
                     }
                 }
@@ -39,7 +42,8 @@ extension TestAssertion {
                 for event in events {
                     switch event.type {
                         case .task(let result):
-                            errors.append(TestError(error: "Unexpected task \(result.name.quoted)", source: source))
+                            errors.append(TestError(
+                                error: "Unexpected task \(result.name.quoted)", source: source, fixit: ".expectTask(\"\(result.name)\", successful: \(result.successful))"))
                         default: break
                     }
                 }
@@ -47,7 +51,7 @@ extension TestAssertion {
                 for event in events {
                     switch event.type {
                         case .route(let route):
-                            errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source))
+                            errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source, fixit: ".expectRoute(/Model.Route.\(getEnumCase(route).name), state: <#State#>)"))
                         default: break
                     }
                 }
@@ -55,13 +59,13 @@ extension TestAssertion {
                 for event in events {
                     switch event.type {
                         case .dismissRoute:
-                            errors.append(TestError(error: "Unexpected empty route", source: source))
+                            errors.append(TestError(error: "Unexpected empty route", source: source, fixit: ".expectEmptyRoute()"))
                         default: break
                     }
                 }
             case .state:
                 if let diff = StateDump.diff(context.state, context.model.state) {
-                    errors.append(.init(error: "Unexpected state", diff: diff, source: source))
+                    errors.append(.init(error: "Unexpected state", diff: diff, source: source, fixit: ".expectState(\\.<#keypath#>, <#state#>)"))
                 }
             case .dependency: break
 //            case .mutation:

@@ -359,6 +359,14 @@ extension Color {
 public struct TaskResult {
     public let name: String
     public let result: Result<Any, Error>
+    public var successful: Bool {
+        switch result {
+            case .success:
+                return true
+            case .failure:
+                return false
+        }
+    }
 }
 
 // TODO: add before and after state
