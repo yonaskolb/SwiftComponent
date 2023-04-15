@@ -2,7 +2,6 @@ import Foundation
 
 public struct TestContext<Model: ComponentModel> {
     public let model: ViewModel<Model>
-    public var dependencies: DependencyValues
     public var delay: TimeInterval
     public var assertions: [TestAssertion]
     public var runAssertions: Bool = true
@@ -20,13 +19,11 @@ extension ViewModel {
         let start = Date()
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
-        // setup dependencies
-        var testDependencyValues = DependencyValues._current
-        // rely on Dependencies failing when in test context
+        // for now rely on Dependencies failing when in test context
         if assertions.contains(.dependency) {
-            testDependencyValues.context = .test
+            self.store.dependencies.dependencyValues.context = .test
         } else {
-            testDependencyValues.context = .preview
+            self.store.dependencies.dependencyValues.context = .preview
         }
 
         let sendEventsValue = store.sendGlobalEvents
@@ -46,7 +43,7 @@ extension ViewModel {
         route = nil
 
         var stepResults: [TestStepResult] = []
-        var context = TestContext<Model>(model: self, dependencies: testDependencyValues, delay: delay, assertions: assertions, state: initialState)
+        var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
         for step in test.steps {
             context.stepErrors = []
             var result = await step.runTest(context: &context)
@@ -62,12 +59,10 @@ extension TestStep {
 
     @MainActor
     func runTest(context: inout TestContext<Model>) async -> TestStepResult {
-        let start = Date()
         var stepEvents: [Event] = []
         context.state = context.model.state
-        let path = context.model.store.path
         context.childStepResults = []
-        var runAssertions = context.runAssertions
+        let runAssertions = context.runAssertions
         let storeID = context.model.store.id
         let stepEventsSubscription = context.model.store.events.sink { event in
             // TODO: should probably check id instead
@@ -77,7 +72,7 @@ extension TestStep {
         }
         _ = stepEventsSubscription // hide warning
         await withDependencies { dependencyValues in
-            dependencyValues = context.dependencies
+            dependencyValues = context.model.store.dependencies.dependencyValues
         } operation: { @MainActor in
             await self.run(&context)
         }

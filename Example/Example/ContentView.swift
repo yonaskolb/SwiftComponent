@@ -3,8 +3,6 @@ import SwiftComponent
 
 struct ItemModel: ComponentModel {
 
-    @Dependency(\.continuousClock) var clock
-
     struct State {
         var name: String
         var text: String = "text"
@@ -45,7 +43,7 @@ struct ItemModel: ComponentModel {
     func handle(action: Action, store: Store) async {
         switch action {
             case .calculate:
-                try? await clock.sleep(for: .seconds(1))
+                try? await store.dependencies.continuousClock.sleep(for: .seconds(1))
                 store.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
                 store.presentDetail = store.detail

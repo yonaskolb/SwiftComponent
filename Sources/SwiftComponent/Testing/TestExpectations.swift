@@ -95,7 +95,7 @@ extension TestStep {
 
     public func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, line: UInt = #line) -> Self {
         addExpectation(title: "Validate dependency", details: String(describing: T.self).quoted, file: file, line: line) { context in
-            let dependency = context.testContext.dependencies[keyPath: keyPath]
+            let dependency = context.model.dependencies[dynamicMember: keyPath]
             let valid = validateDependency(dependency)
             if !valid {
                 context.error("Invalid \(dependency): \(error)")

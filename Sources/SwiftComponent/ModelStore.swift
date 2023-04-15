@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import CasePaths
+import Dependencies
 
 @dynamicMemberLookup
 public class ComponentModelStore<Model: ComponentModel> {
@@ -17,6 +18,7 @@ public class ComponentModelStore<Model: ComponentModel> {
     public var route: Model.Route? { store.route }
     public var state: Model.State { store.state }
     public var path: ComponentPath { store.path }
+    public var dependencies: ComponentDependencies { store.dependencies }
 
     public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         store.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))

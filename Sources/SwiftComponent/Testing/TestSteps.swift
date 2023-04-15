@@ -92,7 +92,7 @@ extension TestStep {
 
     public static func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Set Dependency", details: keyPath.propertyName ?? "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
-            context.dependencies[keyPath: keyPath] = dependency
+            context.model.store.dependencies.setDependency(keyPath, dependency)
         }
     }
 
@@ -107,7 +107,7 @@ extension TestStep {
 
             let steps = steps()
             let model = componentRoute.viewModel
-            var childContext = TestContext<Child>(model: model, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: model.state)
+            var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
                 context.childStepResults.append(results)
@@ -134,7 +134,7 @@ extension TestStep {
             //TODO: get the model that the view is using so it can be visualised
             let viewModel = connection.convert(context.model)
             let steps = steps()
-            var childContext = TestContext<Child>(model: viewModel, dependencies: context.dependencies, delay: context.delay, assertions: context.assertions, state: viewModel.state)
+            var childContext = TestContext<Child>(model: viewModel, delay: context.delay, assertions: context.assertions, state: viewModel.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
                 context.childStepResults.append(results)

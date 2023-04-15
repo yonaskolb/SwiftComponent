@@ -10,6 +10,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     public var path: ComponentPath { store.path }
     public var componentName: String { Model.baseName }
     private var cancellables: Set<AnyCancellable> = []
+    public var dependencies: ComponentDependencies { store.dependencies }
 
     public internal(set) var state: Model.State {
         get { store.state }

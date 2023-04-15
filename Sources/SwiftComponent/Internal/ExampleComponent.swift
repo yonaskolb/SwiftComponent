@@ -1,11 +1,7 @@
 import Foundation
 import SwiftUI
-import Dependencies
 
 struct ExampleModel: ComponentModel {
-
-    @Dependency(\.date) var now
-    @Dependency(\.timeZone) var clock
 
     struct State: Equatable {
         var name: String
@@ -46,7 +42,7 @@ struct ExampleModel: ComponentModel {
     func handle(action: Action, store: Store) async {
         switch action {
             case .tap(let int):
-                store.date = now()
+                store.date = store.dependencies.date()
                 store.output(.finished)
             case .open:
                 store.route(to: Route.open, state: .init(name: store.name))

@@ -8,6 +8,7 @@ class ComponentStore<Model: ComponentModel> {
     private var ownedState: Model.State?
     var path: ComponentPath
     let graph: ComponentGraph
+    var dependencies: ComponentDependencies
     var componentName: String { Model.baseName }
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
@@ -62,6 +63,7 @@ class ComponentStore<Model: ComponentModel> {
         self.model = Model()
         self.graph = graph
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
+        self.dependencies = ComponentDependencies()
         self.modelStore = ComponentModelStore(store: self)
         if let route = route {
             model.connect(route: route, store: modelStore)
