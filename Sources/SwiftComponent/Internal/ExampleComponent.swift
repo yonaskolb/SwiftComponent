@@ -122,7 +122,7 @@ struct ExampleChildView: ComponentView {
     }
 }
 
-struct ExampleComponent: PreviewProvider, Component {
+struct ExampleComponent: Component, PreviewProvider {
     typealias Model = ExampleModel
 
     static func view(model: ViewModel<ExampleModel>) -> some View {

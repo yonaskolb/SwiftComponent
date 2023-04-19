@@ -180,7 +180,7 @@ struct ItemDetailView: ComponentView {
     }
 }
 
-struct ItemComponent: PreviewProvider, Component {
+struct ItemComponent: Component, PreviewProvider {
     typealias Model = ItemModel
 
     static func view(model: ViewModel<ItemModel>) -> some View {
