@@ -27,4 +27,29 @@ public struct ComponentDependencies {
             DependencyValues._current[keyPath: keyPath]
         }
     }
+
+    mutating func apply(_ dependencies: ComponentDependencies) {
+        self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
+    }
+}
+
+extension ViewModel {
+
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ value: T) -> Self {
+        self.store.dependencies.setDependency(keyPath, value)
+        return self
+    }
+}
+
+extension ComponentRoute {
+
+    @discardableResult
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ value: T) -> Self {
+        if let store {
+            store.dependencies.setDependency(keyPath, value)
+        } else {
+            self.dependencies.setDependency(keyPath, value)
+        }
+        return self
+    }
 }

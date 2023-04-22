@@ -46,12 +46,35 @@ struct ExampleModel: ComponentModel {
                 store.output(.finished)
             case .open:
                 store.route(to: Route.open, state: .init(name: store.name))
+                     .dependency(\.uuid, .constant(.init(1)))
         }
     }
 
     func handle(input: Input, store: Store) async {
         switch input {
         case .child(let output): break
+        }
+    }
+}
+
+struct ExampleView: ComponentView {
+
+    @ObservedObject var model: ViewModel<ExampleModel>
+
+    func routeView(_ route: ExampleModel.Route) -> some View {
+        switch route {
+            case .open(let route):
+                ExampleChildView(model: route.viewModel)
+        }
+    }
+
+    var view: some View {
+        VStack {
+            Text(model.name)
+            ProgressView().opacity(model.loading ? 1 : 0)
+            Text(model.date.formatted())
+            model.button(.tap(1), "Tap")
+            model.button(.open, "Open")
         }
     }
 }
@@ -91,34 +114,16 @@ struct ExampleChildModel: ComponentModel {
     }
 }
 
-struct ExampleView: ComponentView {
-
-    @ObservedObject var model: ViewModel<ExampleModel>
-
-    func routeView(_ route: ExampleModel.Route) -> some View {
-        switch route {
-            case .open(let route):
-                ExampleChildView(model: route.viewModel)
-        }
-    }
-
-    var view: some View {
-        VStack {
-            Text(model.name)
-            ProgressView().opacity(model.loading ? 1 : 0)
-            Text(model.date.formatted())
-            model.button(.tap(1), "Tap")
-            model.button(.open, "Open")
-        }
-    }
-}
 
 struct ExampleChildView: ComponentView {
 
     @ObservedObject var model: ViewModel<ExampleChildModel>
 
     var view: some View {
-        Text(model.name)
+        VStack {
+            Text(model.name)
+            Text(model.dependencies.uuid().uuidString)
+        }
     }
 }
 
