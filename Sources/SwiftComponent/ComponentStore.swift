@@ -75,6 +75,11 @@ class ComponentStore<Model: ComponentModel> {
         .store(in: &subscriptions)
     }
 
+    deinit {
+        modelStore.cancellables = []
+//        print("deinit Store \(Model.baseName)")
+    }
+
     private func startEvent() {
         eventsInProgress += 1
     }

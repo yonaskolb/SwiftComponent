@@ -46,6 +46,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     deinit {
+//        print("deinit ViewModel \(Model.baseName)")
         store.graph.remove(self)
     }
 

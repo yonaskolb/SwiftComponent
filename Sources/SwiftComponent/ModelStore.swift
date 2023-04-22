@@ -62,6 +62,10 @@ public class ComponentModelStore<Model: ComponentModel> {
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
+
+    deinit {
+//        print("deinit ModelStore \(Model.baseName)")
+    }
 }
 
 func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> String {
