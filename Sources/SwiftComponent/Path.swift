@@ -5,7 +5,6 @@ public struct ComponentPath: CustomStringConvertible, Equatable, Hashable {
         lhs.string == rhs.string
     }
 
-    public var suffix: String?
     public let path: [any ComponentModel.Type]
 
     var pathString: String {
@@ -13,11 +12,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable, Hashable {
     }
 
     public var string: String {
-        var string = pathString
-        if let suffix {
-            string += "\(suffix)"
-        }
-        return string
+        return pathString
     }
 
     public var description: String { string }

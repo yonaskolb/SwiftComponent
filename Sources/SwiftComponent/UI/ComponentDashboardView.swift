@@ -57,9 +57,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         } else {
             model = ViewModel(state: state)
         }
-        model.store.path.suffix = " Test: \(test.name)"
         let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: delay, sendEvents: delay > 0 && showTestEvents)
-        model.store.path.suffix = nil
         testRun.completeTest(test, result: result)
         runningTests = false
     }
