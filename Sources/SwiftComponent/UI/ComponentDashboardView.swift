@@ -85,8 +85,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     var body: some View {
         HStack(spacing: 0) {
             if showView {
-                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
-                    .padding()
+                ComponentType.view(model: model)
+//                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
+//                    .padding()
                     .frame(maxWidth: .infinity)
 //                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
