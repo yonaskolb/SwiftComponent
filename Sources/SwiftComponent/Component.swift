@@ -18,6 +18,8 @@ public protocol Component: PreviewProvider {
     @RouteBuilder static var routes: Routes { get }
     @ViewBuilder static func view(model: ViewModel<Model>) -> ViewType
     static var testAssertions: Set<TestAssertion> { get }
+    // provided by tests if they exist
+    static var filePath: StaticString { get }
 }
 
 extension Component {
@@ -67,20 +69,18 @@ extension Component {
 }
 
 extension Component {
-    // TODO: find filepath without tests or show warning in preview that can't access file, and to put a `var file: String { #file }`
-    static var filePath: String? { tests.first?.source.file.description }
+    public static var filePath: StaticString { tests.first?.source.file ?? .init() }
 
     static func readSource() -> String? {
-        guard let filePath = filePath else { return nil }
-        guard let data = FileManager.default.contents(atPath: filePath) else { return nil }
-        guard let source = String(data: data, encoding: .utf8) else { return nil }
-        return source
+        guard !filePath.description.isEmpty else { return nil }
+        guard let data = FileManager.default.contents(atPath: filePath.description) else { return nil }
+        return String(decoding: data, as: UTF8.self)
     }
 
     static func writeSource(_ source: String) {
-        guard let filePath = filePath else { return }
-        guard let data = source.data(using: .utf8) else { return }
-        FileManager.default.createFile(atPath: filePath, contents: data)
+        guard !filePath.description.isEmpty else { return }
+        let data = Data(source.utf8)
+        FileManager.default.createFile(atPath: filePath.description, contents: data)
     }
 }
 
