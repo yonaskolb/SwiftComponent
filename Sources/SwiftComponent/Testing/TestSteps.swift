@@ -8,9 +8,13 @@ extension TestStep {
         }
     }
     
-    public static func appear(first: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         .init(title: "Appear", file: file, line: line) { context in
-            context.model.appear(first: first)
+            if `await` {
+                await context.model.appearAsync(first: first)
+            } else {
+                context.model.appear(first: first)
+            }
         }
     }
 

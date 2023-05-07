@@ -203,18 +203,19 @@ extension ComponentStore {
 
     func appear(first: Bool, file: StaticString = #file, line: UInt = #line) {
         appearanceTask = addTask { @MainActor [weak self]  in
-
-            let start = Date()
-            self?.startEvent()
-            self?.mutations = []
-            self?.handledAppear = true
-            if let store = self?.modelStore {
-                await self?.model.appear(store: store)
-            }
-            if let self {
-                self.sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
-            }
+            await self?.appear(first: first, file: file, line: line)
         }
+    }
+
+    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
+        let start = Date()
+        startEvent()
+        mutations = []
+        handledAppear = true
+        if let store = modelStore {
+            await model.appear(store: store)
+        }
+        sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
     }
 
     func disappear(file: StaticString = #file, line: UInt = #line) {

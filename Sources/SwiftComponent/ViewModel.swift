@@ -69,6 +69,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
+    func appearAsync(first: Bool, file: StaticString = #file, line: UInt = #line) async {
+        await store.appear(first: first, file: file, line: line)
+    }
+
+    @MainActor
     func disappear(file: StaticString = #file, line: UInt = #line) {
         store.disappear(file: file, line: line)
     }
