@@ -45,7 +45,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
                     }
 //                    .scaleEffect(1.5)
                     .pickerStyle(.segmented)
-//                    .fixedSize()
+                    .fixedSize()
                 }
             }
             .navigationViewStyle(.stack)

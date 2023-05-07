@@ -93,6 +93,8 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             if showComponent {
                 NavigationView {
                     form
+                        .navigationTitle(String(describing: ComponentType.self))
+                        .navigationBarTitleDisplayMode(.inline)
                 }
                 .navigationViewStyle(.stack)
                 .frame(maxWidth: .infinity)
