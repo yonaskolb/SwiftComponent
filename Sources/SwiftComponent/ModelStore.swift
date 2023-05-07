@@ -17,6 +17,7 @@ public class ComponentModelStore<Model: ComponentModel> {
 
     public var route: Model.Route? { store.route }
     public var state: Model.State { store.state }
+    public var environment: Model.Environment { store.environment }
     public var path: ComponentPath { store.path }
     public var dependencies: ComponentDependencies { store.dependencies }
 
@@ -36,6 +37,11 @@ public class ComponentModelStore<Model: ComponentModel> {
             // https://forums.swift.org/t/add-default-parameter-support-e-g-file-to-dynamic-member-lookup/58490/2
             store.mutate(keyPath, value: newValue, source: nil)
         }
+    }
+
+    @MainActor
+    public subscript<Value>(dynamicMember keyPath: WritableKeyPath<Model.Environment, Value>) -> Value {
+        store.environment[keyPath: keyPath]
     }
 
     public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {

@@ -156,7 +156,7 @@ extension Component {
             fatalError("Could not find state")
         }
 
-        let model = ViewModel<Model>(state: state)
+        let model = ViewModel<Model>(state: state, environment: test.environment)
         return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
     }
 }

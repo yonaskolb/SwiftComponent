@@ -11,6 +11,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     public var componentName: String { Model.baseName }
     private var cancellables: Set<AnyCancellable> = []
     public var dependencies: ComponentDependencies { store.dependencies }
+    public var environment: Model.Environment { store.environment }
 
     public internal(set) var state: Model.State {
         get { store.state }
@@ -22,12 +23,20 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         set { store.route = newValue }
     }
 
-    public convenience init(state: Model.State, route: Model.Route? = nil) {
-        self.init(store: .init(state: .root(state), path: nil, graph: .init(), route: route))
+    public convenience init(state: Model.State, route: Model.Route? = nil) where Model.Environment == EmptyEnvironment {
+        self.init(store: .init(state: .root(state), path: nil, graph: .init(), environment: EmptyEnvironment(), route: route))
     }
 
-    public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) {
-        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), route: route))
+    public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) where Model.Environment == EmptyEnvironment {
+        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), environment: EmptyEnvironment(), route: route))
+    }
+
+    public convenience init(state: Model.State, environment: Model.Environment, route: Model.Route? = nil) {
+        self.init(store: .init(state: .root(state), path: nil, graph: .init(), environment: environment, route: route))
+    }
+
+    public convenience init(state: Binding<Model.State>, environment: Model.Environment, route: Model.Route? = nil) {
+        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), environment: environment, route: route))
     }
 
     init(store: ComponentStore<Model>) {
@@ -52,6 +61,10 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
         store.state[keyPath: keyPath]
+    }
+
+    public subscript<Value>(dynamicMember keyPath: KeyPath<Model.Environment, Value>) -> Value {
+        store.environment[keyPath: keyPath]
     }
 
     @MainActor
@@ -83,63 +96,127 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 // MARK: Scoping
 extension ViewModel {
 
+    // MARK: Different environment
+
     // state binding and output -> input
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .binding(state), environment: environment, output: .input(output)).viewModel()
+    }
+
+    // state binding and output -> output
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .binding(state), environment: environment, output: .output(output)).viewModel()
+    }
+
+    // state binding and output -> Never
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .binding(state), environment: environment).viewModel()
+    }
+
+    // statePath and output -> input
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .keyPath(state), environment: environment, output: .input(output)).viewModel()
+    }
+
+    // statePath and output -> output
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .keyPath(state), environment: environment, output: .output(output)).viewModel()
+    }
+
+    // optional statePath and output -> input
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment, output: .input(output)).viewModel()
+    }
+
+    // optional statePath and output -> output
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment, output: .output(output)).viewModel()
+    }
+
+    // optional statePath and output -> Never
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment).viewModel()
+    }
+
+    // statePath and output -> Never
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .keyPath(state), environment: environment).viewModel()
+    }
+
+    // state and output -> Never
+    public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .initial(state), environment: environment).viewModel()
+    }
+
+    // state and output -> input
+    public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .initial(state), environment: environment, output: .input(output)).viewModel()
+    }
+
+    // state and output -> output
+    public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .initial(state), environment: environment, output: .output(output)).viewModel()
+    }
+
+    // MARK: same environment
+
+    // state binding and output -> input
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .binding(state), output: .input(output)).viewModel()
     }
 
     // state binding and output -> output
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .binding(state), output: .output(output)).viewModel()
     }
 
     // state binding and output -> Never
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
+    public func scope<Child: ComponentModel>(state: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
         store.scope(state: .binding(state)).viewModel()
     }
 
     // statePath and output -> input
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .keyPath(state), output: .input(output)).viewModel()
     }
 
     // statePath and output -> output
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .keyPath(state), output: .output(output)).viewModel()
     }
 
     // optional statePath and output -> input
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .optionalKeyPath(state, fallback: value), output: .input(output)).viewModel()
     }
 
     // optional statePath and output -> output
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .optionalKeyPath(state, fallback: value), output: .output(output)).viewModel()
     }
 
     // optional statePath and output -> Never
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
         store.scope(state: .optionalKeyPath(state, fallback: value)).viewModel()
     }
 
     // statePath and output -> Never
-    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never {
+    public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
         store.scope(state: .keyPath(state)).viewModel()
     }
 
     // state and output -> Never
-    public func scope<Child: ComponentModel>(state: Child.State) -> ViewModel<Child> where Child.Output == Never {
+    public func scope<Child: ComponentModel>(state: Child.State) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
         store.scope(state: .initial(state)).viewModel()
     }
 
     // state and output -> input
-    public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .initial(state), output: .input(output)).viewModel()
     }
 
     // state and output -> output
-    public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+    public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .initial(state), output: .output(output)).viewModel()
     }
 

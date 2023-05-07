@@ -59,12 +59,12 @@ extension Component {
     }
 
     public static func state(for test: Test<Model>) -> Model.State? {
-        if let testState = test.state {
-            return testState
-        } else if let stateName = test.stateName, let namedState = Self.state(name: stateName) {
-            return namedState
+        switch test.state {
+        case .name(let stateName):
+            return Self.state(name: stateName)
+        case .state(let state):
+            return state
         }
-        return nil
     }
 }
 
@@ -96,21 +96,43 @@ public struct ComponentState<Model: ComponentModel> {
     public let state: Model.State
     public let route: Model.Route?
     public let size: CGSize?
+    public let environment: Model.Environment
     public var dependencies: ComponentDependencies
 
-    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil) where Model.State == Void {
-        self.init(name, size: size, route: route, state: ())
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil) where Model.State == Void, Model.Environment: ComponentEnvironment {
+        self.init(name, size: size, environment: Model.Environment.preview, route: route, state: ())
     }
 
-    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, _ state: () -> Model.State) {
-        self.init(name, size: size, route: route, state: state())
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil) where Model.State == Void, Model.Environment == EmptyEnvironment {
+        self.init(name, size: size, environment: EmptyEnvironment(), route: route, state: ())
     }
 
-    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, state: Model.State) {
+    public init(_ name: String? = nil, size: CGSize? = nil, environment: Model.Environment, route: Model.Route? = nil) where Model.State == Void {
+        self.init(name, size: size, environment: environment, route: route, state: ())
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, _ state: () -> Model.State) where Model.Environment: ComponentEnvironment {
+        self.init(name, size: size, environment: Model.Environment.preview, route: route, state: state())
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, _ state: () -> Model.State) where Model.Environment == EmptyEnvironment {
+        self.init(name, size: size, environment: EmptyEnvironment(), route: route, state: state())
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, environment: Model.Environment, route: Model.Route? = nil, _ state: () -> Model.State) {
+        self.init(name, size: size, environment: environment, route: route, state: state())
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, state: Model.State) where Model.Environment: ComponentEnvironment {
+        self.init(name, size: size, environment: Model.Environment.preview, route: route, state: state)
+    }
+
+    public init(_ name: String? = nil, size: CGSize? = nil, environment: Model.Environment, route: Model.Route? = nil, state: Model.State) {
         self.name = name ?? "Default"
         self.size = size
         self.route = route
         self.state = state
+        self.environment = environment
         self.dependencies = .init()
     }
 
@@ -123,7 +145,7 @@ public struct ComponentState<Model: ComponentModel> {
 
 extension ComponentState {
     public func viewModel() -> ViewModel<Model> {
-        ViewModel(state: state, route: route).apply(dependencies)
+        ViewModel(state: state, environment: environment, route: route).apply(dependencies)
     }
 }
 

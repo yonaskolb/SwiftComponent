@@ -9,6 +9,7 @@ public protocol ComponentModel<State, Action> {
     associatedtype Output = Never
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
+    associatedtype Environment = EmptyEnvironment
     @MainActor func appear(model: Model) async
     @MainActor func disappear(model: Model) async
     @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async

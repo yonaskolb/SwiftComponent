@@ -39,6 +39,7 @@ class ComponentStore<Model: ComponentModel> {
     private var appearanceTask: CancellableTask?
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
+    var environment: Model.Environment
 
     var state: Model.State {
         get {
@@ -70,10 +71,15 @@ class ComponentStore<Model: ComponentModel> {
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
 
-    init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) {
+    convenience init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) where Model.Environment == EmptyEnvironment {
+        self.init(state: state, path: path, graph: graph, environment: EmptyEnvironment(), route: route)
+    }
+
+    init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, environment: Model.Environment, route: Model.Route? = nil) {
         self.stateStorage = state
         self.model = Model()
         self.graph = graph
+        self.environment = environment
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
         self.dependencies = ComponentDependencies()
         self.modelStore = ComponentModelStore(store: self)
@@ -425,7 +431,7 @@ extension ComponentStore {
         return store
     }
 
-    func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> {
+    func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil) -> ComponentStore<Child> {
         let stateStorage: ComponentStore<Child>.StateStorage
         switch state {
         case .initial(let child):
@@ -437,11 +443,11 @@ extension ComponentStore {
         case .optionalKeyPath(let keyPath, let fallback):
             stateStorage = .binding(optionalBinding(state: keyPath, value: fallback))
         }
-        return ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, route: route)
+        return ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, environment: environment, route: route)
     }
 
-    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> {
-        connectTo(scopedStore(state: state, route: route)) { [weak self] output, event in
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> where Model.Environment == Child.Environment {
+        connectTo(scopedStore(state: state, environment: self.environment, route: route)) { [weak self] output, event in
             guard let self else { return }
             switch scopedOutput{
             case .input(let toInput):
@@ -454,7 +460,25 @@ extension ComponentStore {
         }
     }
 
-    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never {
-        connectTo(scopedStore(state: state, route: route))
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> {
+        connectTo(scopedStore(state: state, environment: environment, route: route)) { [weak self] output, event in
+            guard let self else { return }
+            switch scopedOutput{
+            case .input(let toInput):
+                let input = toInput(output)
+                self.processInput(input, source: event.source)
+            case .output(let toOutput):
+                let output = toOutput(output)
+                self.output(output, source: event.source)
+            }
+        }
+    }
+
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never, Model.Environment == Child.Environment {
+        connectTo(scopedStore(state: state, environment: self.environment, route: route))
+    }
+
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never {
+        connectTo(scopedStore(state: state, environment: environment, route: route))
     }
 }

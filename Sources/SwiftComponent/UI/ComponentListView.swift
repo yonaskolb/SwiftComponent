@@ -51,7 +51,7 @@ public struct ComponentListView: View {
 
 struct ComponentGridItem<ComponentType: Component>: View {
 
-    @StateObject var model = ViewModel<ComponentType.Model>.init(state: ComponentType.states[0].state)
+    @StateObject var model = ComponentType.states[0].viewModel()
     let scale = 0.5
     let device = Device.iPhone14
     var body: some View {
