@@ -38,7 +38,7 @@ extension Component {
             componentPreview
                 .previewDisplayName(Model.baseName)
             ForEach(states, id: \.name) { state in
-                view(model: ViewModel(state: state.state))
+                view(model: state.viewModel())
                     .previewDisplayName("State: \(state.name)")
                     .previewReference()
                     .previewLayout(state.size.flatMap { PreviewLayout.fixed(width: $0.width, height: $0.height) } ?? PreviewLayout.device)
@@ -96,6 +96,7 @@ public struct ComponentState<Model: ComponentModel> {
     public let state: Model.State
     public let route: Model.Route?
     public let size: CGSize?
+    public var dependencies: ComponentDependencies
 
     public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil) where Model.State == Void {
         self.init(name, size: size, route: route, state: ())
@@ -110,12 +111,19 @@ public struct ComponentState<Model: ComponentModel> {
         self.size = size
         self.route = route
         self.state = state
+        self.dependencies = .init()
+    }
+
+    public func dependency<Value>(_ keyPath: WritableKeyPath<DependencyValues, Value>, _ value: Value) -> Self {
+        var state = self
+        state.dependencies.setDependency(keyPath, value)
+        return state
     }
 }
 
 extension ComponentState {
     public func viewModel() -> ViewModel<Model> {
-        ViewModel(state: state, route: route)
+        ViewModel(state: state, route: route).apply(dependencies)
     }
 }
 

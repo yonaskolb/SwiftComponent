@@ -72,11 +72,13 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     func selectState(_ state: ComponentState<ComponentType.Model>) {
         withAnimation {
             model.state = state.state
-        }
-        if let route = state.route {
-            model.store.present(route, source: .capture())
-        } else {
-            model.store.dismissRoute(source: .capture())
+
+            if let route = state.route {
+                model.store.present(route, source: .capture())
+            } else {
+                model.store.dismissRoute(source: .capture())
+            }
+            model.store.dependencies = state.dependencies
         }
     }
 

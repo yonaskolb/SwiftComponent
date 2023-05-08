@@ -39,6 +39,11 @@ extension ViewModel {
         self.store.dependencies.setDependency(keyPath, value)
         return self
     }
+
+    func apply(_ dependencies: ComponentDependencies) -> Self {
+        self.store.dependencies.apply(dependencies)
+        return self
+    }
 }
 
 extension ComponentRoute {
