@@ -136,7 +136,9 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             if !ComponentType.states.isEmpty {
                 statesSection
             }
-            stateSection
+            if !(ComponentType.Model.State.self == Void.self) {
+                stateSection
+            }
             routeSection
             if !ComponentType.tests.isEmpty {
 //                testSettingsSection

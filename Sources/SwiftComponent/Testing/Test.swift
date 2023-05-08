@@ -2,6 +2,14 @@ import Foundation
 
 public struct Test<Model: ComponentModel> {
 
+    public init(_ name: String, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void {
+        self.name = name
+        self.state = ()
+        self.assertions = assertions
+        self.source = .capture(file: file, line: line)
+        self.steps = steps()
+    }
+
     public init(_ name: String, state: Model.State, assertions: Set<TestAssertion>? = nil, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state

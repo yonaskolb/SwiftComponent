@@ -97,6 +97,10 @@ public struct ComponentState<Model: ComponentModel> {
     public let route: Model.Route?
     public let size: CGSize?
 
+    public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil) where Model.State == Void {
+        self.init(name, size: size, route: route, state: ())
+    }
+
     public init(_ name: String? = nil, size: CGSize? = nil, route: Model.Route? = nil, _ state: () -> Model.State) {
         self.init(name, size: size, route: route, state: state())
     }
