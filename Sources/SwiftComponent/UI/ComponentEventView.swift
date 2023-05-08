@@ -107,9 +107,9 @@ struct ComponentEventView: View {
                         .lineLimit(1)
                         .truncationMode(.head)
                 }
-                line("Depth") {
-                    Text(event.depth.formatted())
-                }
+//                line("Depth") {
+//                    Text(event.depth.formatted())
+//                }
             }
             if !parentEvents.isEmpty {
                 Section("Parents") {
