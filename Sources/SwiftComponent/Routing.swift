@@ -27,6 +27,12 @@ extension ComponentModelStore {
         route.setStore(ComponentStore(state: route.state, path: self.store.path, graph: self.store.graph, route: route.route))
         return Connection()
     }
+
+    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Model.Scope<Child>) -> Connection {
+        let routeViewModel = scope.convert(store.viewModel())
+        route.setStore(routeViewModel.store)
+        return Connection()
+    }
 }
 
 
