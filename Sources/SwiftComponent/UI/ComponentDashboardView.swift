@@ -84,14 +84,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if showView {
-                ComponentType.view(model: model)
-//                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
-//                    .padding()
-                    .frame(maxWidth: .infinity)
-//                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
-            }
-            Divider()
             if showComponent {
                 NavigationView {
                     form
@@ -101,6 +93,14 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 .navigationViewStyle(.stack)
                 .frame(maxWidth: .infinity)
 //                .transition(.move(edge: .trailing).animation(.default)) // won't animate for some reason
+            }
+            Divider()
+            if showView {
+                ComponentType.view(model: model)
+                //                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
+                //                    .padding()
+                    .frame(maxWidth: .infinity)
+                //                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
         }
         .task {
