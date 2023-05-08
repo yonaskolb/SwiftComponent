@@ -51,8 +51,9 @@ extension TestStep {
     }
 
     //TODO: also clear mutation assertions
-    public func expectResourceTask<R>(_ keyPath: KeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
         expectTask(name: getResourceTaskName(keyPath), successful: successful, file: file, line: line)
+            .expectState(keyPath.appending(path: \.isLoading), false)
     }
 
     public func expectEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
