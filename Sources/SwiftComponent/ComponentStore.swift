@@ -139,10 +139,10 @@ class ComponentStore<Model: ComponentModel> {
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
-    func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
+    func onOutput(_ handle: @escaping (Model.Output, Event) -> Void) -> Self {
         self.onEvent { event in
             if case let .output(output) = event.type, let output = output as? Model.Output {
-                handle(output)
+                handle(output, event)
             }
         }
     }
@@ -379,15 +379,15 @@ extension ComponentStore {
         }
     }
 
-    private func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @escaping (Child.Output) -> Void) -> ComponentStore<Child> {
+    private func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
         }
         .store(in: &store.subscriptions)
 
-        return store.onOutput { output in
-            handleOutput(output)
+        return store.onOutput { output, event in
+            handleOutput(output, event)
         }
     }
 
@@ -402,78 +402,78 @@ extension ComponentStore {
     }
 
     // state binding and output -> input
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output in
+    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
+        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output, event in
             guard let self else { return }
             let input = toInput(output)
-            self.processInput(input, source: .capture(file: file, line: line))
+            self.processInput(input, source: event.source)
         }
     }
 
     // statePath and output -> input
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        scope(state: keyPathBinding(statePath), file: file, line: line, output: toInput)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
+        scope(state: keyPathBinding(statePath), output: toInput)
     }
 
     // optional statePath and output -> input
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        scope(state: optionalBinding(state: statePath, value: value), file: file, line: line, output: toInput)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
+        scope(state: optionalBinding(state: statePath, value: value), output: toInput)
     }
 
     // state and output -> input
-    func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output in
+    func scope<Child: ComponentModel>(state: Child.State, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
+        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output, event in
             guard let self else { return }
             let input = toInput(output)
-            self.processInput(input, source: .capture(file: file, line: line))
+            self.processInput(input, source: event.source)
         }
     }
 
     // state binding and output -> output
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output in
+    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
+        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output, event in
             guard let self else { return }
             let output = toOutput(output)
-            self.output(output, source: .capture(file: file, line: line))
+            self.output(output, source: event.source)
         }
     }
 
     // statePath and output -> output
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        scope(state: keyPathBinding(statePath), file: file, line: line, output: toOutput)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
+        scope(state: keyPathBinding(statePath), output: toOutput)
     }
 
     // optional statePath and output -> output
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        scope(state: optionalBinding(state: statePath, value: value), file: file, line: line, output: toOutput)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
+        scope(state: optionalBinding(state: statePath, value: value), output: toOutput)
     }
 
     // state and output -> output
-    func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output in
+    func scope<Child: ComponentModel>(state: Child.State, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
+        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output, event in
             guard let self else { return }
             let output = toOutput(output)
-            self.output(output, source: .capture(file: file, line: line))
+            self.output(output, source: event.source)
         }
     }
 
     // state binding and output -> Never
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, file: StaticString = #file, line: UInt = #line) -> ComponentStore<Child> where Child.Output == Never {
+    func scope<Child: ComponentModel>(state binding: Binding<Child.State>) -> ComponentStore<Child> where Child.Output == Never {
         connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph))
     }
 
     // statePath and output -> Never
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, file: StaticString = #file, line: UInt = #line) -> ComponentStore<Child> where Child.Output == Never {
-        scope(state: keyPathBinding(statePath), file: file, line: line)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>) -> ComponentStore<Child> where Child.Output == Never {
+        scope(state: keyPathBinding(statePath))
     }
 
     // optional statePath and output -> Never
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, file: StaticString = #file, line: UInt = #line) -> ComponentStore<Child> where Child.Output == Never {
-        scope(state: optionalBinding(state: statePath, value: value), file: file, line: line)
+    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ComponentStore<Child> where Child.Output == Never {
+        scope(state: optionalBinding(state: statePath, value: value))
     }
 
     // state and output -> Never
-    func scope<Child: ComponentModel>(state: Child.State, file: StaticString = #file, line: UInt = #line) -> ComponentStore<Child> where Child.Output == Never {
+    func scope<Child: ComponentModel>(state: Child.State) -> ComponentStore<Child> where Child.Output == Never {
         connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph))
     }
 }
