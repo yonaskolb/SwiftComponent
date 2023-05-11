@@ -15,7 +15,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @State var testRun: TestRun<ComponentType.Model> = TestRun()
     @State var runningTests = false
     @State var render = UUID()
-    @State var previewTestDelay = 0.3
+    @State var previewTestDelay = 0.4
     @State var showEvents: Set<EventSimpleType> = Set(EventSimpleType.allCases)//.subtracting([.mutation, .binding])
 
     var events: [Event] {
