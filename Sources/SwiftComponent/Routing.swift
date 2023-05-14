@@ -14,17 +14,17 @@ extension ComponentModelStore {
 extension ComponentModelStore {
 
     public func connect<Child>(_ route: ComponentRoute<Child>, output toInput: @escaping (Child.Output) -> Model.Input) -> Connection {
-        let childStore = ComponentStore<Child>(state: route.state, path: self.store.path, graph: self.store.graph, route: route.route)
-        route.setStore(childStore)
-        _ = childStore.onOutput { output, event in
-            let input = toInput(output)
-            self.store.processInput(input, source: event.source)
-        }
+        route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .input(toInput)))
+        return Connection()
+    }
+
+    public func connect<Child>(_ route: ComponentRoute<Child>, output toOutput: @escaping (Child.Output) -> Model.Output) -> Connection {
+        route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .output(toOutput)))
         return Connection()
     }
 
     public func connect<Child>(_ route: ComponentRoute<Child>) -> Connection where Child.Output == Never {
-        route.setStore(ComponentStore(state: route.state, path: self.store.path, graph: self.store.graph, route: route.route))
+        route.setStore(store.scope(state: .initial(route.state), route: route.route))
         return Connection()
     }
 

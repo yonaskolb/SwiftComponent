@@ -2,10 +2,32 @@ import Foundation
 import SwiftUI
 import Combine
 
+
 class ComponentStore<Model: ComponentModel> {
 
-    private var stateBinding: Binding<Model.State>?
-    private var ownedState: Model.State?
+    enum StateStorage {
+        case root(Model.State)
+        case binding(Binding<Model.State>)
+
+        var state: Model.State {
+            get {
+                switch self {
+                case .root(let state): return state
+                case .binding(let binding): return binding.wrappedValue
+                }
+            }
+            set {
+                switch self {
+                case .root:
+                    self = .root(newValue)
+                case .binding(let binding):
+                    binding.wrappedValue = newValue
+                }
+            }
+        }
+    }
+
+    private var stateStorage: StateStorage
     var path: ComponentPath
     let graph: ComponentGraph
     var dependencies: ComponentDependencies
@@ -20,15 +42,11 @@ class ComponentStore<Model: ComponentModel> {
 
     var state: Model.State {
         get {
-            ownedState ?? stateBinding!.wrappedValue
+            stateStorage.state
         }
         set {
             guard !areMaybeEqual(state, newValue) else { return }
-            if let stateBinding {
-                stateBinding.wrappedValue = newValue
-            } else {
-                ownedState = newValue
-            }
+            stateStorage.state = newValue
             stateChanged.send(newValue)
         }
     }
@@ -52,17 +70,8 @@ class ComponentStore<Model: ComponentModel> {
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
 
-    convenience init(state: Model.State, path: ComponentPath? = nil, graph: ComponentGraph, route: Model.Route? = nil) {
-        self.init(path: path, graph: graph, route: route)
-        self.ownedState = state
-    }
-
-    convenience init(state: Binding<Model.State>, path: ComponentPath? = nil, graph: ComponentGraph, route: Model.Route? = nil) {
-        self.init(path: path, graph: graph, route: route)
-        self.stateBinding = state
-    }
-
-    private init(path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) {
+    init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) {
+        self.stateStorage = state
         self.model = Model()
         self.graph = graph
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
@@ -360,6 +369,18 @@ protocol CancellableTask {
 
 extension Task: CancellableTask {}
 
+enum ScopedState<Parent, Child> {
+    case initial(Child)
+    case binding(Binding<Child>)
+    case keyPath(WritableKeyPath<Parent, Child>)
+    case optionalKeyPath(WritableKeyPath<Parent, Child?>, fallback: Child)
+}
+
+enum ScopedOutput<Parent: ComponentModel, Child: ComponentModel> {
+    case output((Child.Output) -> Parent.Output)
+    case input((Child.Output) -> Parent.Input)
+}
+
 // MARK: Scoping
 extension ComponentStore {
 
@@ -379,7 +400,7 @@ extension ComponentStore {
         }
     }
 
-    private func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
+    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -391,7 +412,7 @@ extension ComponentStore {
         }
     }
 
-    private func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>) -> ComponentStore<Child> where Child.Output == Never {
+    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>) -> ComponentStore<Child> where Child.Output == Never {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -401,79 +422,36 @@ extension ComponentStore {
         return store
     }
 
-    // state binding and output -> input
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output, event in
+    func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> {
+        let stateStorage: ComponentStore<Child>.StateStorage
+        switch state {
+        case .initial(let child):
+            stateStorage = .root(child)
+        case .binding(let binding):
+            stateStorage = .binding(binding)
+        case .keyPath(let keyPath):
+            stateStorage = .binding(keyPathBinding(keyPath))
+        case .optionalKeyPath(let keyPath, let fallback):
+            stateStorage = .binding(optionalBinding(state: keyPath, value: fallback))
+        }
+        return ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, route: route)
+    }
+
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> {
+        connectTo(scopedStore(state: state, route: route)) { [weak self] output, event in
             guard let self else { return }
-            let input = toInput(output)
-            self.processInput(input, source: event.source)
+            switch scopedOutput{
+            case .input(let toInput):
+                let input = toInput(output)
+                self.processInput(input, source: event.source)
+            case .output(let toOutput):
+                let output = toOutput(output)
+                self.output(output, source: event.source)
+            }
         }
     }
 
-    // statePath and output -> input
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        scope(state: keyPathBinding(statePath), output: toInput)
-    }
-
-    // optional statePath and output -> input
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        scope(state: optionalBinding(state: statePath, value: value), output: toInput)
-    }
-
-    // state and output -> input
-    func scope<Child: ComponentModel>(state: Child.State, output toInput: @escaping (Child.Output) -> Model.Input) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output, event in
-            guard let self else { return }
-            let input = toInput(output)
-            self.processInput(input, source: event.source)
-        }
-    }
-
-    // state binding and output -> output
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph)) { [weak self] output, event in
-            guard let self else { return }
-            let output = toOutput(output)
-            self.output(output, source: event.source)
-        }
-    }
-
-    // statePath and output -> output
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        scope(state: keyPathBinding(statePath), output: toOutput)
-    }
-
-    // optional statePath and output -> output
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        scope(state: optionalBinding(state: statePath, value: value), output: toOutput)
-    }
-
-    // state and output -> output
-    func scope<Child: ComponentModel>(state: Child.State, output toOutput: @escaping (Child.Output) -> Model.Output) -> ComponentStore<Child> {
-        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph)) { [weak self] output, event in
-            guard let self else { return }
-            let output = toOutput(output)
-            self.output(output, source: event.source)
-        }
-    }
-
-    // state binding and output -> Never
-    func scope<Child: ComponentModel>(state binding: Binding<Child.State>) -> ComponentStore<Child> where Child.Output == Never {
-        connectTo(ComponentStore<Child>(state: binding, path: self.path, graph: graph))
-    }
-
-    // statePath and output -> Never
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State>) -> ComponentStore<Child> where Child.Output == Never {
-        scope(state: keyPathBinding(statePath))
-    }
-
-    // optional statePath and output -> Never
-    func scope<Child: ComponentModel>(statePath: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ComponentStore<Child> where Child.Output == Never {
-        scope(state: optionalBinding(state: statePath, value: value))
-    }
-
-    // state and output -> Never
-    func scope<Child: ComponentModel>(state: Child.State) -> ComponentStore<Child> where Child.Output == Never {
-        connectTo(ComponentStore<Child>(state: state, path: self.path, graph: graph))
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never {
+        connectTo(scopedStore(state: state, route: route))
     }
 }

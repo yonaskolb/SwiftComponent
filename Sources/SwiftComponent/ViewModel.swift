@@ -23,11 +23,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public convenience init(state: Model.State, route: Model.Route? = nil) {
-        self.init(store: .init(state: state, graph: .init(), route: route))
+        self.init(store: .init(state: .root(state), path: nil, graph: .init(), route: route))
     }
 
     public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) {
-        self.init(store: .init(state: state, graph: .init(), route: route))
+        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), route: route))
     }
 
     init(store: ComponentStore<Model>) {
@@ -84,62 +84,62 @@ extension ViewModel {
 
     // state binding and output -> input
     public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: state, output: output).viewModel()
+        store.scope(state: .binding(state), output: .input(output)).viewModel()
     }
 
     // state binding and output -> output
     public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(state: state, output: output).viewModel()
+        store.scope(state: .binding(state), output: .output(output)).viewModel()
     }
 
     // state binding and output -> Never
     public func scope<Child: ComponentModel>(state: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(state: state).viewModel()
+        store.scope(state: .binding(state)).viewModel()
     }
 
     // statePath and output -> input
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(statePath: state, output: output).viewModel()
+        store.scope(state: .keyPath(state), output: .input(output)).viewModel()
     }
 
     // statePath and output -> output
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(statePath: state, output: output).viewModel()
+        store.scope(state: .keyPath(state), output: .output(output)).viewModel()
     }
 
     // optional statePath and output -> input
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(statePath: state, value: value, output: output).viewModel()
+        store.scope(state: .optionalKeyPath(state, fallback: value), output: .input(output)).viewModel()
     }
 
     // optional statePath and output -> output
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(statePath: state, value: value, output: output).viewModel()
+        store.scope(state: .optionalKeyPath(state, fallback: value), output: .output(output)).viewModel()
     }
 
     // optional statePath and output -> Never
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(statePath: state, value: value).viewModel()
+        store.scope(state: .optionalKeyPath(state, fallback: value)).viewModel()
     }
 
     // statePath and output -> Never
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State>) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(statePath: state).viewModel()
+        store.scope(state: .keyPath(state)).viewModel()
     }
 
     // state and output -> Never
     public func scope<Child: ComponentModel>(state: Child.State) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(state: state).viewModel()
+        store.scope(state: .initial(state)).viewModel()
     }
 
     // state and output -> input
     public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: state, output: output).viewModel()
+        store.scope(state: .initial(state), output: .input(output)).viewModel()
     }
 
     // state and output -> output
     public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(state: state, output: output).viewModel()
+        store.scope(state: .initial(state), output: .output(output)).viewModel()
     }
 
     public func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>) -> ViewModel<Child> {
