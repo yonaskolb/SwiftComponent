@@ -10,11 +10,11 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func button<Label: View>(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         ActionButton(model: self, action: action, animation: animation, file: file, line: line, label: label)
     }
 
-    public func button(_ action: Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
         ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
     }
 }
@@ -50,7 +50,7 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
     @State fileprivate var dispatchWorkContainer = DispatchWorkContainer()
 
     var model: ViewModel<Model>
-    var action: Model.Action
+    var action: () -> Model.Action
     var animation: Animation?
     var file: StaticString
     var line: UInt
@@ -58,7 +58,7 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
 
     init(
         model: ViewModel<Model>,
-        action: Model.Action,
+        action: @escaping () -> Model.Action,
         animation: Animation? = nil,
         file: StaticString = #file,
         line: UInt = #line,
@@ -85,10 +85,10 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
         Button {
             if let animation {
                 withAnimation(animation) {
-                    model.send(action, file: file, line: line)
+                    model.send(action(), file: file, line: line)
                 }
             } else {
-                model.send(action, file: file, line: line)
+                model.send(action(), file: file, line: line)
             }
         } label: { label }
 #if DEBUG
