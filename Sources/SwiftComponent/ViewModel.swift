@@ -54,6 +54,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.state[keyPath: keyPath]
     }
 
+    @MainActor
     public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
         store.send(action, animation: animation, file: file, line: line)
     }
