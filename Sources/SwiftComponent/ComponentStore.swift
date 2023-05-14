@@ -210,12 +210,14 @@ extension ComponentStore {
 // MARK: ComponentView Accessors
 extension ComponentStore {
 
+    @MainActor
     func appear(first: Bool, file: StaticString = #file, line: UInt = #line) {
         appearanceTask = addTask { @MainActor [weak self]  in
             await self?.appear(first: first, file: file, line: line)
         }
     }
 
+    @MainActor
     func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
         let start = Date()
         startEvent()
@@ -227,6 +229,7 @@ extension ComponentStore {
         sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
     }
 
+    @MainActor
     func disappear(file: StaticString = #file, line: UInt = #line) {
         addTask { @MainActor [weak self]  in
             guard let self else { return }
