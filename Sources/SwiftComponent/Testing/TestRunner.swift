@@ -60,6 +60,7 @@ extension TestStep {
     @MainActor
     func runTest(context: inout TestContext<Model>) async -> TestStepResult {
         var stepEvents: [Event] = []
+        var unexpectedEvents: [Event] = []
         context.state = context.model.state
         context.childStepResults = []
         let runAssertions = context.runAssertions
@@ -68,6 +69,7 @@ extension TestStep {
             // TODO: should probably check id instead
             if event.storeID == storeID {
                 stepEvents.append(event)
+                unexpectedEvents.append(event)
             }
         }
         _ = stepEventsSubscription // hide warning
@@ -79,9 +81,9 @@ extension TestStep {
 
         var expectationErrors: [TestError] = []
         for expectation in expectations {
-            var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: stepEvents)
+            var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: unexpectedEvents)
             expectation.run(&expectationContext)
-            stepEvents = expectationContext.events
+            unexpectedEvents = expectationContext.events
             context.state = expectationContext.testContext.state
             expectationErrors += expectationContext.errors
         }
@@ -91,12 +93,12 @@ extension TestStep {
         if context.runAssertions {
 
             for assertion in context.assertions {
-                assertionErrors += assertion.assert(events: stepEvents, context: context, source: source)
+                assertionErrors += assertion.assert(events: unexpectedEvents, context: context, source: source)
             }
 
             for assertion in TestAssertion.allCases {
                 if !context.assertions.contains(assertion) {
-                    assertionWarnings += assertion.assert(events: stepEvents, context: context, source: source)
+                    assertionWarnings += assertion.assert(events: unexpectedEvents, context: context, source: source)
                 }
             }
         }
