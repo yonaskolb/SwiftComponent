@@ -16,6 +16,7 @@ public struct TestStepResult: Identifiable {
     public var allWarnings: [TestError] { assertionWarnings + children.reduce([]) { $0 + $1.allWarnings } }
     public var children: [TestStepResult]
     public var success: Bool { allErrors.isEmpty }
+    public var coverage: TestCoverage
 
     init<Model>(
         step: TestStep<Model>,
@@ -23,7 +24,8 @@ public struct TestStepResult: Identifiable {
         expectationErrors: [TestError],
         assertionErrors: [TestError],
         assertionWarnings: [TestError],
-        children: [TestStepResult]
+        children: [TestStepResult],
+        coverage: TestCoverage
     ) {
         self.id = step.id
         self.title = step.title
@@ -35,6 +37,7 @@ public struct TestStepResult: Identifiable {
         self.assertionWarnings = assertionWarnings
         self.children = children
         self.stepErrors = []
+        self.coverage = coverage
     }
 
     public var description: String {
@@ -77,6 +80,15 @@ public struct TestResult<Model: ComponentModel> {
             return (start ..< end).formatted(.components(style: .abbreviated))
         }
     }
+
+}
+
+public struct TestCoverage {
+    public var actions: Set<String> = []
+    public var outputs: Set<String> = []
+    public var routes: Set<String> = []
+
+    var hasCoverage: Bool { !actions.isEmpty || !outputs.isEmpty || !routes.isEmpty }
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {

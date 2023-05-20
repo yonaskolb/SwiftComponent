@@ -1,4 +1,5 @@
 import Foundation
+@_implementationOnly import Runtime
 
 public struct TestContext<Model: ComponentModel> {
     public let model: ViewModel<Model>
@@ -104,13 +105,41 @@ extension TestStep {
         }
 
         context.runAssertions = runAssertions
+
+        var testCoverage = TestCoverage()
+        do {
+            let checkActions = (try? typeInfo(of: Model.Action.self))?.kind == .enum
+            let checkOutputs = (try? typeInfo(of: Model.Output.self))?.kind == .enum
+            let checkRoutes = (try? typeInfo(of: Model.Route.self))?.kind == .enum
+
+            for event in stepEvents where event.path == context.model.path {
+                switch event.type {
+                case .action(let action):
+                    if checkActions {
+                        testCoverage.actions.insert(getEnumCase(action).name)
+                    }
+                case .output(let output):
+                    if checkOutputs {
+                        testCoverage.outputs.insert(getEnumCase(output).name)
+                    }
+                case .route(let route):
+                    if checkRoutes {
+                        testCoverage.routes.insert(getEnumCase(route).name)
+                    }
+                default: break
+                }
+            }
+        }
+
         return TestStepResult(
             step: self,
             events: stepEvents,
             expectationErrors: expectationErrors,
             assertionErrors: assertionErrors,
             assertionWarnings: assertionWarnings,
-            children: context.childStepResults)
+            children: context.childStepResults,
+            coverage: testCoverage
+        )
     }
 }
 

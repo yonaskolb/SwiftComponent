@@ -16,6 +16,7 @@ struct ExampleModel: ComponentModel {
 
     enum Output {
         case finished
+        case unhandled
     }
 
     enum Input {

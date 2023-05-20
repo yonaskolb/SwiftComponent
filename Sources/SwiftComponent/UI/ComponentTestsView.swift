@@ -91,6 +91,9 @@ struct ComponentTestsView<ComponentType: Component>: View {
             for test in ComponentType.tests {
                 await runTest(test)
             }
+            withAnimation {
+                testRun.checkCoverage()
+            }
             let passed = testRun.testState.values.filter { $0.passed }.count
             let failed = testRun.testState.values.filter { !$0.passed }.count
             var string = "\n\(failed == 0 ? "✅" : "🛑") \(Model.baseName) Tests: \(passed) passed"
@@ -112,8 +115,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
 
         let model = ViewModel<Model>(state: state)
         let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
+            testRun.addStepResult(result, test: test)
             DispatchQueue.main.async {
-                testRun.addStepResult(result, test: test)
                 //        withAnimation {
                 testResults = testRun.getTestResults(for: ComponentType.tests)
                 //        }
@@ -191,6 +194,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             resultBar
+            coverage
             Divider()
             ScrollView {
                 ScrollViewReader { scrollProxy in
@@ -319,6 +323,34 @@ struct ComponentTestsView<ComponentType: Component>: View {
         .clipped()
         .padding(.horizontal)
         .padding(.bottom)
+    }
+
+    @ViewBuilder
+    var coverage: some View {
+        if testRun.missingCoverage.hasValues {
+            ScrollView(.horizontal) {
+                HStack {
+                    ForEach(testRun.missingCoverage.actions.sorted(), id: \.self) {
+                        coverageBadge(type: "Action", name: $0)
+                    }
+                    ForEach(testRun.missingCoverage.routes.sorted(), id: \.self) {
+                        coverageBadge(type: "Route", name: $0)
+                    }
+                    ForEach(testRun.missingCoverage.outputs.sorted(), id: \.self) {
+                        coverageBadge(type: "Output", name: $0)
+                    }
+                }
+                .padding()
+            }
+        }
+    }
+
+    func coverageBadge(type: String, name: String) -> some View {
+        Text("\(type).\(name)")
+            .foregroundColor(.white)
+            .padding(8)
+            .background(Color.orange)
+            .cornerRadius(6)
     }
 
     func testRow(_ test: Test<Model>) -> some View {

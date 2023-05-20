@@ -8,7 +8,7 @@ final class TaskCancellationTests: XCTestCase {
         let clock = TestClock()
         let viewModel = ViewModel<Model>(state: .init())
             .dependency(\.continuousClock, clock)
-
+        
         viewModel.send(.start)
         await clock.advance(by: .seconds(1))
         viewModel.send(.stop)

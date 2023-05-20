@@ -7,12 +7,16 @@
 
 import Foundation
 import SwiftUI
+@_implementationOnly import Runtime
 
 struct TestRun<Model: ComponentModel> {
 
     var testState: [String: TestState] = [:]
     var testResults: [String: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
+    var testCoverage: TestCoverage = .init()
+    var missingCoverage: TestCoverage = .init()
+    var totalCoverage: TestCoverage = .init()
 
     var passedTestCount: Int {
         testState.values.filter { $0.passed }.count
@@ -51,6 +55,31 @@ struct TestRun<Model: ComponentModel> {
 
     mutating func completeTest(_ test: Test<Model>, result: TestResult<Model>) {
         testState[test.name] = .complete(result)
+    }
+
+    mutating func checkCoverage() {
+        var testCoverage: TestCoverage = .init()
+        var missingCoverage: TestCoverage = .init()
+        var totalCoverage: TestCoverage = .init()
+
+        for stepResult in testStepResults.values {
+            testCoverage.add(stepResult.coverage)
+        }
+
+        func checkCovereage<ModelType>(_ keyPath: WritableKeyPath<TestCoverage, Set<String>>, type: ModelType.Type) {
+            if let typeInfo = try? typeInfo(of: type), typeInfo.kind == .enum {
+                totalCoverage[keyPath: keyPath] = Set(typeInfo.cases.map(\.name))
+            }
+        }
+        checkCovereage(\.actions, type: Model.Action.self)
+        checkCovereage(\.outputs, type: Model.Output.self)
+        checkCovereage(\.routes, type: Model.Route.self)
+        
+        missingCoverage = totalCoverage
+        missingCoverage.subtract(testCoverage)
+        self.missingCoverage = missingCoverage
+        self.testCoverage = testCoverage
+        self.totalCoverage = totalCoverage
     }
 
     func getTestResults(for tests: [Test<Model>]) -> [TestStepResult] {
