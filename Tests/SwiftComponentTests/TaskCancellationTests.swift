@@ -2,6 +2,7 @@ import XCTest
 @testable import SwiftComponent
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+@MainActor
 final class TaskCancellationTests: XCTestCase {
 
     func test_task_cancels_old_task() async throws {
@@ -49,10 +50,10 @@ final class TaskCancellationTests: XCTestCase {
         let viewModel = ViewModel<Model>(state: .init())
             .dependency(\.continuousClock, clock)
 
-        await viewModel.appear(first: true)
+        viewModel.appear(first: true)
         await clock.advance(by: .seconds(1))
         XCTAssertEqual(viewModel.count, 0)
-        await viewModel.disappear()
+        viewModel.disappear()
         await clock.advance(by: .seconds(3))
         XCTAssertEqual(viewModel.count, 0)
     }
@@ -84,9 +85,7 @@ final class TaskCancellationTests: XCTestCase {
                     do {
                         try await store.dependencies.continuousClock.sleep(for: .seconds(2))
                         store.count = 1
-                    } catch {
-
-                    }
+                    } catch {}
                 }
             case .stop:
                 store.cancelTask("sleep")
