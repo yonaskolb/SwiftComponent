@@ -87,8 +87,23 @@ public struct TestCoverage {
     public var actions: Set<String> = []
     public var outputs: Set<String> = []
     public var routes: Set<String> = []
+    public var dependencies: Set<String> = []
 
-    var hasCoverage: Bool { !actions.isEmpty || !outputs.isEmpty || !routes.isEmpty }
+    var hasValues: Bool { !actions.isEmpty || !outputs.isEmpty || !routes.isEmpty || !dependencies.isEmpty }
+
+    mutating func subtract(_ coverage: TestCoverage) {
+        actions.subtract(coverage.actions)
+        outputs.subtract(coverage.outputs)
+        routes.subtract(coverage.routes)
+        dependencies.subtract(coverage.dependencies)
+    }
+
+    mutating func add(_ coverage: TestCoverage) {
+        actions.formUnion(coverage.actions)
+        outputs.formUnion(coverage.outputs)
+        routes.formUnion(coverage.routes)
+        dependencies.formUnion(coverage.dependencies)
+    }
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {

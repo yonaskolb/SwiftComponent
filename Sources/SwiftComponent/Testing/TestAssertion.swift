@@ -26,56 +26,66 @@ extension TestAssertion {
 
     // snippet replacement <#State# > without space
 
-    func assert<Model: ComponentModel>(events: [Event], context: TestContext<Model>, source: Source) -> [TestError] {
+    func assert<Model: ComponentModel>(events: [Event], context: inout TestContext<Model>, source: Source) -> [TestError] {
         var errors: [TestError] = []
         switch self {
-            case .output:
-                for event in events {
-                    switch event.type {
-                        case .output(let output):
-                            let enumCase = getEnumCase(output)
-                            errors.append(TestError(error: "Unexpected output \(enumCase.name.quoted)", source: source, fixit: ".expectOutput(.\(enumCase.name)\(enumCase.values.isEmpty ? "" : "(<#output#>)"))"))
-                        default: break
-                    }
+        case .output:
+            for event in events {
+                switch event.type {
+                case .output(let output):
+                    let enumCase = getEnumCase(output)
+                    errors.append(TestError(error: "Unexpected output \(enumCase.name.quoted)", source: source, fixit: ".expectOutput(.\(enumCase.name)\(enumCase.values.isEmpty ? "" : "(<#output#>)"))"))
+                default: break
                 }
-            case .task:
-                for event in events {
-                    switch event.type {
-                        case .task(let result):
-                            errors.append(TestError(
-                                error: "Unexpected task \(result.name.quoted)", source: source, fixit: ".expectTask(\"\(result.name)\", successful: \(result.successful))"))
-                        default: break
-                    }
+            }
+        case .task:
+            for event in events {
+                switch event.type {
+                case .task(let result):
+                    errors.append(TestError(
+                        error: "Unexpected task \(result.name.quoted)", source: source, fixit: ".expectTask(\"\(result.name)\", successful: \(result.successful))"))
+                default: break
                 }
-            case .route:
-                for event in events {
-                    switch event.type {
-                        case .route(let route):
-                            errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source, fixit: ".expectRoute(/Model.Route.\(getEnumCase(route).name), state: <#State#>)"))
-                        default: break
-                    }
+            }
+        case .route:
+            for event in events {
+                switch event.type {
+                case .route(let route):
+                    errors.append(TestError(error: "Unexpected route \(getEnumCase(route).name.quoted)", source: source, fixit: ".expectRoute(/Model.Route.\(getEnumCase(route).name), state: <#State#>)"))
+                default: break
                 }
-            case .emptyRoute:
-                for event in events {
-                    switch event.type {
-                        case .dismissRoute:
-                            errors.append(TestError(error: "Unexpected empty route", source: source, fixit: ".expectEmptyRoute()"))
-                        default: break
-                    }
+            }
+        case .emptyRoute:
+            for event in events {
+                switch event.type {
+                case .dismissRoute:
+                    errors.append(TestError(error: "Unexpected empty route", source: source, fixit: ".expectEmptyRoute()"))
+                default: break
                 }
-            case .state:
-                if let diff = StateDump.diff(context.state, context.model.state) {
-                    errors.append(.init(error: "Unexpected state", diff: diff, source: source, fixit: ".expectState(\\.<#keypath#>, <#state#>)"))
+            }
+        case .state:
+            if let diff = StateDump.diff(context.state, context.model.state) {
+                errors.append(.init(error: "Unexpected state", diff: diff, source: source, fixit: ".expectState(\\.<#keypath#>, <#state#>)"))
+            }
+        case .dependency:
+            let unsetDependencies = context.testCoverage.dependencies.subtracting(context.model.dependencies.setDependencies)
+            if !unsetDependencies.isEmpty {
+                context.testCoverage.dependencies.subtract(unsetDependencies)
+                let dependencies = unsetDependencies.sorted()
+                for dependency in dependencies {
+                    // TODO: add a fixit, but first allow a fixit to insert BEFORE the source line with a Position enum
+                    errors.append(.init(error: "Uncontrolled use of dependency \(dependency.quoted)", source: source))
                 }
-            case .dependency: break
-//            case .mutation:
-//                for event in events {
-//                    switch event.type {
-//                        case .mutation(let mutation):
-//                            errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
-//                        default: break
-//                    }
-//                }
+            }
+            
+            //            case .mutation:
+            //                for event in events {
+            //                    switch event.type {
+            //                        case .mutation(let mutation):
+            //                            errors.append(TestError(error: "Unexpected mutation of \(mutation.property.quoted)", source: source))
+            //                        default: break
+            //                    }
+            //                }
         }
         return errors
     }

@@ -9,26 +9,34 @@ import Foundation
 import Dependencies
 
 @dynamicMemberLookup
-public struct ComponentDependencies {
+public class ComponentDependencies {
 
     var dependencyValues: DependencyValues
+    var accessedDependencies: Set<String> = []
+    var setDependencies: Set<String> = []
 
     init() {
         dependencyValues = DependencyValues._current
     }
 
-    mutating func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
+    func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
+        if let name = keyPath.propertyName {
+            setDependencies.insert(name)
+        }
         dependencyValues[keyPath: keyPath] = dependency
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<DependencyValues, Value>) -> Value {
+        if let name = keyPath.propertyName {
+            accessedDependencies.insert(name)
+        }
         let dependencies = self.dependencyValues.merging(DependencyValues._current)
         return DependencyValues.$_current.withValue(dependencies) {
             DependencyValues._current[keyPath: keyPath]
         }
     }
 
-    mutating func apply(_ dependencies: ComponentDependencies) {
+    func apply(_ dependencies: ComponentDependencies) {
         self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
     }
 }

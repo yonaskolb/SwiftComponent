@@ -8,6 +8,7 @@ public struct TestContext<Model: ComponentModel> {
     public var runAssertions: Bool = true
     public var childStepResults: [TestStepResult] = []
     public var stepErrors: [TestError] = []
+    public var testCoverage: TestCoverage = .init()
     var state: Model.State
 
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
@@ -20,12 +21,7 @@ extension ViewModel {
         let start = Date()
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
-        // for now rely on Dependencies failing when in test context
-        if assertions.contains(.dependency) {
-            self.store.dependencies.dependencyValues.context = .test
-        } else {
-            self.store.dependencies.dependencyValues.context = .preview
-        }
+        self.store.dependencies.dependencyValues.context = .preview
 
         let sendEventsValue = store.sendGlobalEvents
         store.sendGlobalEvents = sendEvents
@@ -66,6 +62,10 @@ extension TestStep {
         context.childStepResults = []
         let runAssertions = context.runAssertions
         let storeID = context.model.store.id
+
+        let startingAccessedDependencies = context.model.store.dependencies.accessedDependencies
+        context.model.store.dependencies.accessedDependencies = []
+
         let stepEventsSubscription = context.model.store.events.sink { event in
             // TODO: should probably check id instead
             if event.storeID == storeID {
@@ -79,32 +79,6 @@ extension TestStep {
         } operation: { @MainActor in
             await self.run(&context)
         }
-
-        var expectationErrors: [TestError] = []
-        for expectation in expectations {
-            var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: unexpectedEvents)
-            expectation.run(&expectationContext)
-            unexpectedEvents = expectationContext.events
-            context.state = expectationContext.testContext.state
-            expectationErrors += expectationContext.errors
-        }
-
-        var assertionErrors: [TestError] = []
-        var assertionWarnings: [TestError] = []
-        if context.runAssertions {
-
-            for assertion in context.assertions {
-                assertionErrors += assertion.assert(events: unexpectedEvents, context: context, source: source)
-            }
-
-            for assertion in TestAssertion.allCases {
-                if !context.assertions.contains(assertion) {
-                    assertionWarnings += assertion.assert(events: unexpectedEvents, context: context, source: source)
-                }
-            }
-        }
-
-        context.runAssertions = runAssertions
 
         var testCoverage = TestCoverage()
         do {
@@ -129,7 +103,37 @@ extension TestStep {
                 default: break
                 }
             }
+
+            testCoverage.dependencies = context.model.store.dependencies.accessedDependencies
+            context.model.store.dependencies.accessedDependencies = startingAccessedDependencies.union(testCoverage.dependencies)
         }
+        context.testCoverage.add(testCoverage)
+
+        var expectationErrors: [TestError] = []
+        for expectation in expectations {
+            var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: unexpectedEvents)
+            expectation.run(&expectationContext)
+            unexpectedEvents = expectationContext.events
+            context.state = expectationContext.testContext.state
+            expectationErrors += expectationContext.errors
+        }
+
+        var assertionErrors: [TestError] = []
+        var assertionWarnings: [TestError] = []
+        if context.runAssertions {
+
+            for assertion in context.assertions {
+                assertionErrors += assertion.assert(events: unexpectedEvents, context: &context, source: source)
+            }
+
+            for assertion in TestAssertion.allCases {
+                if !context.assertions.contains(assertion) {
+                    assertionWarnings += assertion.assert(events: unexpectedEvents, context: &context, source: source)
+                }
+            }
+        }
+
+        context.runAssertions = runAssertions
 
         return TestStepResult(
             step: self,
