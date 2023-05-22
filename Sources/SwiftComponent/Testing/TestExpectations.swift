@@ -2,7 +2,7 @@ import Foundation
 
 extension TestStep {
 
-    public func expectOutput(_ output: Model.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectOutput(_ output: Model.Output, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect Output", details: getEnumCase(output).name, file: file, line: line) { context in
 
             let foundOutput: Model.Output? = context.findEventValue { event in
@@ -21,7 +21,7 @@ extension TestStep {
         }
     }
 
-    private func expectTask(name: String, successful: Bool, file: StaticString = #file, line: UInt = #line) -> Self {
+    private func expectTask(name: String, successful: Bool, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect Task", details: "\(name.quoted) \(successful ? "success" : "failure")", file: file, line: line) { context in
             let result: TaskResult? = context.findEventValue { event in
                 if case .task(let taskResult) = event.type {
@@ -46,17 +46,17 @@ extension TestStep {
         }
     }
 
-    public func expectTask(_ taskID: Model.Task, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectTask(_ taskID: Model.Task, successful: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: taskID.taskName, successful: successful, file: file, line: line)
     }
 
     //TODO: also clear mutation assertions
-    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: getResourceTaskName(keyPath), successful: successful, file: file, line: line)
             .expectState(keyPath.appending(path: \.isLoading), false)
     }
 
-    public func expectEmptyRoute(file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectEmptyRoute(file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect empty route", file: file, line: line) { context in
             context.findEventValue { event in
                 if case .dismissRoute = event.type {
@@ -70,7 +70,7 @@ extension TestStep {
         }
     }
 
-    public func expectRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, state expectedState: Child.State, childRoute: Child.Route? = nil, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, state expectedState: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect route", details: Child.baseName, file: file, line: line) { context in
             let foundRoute: Model.Route? = context.findEventValue { event in
                 if case .route(let route) = event.type, let route = route as? Model.Route {
@@ -94,7 +94,7 @@ extension TestStep {
         }
     }
 
-    public func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func validateDependency<T>(_ error: String, _ keyPath: KeyPath<DependencyValues, T>, _ validateDependency: @escaping (T) -> Bool, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Validate dependency", details: String(describing: T.self).quoted, file: file, line: line) { context in
             let dependency = context.model.dependencies[dynamicMember: keyPath]
             let valid = validateDependency(dependency)
@@ -105,7 +105,7 @@ extension TestStep {
     }
 
     /// validate some properties on state by returning a boolean
-    public func validateState(_ name: String, file: StaticString = #file, line: UInt = #line, _ validateState: @escaping (Model.State) -> Bool) -> Self {
+    public func validateState(_ name: String, file: StaticString = #filePath, line: UInt = #line, _ validateState: @escaping (Model.State) -> Bool) -> Self {
         addExpectation(title: "Validate", details: name, file: file, line: line) { context in
             let valid = validateState(context.model.state)
             if !valid {
@@ -115,7 +115,7 @@ extension TestStep {
     }
 
     /// expect state to have certain properties set. Set any properties on the state that should be set. Any properties left out fill not fail the test
-    public func expectState(file: StaticString = #file, line: UInt = #line, _ modify: @escaping (inout Model.State) -> Void) -> Self {
+    public func expectState(file: StaticString = #filePath, line: UInt = #line, _ modify: @escaping (inout Model.State) -> Void) -> Self {
         addExpectation(title: "Expect State", file: file, line: line) { context in
             let currentState = context.model.state
             var expectedState = currentState
@@ -128,7 +128,7 @@ extension TestStep {
     }
 
     /// expect state to have a keypath set to a value
-    public func expectState<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #file, line: UInt = #line) -> Self {
+    public func expectState<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect \(keyPath.propertyName ?? "State")", file: file, line: line) { context in
             let currentState = context.model.state
             var expectedState = currentState

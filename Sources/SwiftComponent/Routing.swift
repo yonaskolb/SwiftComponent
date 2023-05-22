@@ -4,7 +4,7 @@ extension ComponentModelStore {
 
     @MainActor
     @discardableResult
-    public func route<Child: ComponentModel>(to route: (ComponentRoute<Child>) -> Model.Route, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #file, line: UInt = #line) -> ComponentRoute<Child> {
+    public func route<Child: ComponentModel>(to route: (ComponentRoute<Child>) -> Model.Route, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> ComponentRoute<Child> {
         let componentRoute = ComponentRoute<Child>(state: state, route: childRoute)
         store.present(route(componentRoute), source: .capture(file: file, line: line))
         return componentRoute

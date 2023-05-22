@@ -2,13 +2,13 @@ import Foundation
 
 extension TestStep {
 
-    public static func run(_ title: String, file: StaticString = #file, line: UInt = #line, _ run: @escaping () async -> Void) -> Self {
+    public static func run(_ title: String, file: StaticString = #filePath, line: UInt = #line, _ run: @escaping () async -> Void) -> Self {
         .init(title: title, file: file, line: line) { _ in
             await run()
         }
     }
     
-    public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Appear", file: file, line: line) { context in
             if `await` {
                 await context.model.appearAsync(first: first)
@@ -18,13 +18,13 @@ extension TestStep {
         }
     }
 
-    public static func disappear(file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func disappear(file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Disappear", file: file, line: line) { context in
             context.model.disappear()
         }
     }
 
-    public static func action(_ action: Model.Action, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func action(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Send Action", details: getEnumCase(action).name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
@@ -33,7 +33,7 @@ extension TestStep {
         }
     }
 
-    public static func input(_ input: Model.Input, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func input(_ input: Model.Input, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Recieve Input", details: getEnumCase(input).name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
@@ -42,7 +42,7 @@ extension TestStep {
         }
     }
 
-    public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animated: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Set Binding", details: "\(keyPath.propertyName ?? "value") = \(value)", file: file, line: line) { context in
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
@@ -65,7 +65,7 @@ extension TestStep {
         }
     }
 
-    public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value?>, _ value: Value?, animated: Bool = true, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value?>, _ value: Value?, animated: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Set Binding", details: "\(keyPath.propertyName ?? "value") = \(value != nil ? String(describing: value!) : "nil")", file: file, line: line) { context in
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
@@ -88,13 +88,13 @@ extension TestStep {
         }
     }
 
-    public static func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Set Dependency", details: keyPath.propertyName ?? "\(String(describing: Swift.type(of: dependency)))", file: file, line: line) { context in
             context.model.store.dependencies.setDependency(keyPath, dependency)
         }
     }
 
-    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
+    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Route", details: "\(Child.baseName)", file: file, line: line) { context in
             guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
 
@@ -113,7 +113,7 @@ extension TestStep {
         }
     }
 
-    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, output: Child.Output, file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, output: Child.Output, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Route Output", details: "\(Child.baseName).\(getEnumCase(output).name)", file: file, line: line) { context in
 
             guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
@@ -127,7 +127,7 @@ extension TestStep {
         }
     }
 
-    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
+    public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
             //TODO: get the model that the view is using so it can playback in the preview
             let viewModel = connection.convert(context.model)
@@ -140,7 +140,7 @@ extension TestStep {
         }
     }
 
-    public static func fork(_ name: String, file: StaticString = #file, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
+    public static func fork(_ name: String, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
         .init(title: "Fork", details: name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)

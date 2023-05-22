@@ -168,14 +168,14 @@ class ComponentStore<Model: ComponentModel> {
 // MARK: View Accessors
 extension ComponentStore {
 
-    func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+    func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
         mutationAnimation = animation
         processAction(action, source: .capture(file: file, line: line))
         mutationAnimation = nil
     }
 
     @MainActor
-    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
+    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
@@ -211,14 +211,14 @@ extension ComponentStore {
 extension ComponentStore {
 
     @MainActor
-    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) {
+    func appear(first: Bool, file: StaticString = #filePath, line: UInt = #line) {
         appearanceTask = addTask { @MainActor [weak self]  in
             await self?.appear(first: first, file: file, line: line)
         }
     }
 
     @MainActor
-    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) async {
+    func appear(first: Bool, file: StaticString = #filePath, line: UInt = #line) async {
         let start = Date()
         startEvent()
         mutations = []
@@ -230,7 +230,7 @@ extension ComponentStore {
     }
 
     @MainActor
-    func disappear(file: StaticString = #file, line: UInt = #line) {
+    func disappear(file: StaticString = #filePath, line: UInt = #line) {
         addTask { @MainActor [weak self]  in
             guard let self else { return }
             let start = Date()

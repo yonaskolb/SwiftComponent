@@ -10,11 +10,11 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         ActionButton(model: self, action: action, animation: animation, file: file, line: line, label: label)
     }
 
-    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #file, line: UInt = #line) -> some View {
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
         ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
     }
 }
@@ -60,7 +60,7 @@ struct ActionButton<Model: ComponentModel, Label: View>: View {
         model: ViewModel<Model>,
         action: @escaping () -> Model.Action,
         animation: Animation? = nil,
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line,
         @ViewBuilder label: () -> Label) {
             self.model = model

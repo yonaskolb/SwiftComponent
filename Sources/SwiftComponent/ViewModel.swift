@@ -55,27 +55,27 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+    public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
         store.send(action, animation: animation, file: file, line: line)
     }
 
     @MainActor
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #file, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
         store.binding(keyPath, file: file, line: line)
     }
 
     @MainActor
-    func appear(first: Bool, file: StaticString = #file, line: UInt = #line) {
+    func appear(first: Bool, file: StaticString = #filePath, line: UInt = #line) {
         store.appear(first: first, file: file, line: line)
     }
 
     @MainActor
-    func appearAsync(first: Bool, file: StaticString = #file, line: UInt = #line) async {
+    func appearAsync(first: Bool, file: StaticString = #filePath, line: UInt = #line) async {
         await store.appear(first: first, file: file, line: line)
     }
 
     @MainActor
-    func disappear(file: StaticString = #file, line: UInt = #line) {
+    func disappear(file: StaticString = #filePath, line: UInt = #line) {
         store.disappear(file: file, line: line)
     }
 }

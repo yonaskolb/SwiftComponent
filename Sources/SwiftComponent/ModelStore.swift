@@ -20,11 +20,11 @@ public class ComponentModelStore<Model: ComponentModel> {
     public var path: ComponentPath { store.path }
     public var dependencies: ComponentDependencies { store.dependencies }
 
-    public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #file, line: UInt = #line) {
+    public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
         store.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
     }
 
-    public func output(_ event: Model.Output, file: StaticString = #file, line: UInt = #line) {
+    public func output(_ event: Model.Output, file: StaticString = #filePath, line: UInt = #line) {
         store.output(event, source: .capture(file: file, line: line))
     }
 
@@ -38,17 +38,17 @@ public class ComponentModelStore<Model: ComponentModel> {
         }
     }
 
-    public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async -> Void) {
+    public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {
         store.addTask { @MainActor [weak self] in
             await self?.store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
         }
     }
 
-    public func task(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async -> Void) async {
+    public func task(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) async {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
     }
 
-    public func task<R>(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #file, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+    public func task<R>(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
     }
 
@@ -56,7 +56,7 @@ public class ComponentModelStore<Model: ComponentModel> {
         store.cancelTask(cancelID: taskID.taskName)
     }
 
-    public func dismissRoute(file: StaticString = #file, line: UInt = #line) {
+    public func dismissRoute(file: StaticString = #filePath, line: UInt = #line) {
         store.dismissRoute(source: .capture(file: file, line: line))
     }
 
@@ -85,7 +85,7 @@ func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> St
 extension ComponentModelStore {
 
     @MainActor
-    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #file, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
+    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
         let name = getResourceTaskName(keyPath)
         await store.task(name, cancellable: true, source: .capture(file: file, line: line)) {

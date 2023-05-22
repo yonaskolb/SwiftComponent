@@ -13,7 +13,7 @@ public struct Source: Hashable {
         hasher.combine(line)
     }
 
-    public static func capture(file: StaticString = #file, line: UInt = #line) -> Self {
+    public static func capture(file: StaticString = #filePath, line: UInt = #line) -> Self {
         Source(file: file, line: line)
     }
 }
