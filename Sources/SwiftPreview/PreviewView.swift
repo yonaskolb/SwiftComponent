@@ -117,7 +117,7 @@ public struct ViewPreviewer<Content: View>: View {
     var colorSchemeSelector: some View {
         HStack(spacing: 12) {
             ForEach(ColorScheme.allCases, id: \.self) { colorScheme in
-                Button(action: { withAnimation { self.colorScheme = colorScheme } }) {
+                Button(action: { self.colorScheme = colorScheme }) {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
