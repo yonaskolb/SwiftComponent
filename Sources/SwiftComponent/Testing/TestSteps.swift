@@ -140,8 +140,8 @@ extension TestStep {
         }
     }
 
-    public static func fork(_ name: String, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
-        .init(title: "Fork", details: name, file: file, line: line) { context in
+    public static func branch(_ name: String, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> Self {
+        .init(title: "Branch", details: name, file: file, line: line) { context in
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
