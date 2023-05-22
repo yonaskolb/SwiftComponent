@@ -127,6 +127,17 @@ extension TestStep {
         }
     }
 
+    public static func dismissRoute(file: StaticString = #filePath, line: UInt = #line) -> Self {
+        .init(title: "Dimiss Route", file: file, line: line) { context in
+            context.model.store.dismissRoute(source: .capture(file: file, line: line))
+            await Task.yield()
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
+            }
+        }
+    }
+
     public static func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]) -> Self {
         .init(title: "Scope", details: Child.baseName, file: file, line: line) { context in
             //TODO: get the model that the view is using so it can playback in the preview
