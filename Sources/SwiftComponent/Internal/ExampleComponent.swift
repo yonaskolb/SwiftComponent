@@ -65,7 +65,7 @@ struct ExampleView: ComponentView {
     func routeView(_ route: ExampleModel.Route) -> some View {
         switch route {
             case .open(let route):
-                ExampleChildView(model: route.viewModel)
+                ExampleChildView(model: route.model)
         }
     }
 

@@ -49,7 +49,7 @@ public class ComponentRoute<Model: ComponentModel> {
     var route: Model.Route?
     var dependencies: ComponentDependencies
     var store: ComponentStore<Model>?
-    public var viewModel: ViewModel<Model> {
+    public var model: ViewModel<Model> {
         guard let store else { fatalError("store was not connected" )}
         return ViewModel(store: store)
     }

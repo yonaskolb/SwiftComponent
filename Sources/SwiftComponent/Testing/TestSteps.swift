@@ -104,7 +104,7 @@ extension TestStep {
             }
 
             let steps = steps()
-            let model = componentRoute.viewModel
+            let model = componentRoute.model
             var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
             for step in steps {
                 let results = await step.runTest(context: &childContext)
@@ -118,7 +118,7 @@ extension TestStep {
 
             guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
 
-            componentRoute.viewModel.store.output(output, source: .capture(file: file, line: line))
+            componentRoute.model.store.output(output, source: .capture(file: file, line: line))
             await Task.yield()
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
