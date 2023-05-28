@@ -62,7 +62,7 @@ struct ExampleView: ComponentView {
 
     @ObservedObject var model: ViewModel<ExampleModel>
 
-    func routeView(_ route: ExampleModel.Route) -> some View {
+    func view(route: ExampleModel.Route) -> some View {
         switch route {
             case .open(let route):
                 ExampleChildView(model: route.model)

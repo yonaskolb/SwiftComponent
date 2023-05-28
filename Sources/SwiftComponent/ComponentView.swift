@@ -11,19 +11,19 @@ public protocol ComponentView: View {
     associatedtype Style = Never
     var model: ViewModel<Model> { get }
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
-    @ViewBuilder @MainActor func routeView(_ route: Model.Route) -> DestinationView
-    @MainActor func presentation(for route: Model.Route) -> Presentation
+    @ViewBuilder @MainActor func view(route: Model.Route) -> DestinationView
+    @MainActor func presentation(route: Model.Route) -> Presentation
 }
 
 public extension ComponentView {
 
-    func presentation(for route: Model.Route) -> Presentation {
+    func presentation(route: Model.Route) -> Presentation {
         .sheet
     }
 }
 
 public extension ComponentView where Model.Route == Never {
-    func routeView(_ route: Model.Route) -> EmptyView {
+    func view(route: Model.Route) -> EmptyView {
         EmptyView()
     }
 }
@@ -83,7 +83,7 @@ extension ComponentView {
 
     @MainActor
     private var currentPresentation: Presentation? {
-        model.route.map { presentation(for: $0) }
+        model.route.map { presentation(route: $0) }
     }
 
     @MainActor
@@ -106,7 +106,7 @@ extension ComponentView {
             .background {
                 NavigationLink(isActive: presentationBinding(.push) ) {
                     if let route = model.route {
-                        routeView(route)
+                        view(route: route)
                     }
                 } label: {
                     EmptyView()
@@ -114,12 +114,12 @@ extension ComponentView {
             }
             .sheet(isPresented: presentationBinding(.sheet)) {
                 if let route = model.route {
-                    routeView(route)
+                    view(route: route)
                 }
             }
             .fullScreenCover(isPresented: presentationBinding(.fullScreenCover)) {
                 if let route = model.route {
-                    routeView(route)
+                    view(route: route)
                 }
             }
     }
