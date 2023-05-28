@@ -124,13 +124,6 @@ extension ComponentView {
             }
     }
 
-    @MainActor
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
-        model.binding(keyPath)
-    }
-
-    public var state: Model.State { model.state }
-
     public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
         _ = model.store.onEvent { event in
             if case let .output(output) = event.type, let output = output as? Model.Output {
