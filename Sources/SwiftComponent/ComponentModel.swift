@@ -9,16 +9,16 @@ public protocol ComponentModel<State, Action> {
     associatedtype Output = Never
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
-    @MainActor func appear(store: Store) async
-    @MainActor func disappear(store: Store) async
-    @MainActor func binding(keyPath: PartialKeyPath<State>, store: Store) async
-    @MainActor func handle(action: Action, store: Store) async
-    @MainActor func handle(input: Input, store: Store) async
+    @MainActor func appear(model: Model) async
+    @MainActor func disappear(model: Model) async
+    @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
+    @MainActor func handle(action: Action, model: Model) async
+    @MainActor func handle(input: Input, model: Model) async
     nonisolated func handle(event: Event)
-    @discardableResult nonisolated func connect(route: Route, store: Store) -> Connection
+    @discardableResult nonisolated func connect(route: Route, model: Model) -> Connection
     nonisolated init()
 
-    typealias Store = ComponentModelStore<Self>
+    typealias Model = ComponentModelStore<Self>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 
@@ -53,21 +53,21 @@ extension ComponentModel {
 }
 
 public extension ComponentModel where Action == Void {
-    func handle(action: Void, store: Store) async {}
+    func handle(action: Void, model: Model) async {}
 }
 
 public extension ComponentModel where Input == Void {
-    func handle(input: Void, store: Store) async {}
+    func handle(input: Void, model: Model) async {}
 }
 
 public extension ComponentModel where Route == Never {
-    func connect(route: Route, store: Store) -> Connection { Connection() }
+    func connect(route: Route, model: Model) -> Connection { Connection() }
 }
 
 public extension ComponentModel {
-    func binding(keyPath: PartialKeyPath<State>, store: Store) async { }
-    func appear(store: Store) async { store.store.handledAppear = false }
-    func disappear(store: Store) async { store.store.handledDisappear = false }
+    func binding(keyPath: PartialKeyPath<State>, model: Model) async { }
+    func appear(model: Model) async { model.store.handledAppear = false }
+    func disappear(model: Model) async { model.store.handledDisappear = false }
     @MainActor func handle(event: Event) { }
 }
 

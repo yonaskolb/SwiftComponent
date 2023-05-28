@@ -27,31 +27,31 @@ struct ExampleModel: ComponentModel {
         case open(ComponentRoute<ExampleChildModel>)
     }
 
-    func appear(store: Store) async {
-        await store.task("get thing") {
-            store.loading = false
+    func appear(model: Model) async {
+        await model.task("get thing") {
+            model.loading = false
         }
     }
 
-    func connect(route: Route, store: Store) -> Connection {
+    func connect(route: Route, model: Model) -> Connection {
         switch route {
         case .open(let route):
-            return store.connect(route, output: Input.child)
+            return model.connect(route, output: Input.child)
         }
     }
 
-    func handle(action: Action, store: Store) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .tap(let int):
-                store.date = store.dependencies.date()
-                store.output(.finished)
+                model.date = model.dependencies.date()
+                model.output(.finished)
             case .open:
-                store.route(to: Route.open, state: .init(name: store.name))
+                model.route(to: Route.open, state: .init(name: model.name))
                      .dependency(\.uuid, .constant(.init(1)))
         }
     }
 
-    func handle(input: Input, store: Store) async {
+    func handle(input: Input, model: Model) async {
         switch input {
         case .child(let output): break
         }
@@ -94,10 +94,10 @@ struct ExampleChildModel: ComponentModel {
         case finished
     }
 
-    func handle(action: Action, store: Store) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .tap(let int):
-                store.name += int.description
+                model.name += int.description
         }
     }
 

@@ -7,7 +7,7 @@ final class TaskCancellationTests: XCTestCase {
 
     func test_task_cancels_old_task() async throws {
         let clock = TestClock()
-        let viewModel = ViewModel<Model>(state: .init())
+        let viewModel = ViewModel<TestModel>(state: .init())
             .dependency(\.continuousClock, clock)
         
         viewModel.send(.start)
@@ -20,7 +20,7 @@ final class TaskCancellationTests: XCTestCase {
 
     func test_cancel_task_cancels() async throws {
         let clock = TestClock()
-        let viewModel = ViewModel<Model>(state: .init())
+        let viewModel = ViewModel<TestModel>(state: .init())
             .dependency(\.continuousClock, clock)
 
         viewModel.send(.start)
@@ -35,7 +35,7 @@ final class TaskCancellationTests: XCTestCase {
 
     func test_cancel_tasks_cancels() async throws {
         let clock = TestClock()
-        let viewModel = ViewModel<Model>(state: .init())
+        let viewModel = ViewModel<TestModel>(state: .init())
             .dependency(\.continuousClock, clock)
 
         viewModel.send(.start)
@@ -47,7 +47,7 @@ final class TaskCancellationTests: XCTestCase {
 
     func test_disappear_cancels() async throws {
         let clock = TestClock()
-        let viewModel = ViewModel<Model>(state: .init())
+        let viewModel = ViewModel<TestModel>(state: .init())
             .dependency(\.continuousClock, clock)
 
         viewModel.appear(first: true)
@@ -58,7 +58,7 @@ final class TaskCancellationTests: XCTestCase {
         XCTAssertEqual(viewModel.count, 0)
     }
 
-    struct Model: ComponentModel {
+    struct TestModel: ComponentModel {
 
         struct State {
             var count = 0
@@ -69,26 +69,26 @@ final class TaskCancellationTests: XCTestCase {
             case stop
         }
 
-        func appear(store: Store) async {
+        func appear(model: Model) async {
             do {
-                try await store.dependencies.continuousClock.sleep(for: .seconds(2))
-                store.count = 1
+                try await model.dependencies.continuousClock.sleep(for: .seconds(2))
+                model.count = 1
             } catch {
 
             }
         }
 
-        func handle(action: Action, store: Store) async {
+        func handle(action: Action, model: Model) async {
             switch action {
             case .start:
-                await store.task("sleep", cancellable: true) {
+                await model.task("sleep", cancellable: true) {
                     do {
-                        try await store.dependencies.continuousClock.sleep(for: .seconds(2))
-                        store.count = 1
+                        try await model.dependencies.continuousClock.sleep(for: .seconds(2))
+                        model.count = 1
                     } catch {}
                 }
             case .stop:
-                store.cancelTask("sleep")
+                model.cancelTask("sleep")
             }
         }
     }

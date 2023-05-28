@@ -78,7 +78,7 @@ class ComponentStore<Model: ComponentModel> {
         self.dependencies = ComponentDependencies()
         self.modelStore = ComponentModelStore(store: self)
         if let route = route {
-            model.connect(route: route, store: modelStore)
+            model.connect(route: route, model: modelStore)
             self.route = route
         }
         events.sink { [weak self] event in
@@ -127,7 +127,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(action: action, store: modelStore)
+        await model.handle(action: action, model: modelStore)
         sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -144,7 +144,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(input: input, store: modelStore)
+        await model.handle(input: input, model: modelStore)
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -193,7 +193,7 @@ extension ComponentStore {
 
                 self.addTask { @MainActor [weak self]  in
                     guard let self else { return }
-                    await self.model.binding(keyPath: keyPath, store: self.modelStore)
+                    await self.model.binding(keyPath: keyPath, model: self.modelStore)
                 }
 
                 let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
@@ -224,7 +224,7 @@ extension ComponentStore {
         mutations = []
         handledAppear = true
         if let store = modelStore {
-            await model.appear(store: store)
+            await model.appear(model: store)
         }
         sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
     }
@@ -237,7 +237,7 @@ extension ComponentStore {
             self.startEvent()
             self.mutations = []
             self.handledDisappear = true
-            await self.model.disappear(store: self.modelStore)
+            await self.model.disappear(model: self.modelStore)
             self.sendEvent(type: .disappear, start: start, mutations: self.mutations, source: .capture(file: file, line: line))
 
             appearanceTask?.cancel()
@@ -349,7 +349,7 @@ extension ComponentStore {
 
     @MainActor
     func present(_ route: Model.Route, source: Source) {
-        _ = model.connect(route: route, store: modelStore)
+        _ = model.connect(route: route, model: modelStore)
         self.route = route
         startEvent()
         sendEvent(type: .route(route), start: Date(), mutations: [], source: source)
