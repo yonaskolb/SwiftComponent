@@ -18,7 +18,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @State var render = UUID()
     @State var previewTestDelay = 0.4
     @State var showEvents: Set<EventSimpleType> = Set(EventSimpleType.allCases)//.subtracting([.mutation, .binding])
-
+    @State var testBranches: [TestRun<ComponentType.Model>.TestBranch] = []
     var events: [Event] {
         EventStore.shared.events
     }
@@ -48,7 +48,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     }
 
     @MainActor
-    func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval) async {
+    func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval, branch: [String]? = nil) async {
         runningTests = true
         testRun.startTest(test)
 
@@ -59,9 +59,33 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         } else {
             model = ViewModel(state: state, environment: test.environment)
         }
-        let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: delay, sendEvents: delay > 0 && showTestEvents)
+        let result = await model.runTest(
+            test,
+            initialState: state,
+            assertions: ComponentType.testAssertions,
+            delay: delay,
+            branch: branch, 
+            sendEvents: delay > 0 && showTestEvents
+        ) { result in
+            testRun.addStepResult(result, test: test)
+        }
         testRun.completeTest(test, result: result)
+        testBranches = testRun.getTestBranches(for: ComponentType.tests)
         runningTests = false
+    }
+
+    func playBranch(_ branch: TestRun<ComponentType.Model>.TestBranch) {
+        guard let test = ComponentType.tests.first(where: { $0.id == branch.test }) else { return }
+        Task { @MainActor in
+            await self.model.runTest(
+                test,
+                initialState: ComponentType.state(for: test),
+                assertions: ComponentType.testAssertions,
+                delay: previewTestDelay,
+                branch: branch.branches,
+                sendEvents: showTestEvents
+            )
+        }
     }
 
     func selectTest(_ test: Test<ComponentType.Model>) {
@@ -143,6 +167,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
             routeSection
             if !ComponentType.tests.isEmpty {
 //                testSettingsSection
+                testBranchesSection
                 testSection
             }
             eventsSection
@@ -194,6 +219,34 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 }
             }
         }
+    }
+
+    var testBranchesSection: some View {
+        Section(header: Text("Tests")) {
+            ForEach(testBranches) { test in
+                HStack {
+                    if test.branches.isEmpty {
+                        Text(test.test)
+                    } else {
+                        Spacer().frame(width: 8)
+                        Image(systemName: "arrow.turn.down.right")
+                            .foregroundColor(.secondary)
+                    }
+                    Text(test.branches.joined(separator: "/"))
+//                    Text(test.branches.dropLast(1).joined(separator: "/"))
+//                        .opacity(0)
+//                        .accessibilityHidden(true)
+//                    Text(test.branches.last ?? "")
+                    Spacer()
+                    Button {
+                        playBranch(test)
+                    } label: {
+                        Image(systemName: "play.circle")
+                    }
+                }
+            }
+        }
+        .disabled(runningTests)
     }
 
     var testSection: some View {

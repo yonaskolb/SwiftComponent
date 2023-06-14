@@ -144,10 +144,13 @@ struct ExampleComponent: Component, PreviewProvider {
     static var tests: Tests {
         Test("Set date", state: .init(name: "Main")) {
             let date = Date().addingTimeInterval(10000)
-            Step.action(.tap(2))
-                .expectState { $0.date = date }
-                .dependency(\.date, .constant(date))
-            Step.snapshot("tapped")
+            Step.branch("tap") {
+                Step.action(.tap(2))
+                    .expectState { $0.date = date }
+                Step.snapshot("tapped")
+            }
+            .dependency(\.date, .constant(date))
+
         }
 
         Test("Fill out", state: .init(name: "Main")) {

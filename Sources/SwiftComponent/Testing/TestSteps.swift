@@ -151,6 +151,22 @@ extension TestStep {
         let steps = steps()
         let snapshots = steps.flatMap(\.snapshots)
         var step = TestStep<Model>(title: "Branch", details: name, file: file, line: line) { context in
+
+            var currentBranch = context.branches
+            currentBranch.append(name)
+
+            // if we're running no branches, or a specific branch that isn't this one exit out early
+            // testingbranch - current branch: continue
+            // [] - [One]: false
+            // [One] - [One, Two]: false
+            // [One] - [One]: true
+            // [One, Two] - [One]: true
+            if let testingBranch = context.branch, !testingBranch.starts(with: currentBranch) {
+                // don't assert on this step
+                context.runAssertions = false
+                return
+            }
+            context.branches = currentBranch
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
@@ -162,9 +178,11 @@ extension TestStep {
                 context.childStepResults.append(results)
             }
             // reset state
+            _ = context.branches.popLast()
             context.model.state = state
             context.state = state
             context.model.route = route
+            //TODO: reset dependencies
 
             // don't assert on this step
             context.runAssertions = false
@@ -175,6 +193,13 @@ extension TestStep {
         }
         step.snapshots = snapshots
         return step
+    }
+}
+
+extension Test {
+
+    public static func branch(_ name: String, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> steps: @escaping () -> [TestStep<Model>]) -> TestStep<Model> {
+        .branch(name, file: file, line: line, steps: steps)
     }
 }
 

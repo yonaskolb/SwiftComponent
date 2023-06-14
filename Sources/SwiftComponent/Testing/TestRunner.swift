@@ -9,6 +9,9 @@ public struct TestContext<Model: ComponentModel> {
     public var childStepResults: [TestStepResult] = []
     public var stepErrors: [TestError] = []
     public var testCoverage: TestCoverage = .init()
+    public var branches: [String] = []
+    /// the branch path that is currently running
+    var branch: [String]?
     var snapshots: [ComponentSnapshot<Model>] = []
     var state: Model.State
 
@@ -18,7 +21,7 @@ public struct TestContext<Model: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, branch: [String]? = nil, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
         let start = Date()
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
@@ -44,7 +47,7 @@ extension ViewModel {
         store.graph.clearRoutes()
 
         var stepResults: [TestStepResult] = []
-        var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
+        var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, branch: branch, state: initialState)
         for step in test.steps {
             context.stepErrors = []
             var result = await step.runTest(context: &context)
@@ -146,7 +149,8 @@ extension TestStep {
             assertionErrors: assertionErrors,
             assertionWarnings: assertionWarnings,
             children: context.childStepResults,
-            coverage: testCoverage
+            coverage: testCoverage,
+            branches: context.branches
         )
     }
 }

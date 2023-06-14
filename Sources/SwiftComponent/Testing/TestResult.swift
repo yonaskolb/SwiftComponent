@@ -17,6 +17,7 @@ public struct TestStepResult: Identifiable {
     public var children: [TestStepResult]
     public var success: Bool { allErrors.isEmpty }
     public var coverage: TestCoverage
+    public var branches: [String]
 
     init<Model>(
         step: TestStep<Model>,
@@ -25,7 +26,8 @@ public struct TestStepResult: Identifiable {
         assertionErrors: [TestError],
         assertionWarnings: [TestError],
         children: [TestStepResult],
-        coverage: TestCoverage
+        coverage: TestCoverage,
+        branches: [String]
     ) {
         self.id = step.id
         self.title = step.title
@@ -38,6 +40,7 @@ public struct TestStepResult: Identifiable {
         self.children = children
         self.stepErrors = []
         self.coverage = coverage
+        self.branches = branches
     }
 
     public var description: String {

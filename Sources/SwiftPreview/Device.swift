@@ -94,6 +94,7 @@ public struct Device: Equatable {
 extension PreviewDevice {
 
     public static var largestDevice: PreviewDevice {
+//        PreviewDevice(rawValue: "iPad Pro (11-inch) (4th generation)")
         PreviewDevice(rawValue: "iPad Pro (12.9-inch) (6th generation)")
     }
 }

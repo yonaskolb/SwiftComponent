@@ -11,8 +11,9 @@ import SwiftUI
 
 struct TestRun<Model: ComponentModel> {
 
-    var testState: [Test<Model>.ID: TestState] = [:]
-    var testResults: [Test<Model>.ID: [TestStep<Model>.ID]] = [:]
+    typealias TestID = Test<Model>.ID
+    var testState: [TestID: TestState] = [:]
+    var testResults: [TestID: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
     var snapshots: [String: ComponentSnapshot<Model>] = [:]
     var testCoverage: TestCoverage = .init()
@@ -101,11 +102,42 @@ struct TestRun<Model: ComponentModel> {
     func getTestResults(for tests: [Test<Model>]) -> [TestStepResult] {
         var results: [TestStepResult] = []
         for test in tests {
-            let steps = testResults[test.id] ?? []
-            for stepID in steps {
-                if let result = testStepResults[stepID] {
-                    results.append(contentsOf: getTestResults(for: result))
+            results.append(contentsOf: getTestResults(for: test))
+        }
+        return results
+    }
+
+    func getTestBranches(for tests: [Test<Model>]) -> [TestBranch] {
+        var testBranches: [TestBranch] = []
+        for test in tests {
+            let branch = TestBranch(test: test.id, branches: [])
+            testBranches.append(branch)
+            
+            let results = getTestResults(for: test)
+            var branchesByBranch: Set<[String]> = []
+            for result in results {
+                if !result.branches.isEmpty, !branchesByBranch.contains(result.branches) {
+                    branchesByBranch.insert(result.branches)
+                    let branch = TestBranch(test: test.testName, branches: result.branches)
+                    testBranches.append(branch)
                 }
+            }
+        }
+        return testBranches
+    }
+
+    struct TestBranch: Identifiable {
+        var test: String
+        var branches: [String]
+        var id: String { test + branches.joined() }
+    }
+
+    func getTestResults(for test: Test<Model>) -> [TestStepResult] {
+        var results: [TestStepResult] = []
+        let steps = testResults[test.id] ?? []
+        for stepID in steps {
+            if let result = testStepResults[stepID] {
+                results.append(contentsOf: getTestResults(for: result))
             }
         }
         return results
