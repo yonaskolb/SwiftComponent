@@ -80,7 +80,7 @@ extension TestStep {
             }
             if let route = foundRoute {
                 if let foundComponentRoute = path.extract(from: route) {
-                    if let difference = StateDump.diff(foundComponentRoute.state, expectedState) {
+                    if let difference = StateDump.diff(expectedState, foundComponentRoute.state) {
                         context.error("Unexpected state in route \(getEnumCase(route).name.quoted)", diff: difference)
                     }
                     // TODO: compare nested route
