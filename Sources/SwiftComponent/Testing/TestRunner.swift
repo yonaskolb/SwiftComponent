@@ -38,6 +38,7 @@ extension ViewModel {
 
         state = initialState
         route = nil
+        store.graph.clearRoutes()
 
         var stepResults: [TestStepResult] = []
         var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)

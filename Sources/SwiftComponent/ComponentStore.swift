@@ -56,6 +56,11 @@ class ComponentStore<Model: ComponentModel> {
     var route: Model.Route? {
         didSet {
             routeChanged.send(route)
+            if let route = route {
+                graph.addRoute(store: self, route: route)
+            } else {
+                graph.removeRoute(store: self)
+            }
         }
     }
     var modelStore: ComponentModelStore<Model>!
@@ -431,7 +436,7 @@ extension ComponentStore {
         return store
     }
 
-    func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil) -> ComponentStore<Child> {
+    func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route?) -> ComponentStore<Child> {
         let stateStorage: ComponentStore<Child>.StateStorage
         switch state {
         case .initial(let child):
@@ -443,7 +448,13 @@ extension ComponentStore {
         case .optionalKeyPath(let keyPath, let fallback):
             stateStorage = .binding(optionalBinding(state: keyPath, value: fallback))
         }
-        return ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, environment: environment, route: route)
+        let store = ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, environment: environment, route: route)
+        if route == nil {
+            if let existingRoute = graph.getRoute(store: store) {
+                store.route = existingRoute
+            }
+        }
+        return store
     }
 
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> where Model.Environment == Child.Environment {
