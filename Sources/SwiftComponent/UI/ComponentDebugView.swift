@@ -13,6 +13,21 @@ struct ComponentDebugView<Model: ComponentModel>: View {
     @AppStorage("showBindings") var showBindings = true
     @AppStorage("showChildEvents") var showChildEvents = true
 
+    func eventTypeBinding(_ event: EventSimpleType) -> Binding<Bool> {
+        Binding(
+            get: {
+                eventTypes.contains(event)
+            },
+            set: {
+                if $0 {
+                    eventTypes.insert(event)
+                } else {
+                    eventTypes.remove(event)
+                }
+            }
+        )
+    }
+
     var events: [Event] {
         EventStore.shared.componentEvents(for: model.store.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
@@ -35,28 +50,26 @@ struct ComponentDebugView<Model: ComponentModel>: View {
                         .showRootNavTitle(false)
                 }
                 Section(header: eventsHeader) {
-                    Toggle("Show Children", isOn: $showChildEvents)
-                    HStack {
-                        Text("Show Types")
-                        Spacer()
-                        ForEach(EventSimpleType.allCases, id: \.rawValue) { event in
-                            Button {
-                                if eventTypes.contains(event) {
-                                    eventTypes.remove(event)
-                                } else {
-                                    eventTypes.insert(event)
-                                }
-                            } label: {
-                                VStack(spacing: 4) {
+                    Toggle("Show Child Events", isOn: $showChildEvents)
+                    NavigationLink {
+                        Form {
+                            ForEach(EventSimpleType.allCases, id: \.rawValue) { event in
+                                HStack {
                                     Circle().fill(event.color)
                                         .frame(width: 18)
                                         .padding(2)
+                                    Text(event.title)
+                                    Spacer()
+                                    Toggle(isOn: eventTypeBinding(event)) {
+                                        Text("")
+                                    }
                                 }
-                                .opacity(eventTypes.contains(event) ? 1 : 0.2)
                             }
                         }
+                        .navigationBarTitle(Text("Events"))
+                    } label: {
+                        Text("Filter Event Types")
                     }
-                    .buttonStyle(.plain)
                 }
                 Section {
                     ComponentEventList(events: events, allEvents: EventStore.shared.events.sorted { $0.start < $1.start })

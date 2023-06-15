@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import SwiftUI
 
+// TODO: remove 
 public class EventStore {
 
     public static let shared = EventStore()
@@ -164,10 +165,6 @@ extension EventType {
         }
     }
 
-    public var emoji: String {
-        color.circleEmoji
-    }
-
     public var detailsTitle: String {
         switch self {
             case .action:
@@ -280,11 +277,11 @@ enum EventSimpleType: String, CaseIterable {
     case disappear
     case action
     case binding
+    case mutation
     case task
     case input
-    case mutation
-    case route
     case output
+    case route
     case dismissRoute
 
     static var set: Set<EventSimpleType> { Set(allCases) }
@@ -311,9 +308,9 @@ enum EventSimpleType: String, CaseIterable {
             case .binding:
                 return .yellow
             case .output:
-                return .black
+                return .cyan
             case .input:
-                return .white
+                return .cyan
             case .appear:
                 return .blue
             case .disappear:
@@ -324,34 +321,6 @@ enum EventSimpleType: String, CaseIterable {
                 return .yellow
             case .route, .dismissRoute:
                 return .orange
-        }
-    }
-}
-
-extension Color {
-
-    var circleEmoji: String {
-        switch self {
-            case .blue, .teal:
-                return "🔵"
-            case .yellow:
-                return "🟡"
-            case .purple:
-                return "🟣"
-            case .orange:
-                return "🟠"
-            case .green:
-                return "🟢"
-            case .red:
-                return "🔴"
-            case .black:
-                return "⚫️"
-            case .white:
-                return "⚪️"
-            case .brown:
-                return "🟤"
-            default:
-                return "⚪️"
         }
     }
 }
