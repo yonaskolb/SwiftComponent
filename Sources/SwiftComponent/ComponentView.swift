@@ -93,7 +93,7 @@ extension ComponentView {
                 currentPresentation == presentation
             },
             set: { present in
-                if !present {
+                if currentPresentation == presentation, !present, self.model.route != nil {
                     self.model.route = nil
                 }
             }

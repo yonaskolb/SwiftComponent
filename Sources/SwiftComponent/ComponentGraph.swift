@@ -3,6 +3,7 @@ import Foundation
 class ComponentGraph {
 
     private var models: [ComponentPath: WeakRef] = [:]
+    private var routes: [ComponentPath: Any] = [:]
     let id = UUID()
 
     init() {
@@ -11,12 +12,11 @@ class ComponentGraph {
 
     func add<Model: ComponentModel>(_ model: ViewModel<Model>) {
         models[model.store.path] = WeakRef(model)
-        //print("GRAPH", id, "add", model.store.id, model.path)
     }
 
     func remove<Model: ComponentModel>(_ model: ViewModel<Model>) {
         models[model.store.path] = nil
-        //print("GRAPH", id, "rem", model.store.id, model.path)
+        routes[model.store.path] = nil
     }
 
     func getScopedModel<Model: ComponentModel, Child: ComponentModel>(model: ViewModel<Model>, child: Child.Type) -> ViewModel<Child>? {
@@ -24,9 +24,23 @@ class ComponentGraph {
     }
 
     func getModel<Model: ComponentModel>(_ path: ComponentPath) -> ViewModel<Model>? {
-        let model = models[path]?.value as? ViewModel<Model>
-        //print("GRAPH", id, "get", model?.store.id.description ?? "", path)
-        return model
+        models[path]?.value as? ViewModel<Model>
+    }
+
+    func addRoute<Model: ComponentModel>(store: ComponentStore<Model>, route: Model.Route) {
+        routes[store.path] = route
+    }
+
+    func removeRoute<Model: ComponentModel>(store: ComponentStore<Model>) {
+        routes[store.path] = nil
+    }
+
+    func getRoute<Model: ComponentModel>(store: ComponentStore<Model>) -> Model.Route? {
+        routes[store.path] as? Model.Route
+    }
+
+    func clearRoutes() {
+        routes.removeAll()
     }
 }
 

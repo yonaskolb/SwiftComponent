@@ -38,6 +38,7 @@ extension ViewModel {
 
         state = initialState
         route = nil
+        store.graph.clearRoutes()
 
         var stepResults: [TestStepResult] = []
         var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
@@ -156,7 +157,7 @@ extension Component {
             fatalError("Could not find state")
         }
 
-        let model = ViewModel<Model>(state: state)
+        let model = ViewModel<Model>(state: state, environment: test.environment)
         return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
     }
 }

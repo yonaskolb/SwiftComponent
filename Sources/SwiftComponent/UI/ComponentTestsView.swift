@@ -113,7 +113,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
         testRun.startTest(test)
 
-        let model = ViewModel<Model>(state: state)
+        let model = ViewModel<Model>(state: state, environment: test.environment)
         let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
             testRun.addStepResult(result, test: test)
             DispatchQueue.main.async {
