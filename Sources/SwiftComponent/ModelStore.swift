@@ -5,7 +5,7 @@ import CasePaths
 import Dependencies
 
 @dynamicMemberLookup
-public class ComponentModelStore<Model: ComponentModel> {
+public class ComponentModelContext<Model: ComponentModel> {
 
     weak var store: ComponentStore<Model>!
 
@@ -88,7 +88,7 @@ func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> St
     "load \(keyPath.propertyName ?? "resource")"
 }
 
-extension ComponentModelStore {
+extension ComponentModelContext {
 
     @MainActor
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {

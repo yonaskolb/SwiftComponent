@@ -1,6 +1,6 @@
 import Foundation
 
-extension ComponentModelStore {
+extension ComponentModelContext {
 
     @MainActor
     @discardableResult
@@ -11,7 +11,7 @@ extension ComponentModelStore {
     }
 }
 
-extension ComponentModelStore {
+extension ComponentModelContext {
 
     // MARK: different environment
 

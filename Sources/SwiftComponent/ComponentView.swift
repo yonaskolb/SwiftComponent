@@ -133,10 +133,3 @@ extension ComponentView {
         return self
     }
 }
-
-//extension View {
-//
-//    func style<V: ComponentView>(_ view: V.Type, _ style: (inout V.Style) -> Void) -> some View {
-//        self.environment(\., <#T##value: V##V#>)
-//    }
-//}

@@ -19,7 +19,7 @@ public protocol ComponentModel<State, Action> {
     @discardableResult nonisolated func connect(route: Route, model: Model) -> Connection
     nonisolated init()
 
-    typealias Model = ComponentModelStore<Self>
+    typealias Model = ComponentModelContext<Self>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 

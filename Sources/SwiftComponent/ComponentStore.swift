@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 import Combine
 
-
 class ComponentStore<Model: ComponentModel> {
 
     enum StateStorage {
@@ -63,7 +62,7 @@ class ComponentStore<Model: ComponentModel> {
             }
         }
     }
-    var modelStore: ComponentModelStore<Model>!
+    var modelContext: ComponentModelContext<Model>!
     var model: Model
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
@@ -87,9 +86,9 @@ class ComponentStore<Model: ComponentModel> {
         self.environment = environment
         self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
         self.dependencies = ComponentDependencies()
-        self.modelStore = ComponentModelStore(store: self)
+        self.modelContext = ComponentModelContext(store: self)
         if let route = route {
-            model.connect(route: route, model: modelStore)
+            model.connect(route: route, model: modelContext)
             self.route = route
         }
         events.sink { [weak self] event in
@@ -99,7 +98,7 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     deinit {
-        modelStore.cancellables = []
+        modelContext.cancellables = []
         cancelTasks()
     }
 
@@ -138,7 +137,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(action: action, model: modelStore)
+        await model.handle(action: action, model: modelContext)
         sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -155,7 +154,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(input: input, model: modelStore)
+        await model.handle(input: input, model: modelContext)
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -204,7 +203,7 @@ extension ComponentStore {
 
                 self.addTask { @MainActor [weak self]  in
                     guard let self else { return }
-                    await self.model.binding(keyPath: keyPath, model: self.modelStore)
+                    await self.model.binding(keyPath: keyPath, model: self.modelContext)
                 }
 
                 let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
@@ -234,7 +233,7 @@ extension ComponentStore {
         startEvent()
         mutations = []
         handledAppear = true
-        if let store = modelStore {
+        if let store = modelContext {
             await model.appear(model: store)
         }
         sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
@@ -248,7 +247,7 @@ extension ComponentStore {
             self.startEvent()
             self.mutations = []
             self.handledDisappear = true
-            await self.model.disappear(model: self.modelStore)
+            await self.model.disappear(model: self.modelContext)
             self.sendEvent(type: .disappear, start: start, mutations: self.mutations, source: .capture(file: file, line: line))
 
             appearanceTask?.cancel()
@@ -360,7 +359,7 @@ extension ComponentStore {
 
     @MainActor
     func present(_ route: Model.Route, source: Source) {
-        _ = model.connect(route: route, model: modelStore)
+        _ = model.connect(route: route, model: modelContext)
         self.route = route
         startEvent()
         sendEvent(type: .route(route), start: Date(), mutations: [], source: source)

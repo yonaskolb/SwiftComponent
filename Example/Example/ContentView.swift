@@ -26,49 +26,40 @@ struct ItemModel: ComponentModel {
         case detail(ItemDetailModel.Output)
     }
 
-    func connect(route: Route, store: Store) -> Connection {
+    func connect(route: Route, model: Model) -> Connection {
         switch route {
             case .detail(let route):
-                return store.connect(route, output: Input.detail)
+                return model.connect(route, output: Input.detail)
         }
     }
 
-    func appear(store: Store) async {
-        await store.loadResource(\.data) {
-            try await clock.sleep(for: .seconds(1))
+    func appear(model: Model) async {
+        await model.loadResource(\.data) {
+            try await model.dependencies.continuousClock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
         }
     }
 
-    func handle(action: Action, store: Store) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .calculate:
-                try? await store.dependencies.continuousClock.sleep(for: .seconds(1))
-                store.name = String(UUID().uuidString.prefix(6))
+                try? await model.dependencies.continuousClock.sleep(for: .seconds(1))
+                model.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
-                store.presentDetail = store.detail
+                model.presentDetail = model.detail
             case .pushItem:
-                store.route(to: Route.detail, state: store.detail)
+                model.route(to: Route.detail, state: model.detail)
             case .updateDetail:
-                store.detail.name = Int.random(in: 0...1000).description
+                model.detail.name = Int.random(in: 0...1000).description
         }
     }
 
-    func handle(input: Input, store: Store) async {
+    func handle(input: Input, model: Model) async {
         switch input {
             case .detail(.finished(let name)):
-                store.detail.name = name
-                store.name = name
-                store.presentDetail = nil
-        }
-    }
-
-    func handleBinding(keyPath: PartialKeyPath<State>, store: Store) async {
-        switch keyPath {
-            case \.name:
-                print("changed name")
-            default:
-                break
+                model.detail.name = name
+                model.name = name
+                model.presentDetail = nil
         }
     }
 }
@@ -84,10 +75,10 @@ struct ItemView: ComponentView {
         }
     }
 
-    func routeView(_ route: ItemModel.Route) -> some View {
+    func view(route: ItemModel.Route) -> some View {
         switch route {
             case .detail(let route):
-                ItemDetailView(model: route.viewModel)
+                ItemDetailView(model: route.model)
         }
     }
 
@@ -104,7 +95,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 model.button(.updateDetail, "Update")
             }
-            ItemDetailView(model: model.scope(statePath: \.detail, output: Model.Input.detail))
+            ItemDetailView(model: model.scope(state: \.detail, output: Model.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
@@ -117,7 +108,7 @@ struct ItemView: ComponentView {
         .padding()
         .sheet(item: model.binding(\.presentDetail)) { state in
             NavigationView {
-                ItemDetailView(model: model.scope(statePath: \.presentDetail, value: state, output: Model.Input.detail))
+                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, output: Model.Input.detail))
             }
         }
         .navigationBarTitleDisplayMode(.large)
@@ -141,20 +132,20 @@ struct ItemDetailModel: ComponentModel {
         case finished(String)
     }
 
-    func appear(store: Store) async {
+    func appear(model: Model) async {
 
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>, store: Store) async {
+    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
 
     }
 
-    func handle(action: Action, store: Store) async {
+    func handle(action: Action, model: Model) async {
         switch action {
             case .close:
-                store.output(.finished(store.name))
+                model.output(.finished(model.name))
             case .updateName:
-                store.name = Int.random(in: 0...100).description
+                model.name = Int.random(in: 0...100).description
         }
     }
 }
@@ -200,13 +191,11 @@ struct ItemComponent: Component, PreviewProvider {
     static var tests: Tests {
         Test("Happy New style", state: .init(name: "john", data: .loading)) {
             Step.action(.updateDetail)
-            Step.setBinding(\.text, "yeah")
+            Step.binding(\.text, "yeah")
                 .validateState("text is set") { state in
                     state.text == "yeah"
                 }
-                .expectState { state in
-                    state.name = "yeah"
-                }
+                .expectState(\.name, "yeah")
         }
     }
 }
