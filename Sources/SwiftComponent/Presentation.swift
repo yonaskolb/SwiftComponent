@@ -6,6 +6,10 @@ public enum Presentation {
     case sheet
     case push
     case fullScreenCover
+
+    @available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *)
+    // use NavigationView instead of NavigationStack for push presentations on iOS 16.
+    public static var useNavigationViewOniOS16 = false
 }
 
 // wip

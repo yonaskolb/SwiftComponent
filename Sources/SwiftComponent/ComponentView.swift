@@ -103,13 +103,9 @@ extension ComponentView {
     @MainActor
     public var body: some View {
         ComponentViewContainer(model: model, view: view)
-            .background {
-                NavigationLink(isActive: presentationBinding(.push) ) {
-                    if let route = model.route {
-                        view(route: route)
-                    }
-                } label: {
-                    EmptyView()
+            .push(isPresented: presentationBinding(.push)) {
+                if let route = model.route {
+                    view(route: route)
                 }
             }
             .sheet(isPresented: presentationBinding(.sheet)) {
@@ -131,5 +127,23 @@ extension ComponentView {
             }
         }
         return self
+    }
+}
+
+extension View {
+
+    @ViewBuilder
+    func push<Content: View>(isPresented: Binding<Bool>, @ViewBuilder destination: () -> Content) -> some View {
+        if #available(iOS 16.0, *), !Presentation.useNavigationViewOniOS16 {
+            self.navigationDestination(isPresented: isPresented, destination: destination)
+        } else {
+           self.background {
+                NavigationLink(isActive: isPresented) {
+                    destination()
+                } label: {
+                    EmptyView()
+                }
+           }
+        }
     }
 }
