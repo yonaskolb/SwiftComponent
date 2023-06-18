@@ -183,6 +183,7 @@ class ComponentStore<Model: ComponentModel> {
         }
     }
 
+    @discardableResult
     func onEvent(_ handle: @escaping (Event) -> Void) -> Self {
         self.events.sink { event in
             handle(event)

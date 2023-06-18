@@ -59,6 +59,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.graph.remove(self)
     }
 
+    public func onEvent(_ event: @escaping (Event) -> Void) -> Self {
+        store.onEvent(event)
+        return self
+    }
+
     public func logEvents(_ events: Set<EventSimpleType> = Set(EventSimpleType.allCases), childEvents: Bool = true) -> Self {
         store.logEvents.formUnion(events)
         store.logChildEvents = childEvents
