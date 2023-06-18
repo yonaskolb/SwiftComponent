@@ -19,7 +19,7 @@ public class ComponentDependencies {
         dependencyValues = DependencyValues._current
     }
 
-    func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
+    public func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
         if let name = keyPath.propertyName {
             setDependencies.insert(name)
         }
@@ -38,6 +38,12 @@ public class ComponentDependencies {
 
     func apply(_ dependencies: ComponentDependencies) {
         self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
+    }
+
+    func reset() {
+        accessedDependencies = []
+        setDependencies = []
+        dependencyValues = DependencyValues._current
     }
 }
 
