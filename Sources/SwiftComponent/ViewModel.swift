@@ -59,6 +59,12 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.graph.remove(self)
     }
 
+    public func logEvents(_ events: Set<EventSimpleType> = Set(EventSimpleType.allCases), childEvents: Bool = true) -> Self {
+        store.logEvents.formUnion(events)
+        store.logChildEvents = childEvents
+        return self
+    }
+
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
         store.state[keyPath: keyPath]
     }

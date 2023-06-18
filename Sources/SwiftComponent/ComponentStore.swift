@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import os
 
 class ComponentStore<Model: ComponentModel> {
 
@@ -39,6 +40,9 @@ class ComponentStore<Model: ComponentModel> {
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
     var environment: Model.Environment
+    let logger: Logger
+    var logEvents: Set<EventSimpleType> = []
+    var logChildEvents: Bool = true
 
     var state: Model.State {
         get {
@@ -84,8 +88,10 @@ class ComponentStore<Model: ComponentModel> {
         self.model = Model()
         self.graph = graph
         self.environment = environment
-        self.path = path?.appending(Model.self) ?? ComponentPath(Model.self)
+        let path = path?.appending(Model.self) ?? ComponentPath(Model.self)
+        self.path = path
         self.dependencies = ComponentDependencies()
+        self.logger = Logger(subsystem: "SwiftComponent", category: path.string)
         self.modelContext = ComponentModelContext(store: self)
         if let route = route {
             model.connect(route: route, model: modelContext)
@@ -120,8 +126,19 @@ class ComponentStore<Model: ComponentModel> {
         }
         let event = Event(type: type, storeID: id, componentPath: path, start: start, end: Date(), mutations: mutations, depth: eventsInProgress, source: source)
         events.send(event)
+        log(event)
         guard sendGlobalEvents else { return }
         EventStore.shared.send(event)
+    }
+
+    func log(_ event: Event) {
+        if logEvents.contains(event.type.type) {
+            let details = event.type.details
+            let eventString = "\(event.type.title.lowercased())\(details.isEmpty ? "" : ": ")\(details)"
+//            let relativePath = event.path.relative(to: self.path).string
+//            logger.info("\(relativePath)\(relativePath.isEmpty ? "" : ": ")\(eventString)")
+            print("Component \(event.path.string).\(eventString)")
+        }
     }
 
     func processAction(_ action: Model.Action, source: Source) {
@@ -417,6 +434,9 @@ extension ComponentStore {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
+            if self.logChildEvents {
+                log(event)
+            }
         }
         .store(in: &store.subscriptions)
 
@@ -429,6 +449,9 @@ extension ComponentStore {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
+            if self.logChildEvents {
+                log(event)
+            }
         }
         .store(in: &store.subscriptions)
 

@@ -170,7 +170,7 @@ extension EventType {
             case .action:
                 return "Action Name"
             case .binding:
-                return "Path"
+                return "Property"
             case .output:
                 return "Output"
             case .input:
@@ -182,7 +182,7 @@ extension EventType {
             case .task:
                 return "Name"
             case .mutation:
-                return "Path"
+                return "Property"
             case .route:
                 return "Route"
             case .dismissRoute:
@@ -272,7 +272,7 @@ extension EventType {
     }
 }
 
-enum EventSimpleType: String, CaseIterable {
+public enum EventSimpleType: String, CaseIterable {
     case appear
     case disappear
     case action

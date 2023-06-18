@@ -43,8 +43,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable, Hashable {
 
     func relative(to component: ComponentPath) -> ComponentPath {
         guard contains(component) else { return self }
-        let difference = path.count - component.path.count
-        return ComponentPath(Array(path.dropFirst(difference)))
+        return ComponentPath(Array(path.dropFirst(component.path.count)))
     }
 
     var droppingRoot: ComponentPath? {

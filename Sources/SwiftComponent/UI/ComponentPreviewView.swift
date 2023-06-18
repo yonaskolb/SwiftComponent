@@ -3,7 +3,7 @@ import SwiftPreview
 
 struct ComponentPreviewView<ComponentType: Component>: View {
 
-    @StateObject var model = ComponentType.states[0].viewModel()
+    @StateObject var model = ComponentType.states[0].viewModel().logEvents()
     @AppStorage("componentPreview.viewState") var viewState: ViewState = .dashboard
 
     enum ViewState: String, CaseIterable {
