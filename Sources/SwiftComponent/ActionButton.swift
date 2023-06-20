@@ -17,6 +17,10 @@ extension ViewModel {
     public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
         ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
     }
+
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
+        ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
+    }
 }
 
 fileprivate class DispatchWorkContainer {
