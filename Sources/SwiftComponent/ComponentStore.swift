@@ -203,36 +203,41 @@ extension ComponentStore {
     }
 
     @MainActor
-    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
+    func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
-                let start = Date()
-                let oldState = self.state
-                let oldValue = self.state[keyPath: keyPath]
-                // don't continue if change doesn't lead to state change
-                guard !areMaybeEqual(oldValue, value) else { return }
-
-                self.startEvent()
-                //                print("Changed \(self)\n\(self.state[keyPath: keyPath])\nto\n\(value)\n")
-                self.state[keyPath: keyPath] = value
-
-                //print(diff(oldState, self.state) ?? "  No state changes")
+                guard self.setBindingValue(keyPath, value) else { return }
 
                 self.addTask { @MainActor [weak self]  in
                     guard let self else { return }
                     await self.model.binding(keyPath: keyPath, model: self.modelContext)
                 }
-
-                let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
-                self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
-
-                if let onSet, let action = onSet(value) {
-                    self.send(action, file: file, line: line)
-                }
             }
         )
     }
+
+    /// called from test step
+    @MainActor
+    func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) async {
+        guard self.setBindingValue(keyPath, value) else { return }
+        await self.model.binding(keyPath: keyPath, model: self.modelContext)
+    }
+
+    private func setBindingValue<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) -> Bool {
+        let start = Date()
+        let oldState = self.state
+        let oldValue = self.state[keyPath: keyPath]
+        // don't continue if change doesn't lead to state change
+        guard !areMaybeEqual(oldValue, value) else { return false }
+
+        self.startEvent()
+        self.state[keyPath: keyPath] = value
+        let mutation = Mutation(keyPath: keyPath, value: value, oldState: oldState)
+        self.sendEvent(type: .binding(mutation), start: start, mutations: [mutation], source: .capture(file: file, line: line))
+        return true
+    }
+
 }
 
 // MARK: ComponentView Accessors

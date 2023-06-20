@@ -47,21 +47,18 @@ extension TestStep {
             if animated, let string = value as? String, string.count > 1, string != "", context.delay > 0 {
                 let sleepTime = Double(context.delayNanoseconds)/(Double(string.count))
                 var currentString = ""
-                for character in string {
+                for character in string.dropLast(1) {
                     currentString.append(character)
-                    context.model.store.mutate(keyPath, value: currentString as! Value, source: .capture(file: file, line: line))
-                    context.state[keyPath: keyPath] = currentString as! Value
+                    context.model.store.state[keyPath: keyPath] = currentString as! Value
                     if sleepTime > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                     }
                 }
-            } else {
-                if context.delay > 0 {
-                    try? await Task.sleep(nanoseconds: context.delayNanoseconds)
-                }
-                context.model.store.mutate(keyPath, value: value, source: .capture(file: file, line: line))
-                context.state[keyPath: keyPath] = value
+            } else if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
+            context.state[keyPath: keyPath] = value
+            await context.model.store.setBinding(keyPath, value)
         }
     }
 
@@ -72,19 +69,16 @@ extension TestStep {
                 var currentString = ""
                 for character in string {
                     currentString.append(character)
-                    context.model.store.mutate(keyPath, value: currentString as? Value, source: .capture(file: file, line: line))
-                    context.state[keyPath: keyPath] = currentString as? Value
+                    context.model.store.state[keyPath: keyPath] = currentString as? Value
                     if sleepTime > 0 {
                         try? await Task.sleep(nanoseconds: UInt64(sleepTime))
                     }
                 }
-            } else {
-                if context.delay > 0 {
-                    try? await Task.sleep(nanoseconds: context.delayNanoseconds)
-                }
-                context.model.store.mutate(keyPath, value: value, source: .capture(file: file, line: line))
-                context.state[keyPath: keyPath] = value
+            } else if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
             }
+            context.state[keyPath: keyPath] = value
+            await context.model.store.setBinding(keyPath, value)
         }
     }
 
