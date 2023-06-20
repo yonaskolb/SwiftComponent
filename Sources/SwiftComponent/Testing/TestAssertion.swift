@@ -1,4 +1,5 @@
 import Foundation
+import Runtime
 
 public enum TestAssertion: String, CaseIterable {
     case task
@@ -42,8 +43,9 @@ extension TestAssertion {
             for event in events {
                 switch event.type {
                 case .task(let result):
-                    errors.append(TestError(
-                        error: "Unexpected task \(result.name.quoted)", source: source, fixit: ".expectTask(\"\(result.name)\", successful: \(result.successful))"))
+                    let taskID = (try? typeInfo(of: Model.Task.self).kind) == .enum ? ".\(result.name)" : result.name.quoted
+                    let fixit = ".expectTask(\(taskID)\(result.successful ? "" : ", successful: false"))"
+                    errors.append(TestError(error: "Unexpected task \(result.name.quoted)", source: source, fixit: fixit))
                 default: break
                 }
             }
