@@ -9,6 +9,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
+    @AppStorage("componentPreview.darkMode") var darkMode = false
     @AppStorage("previewTests") var previewTests = true
     @State var showTestEvents = true
     @State var autoRunTests = true
@@ -97,6 +98,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 //            Divider()
             if showView {
                 ComponentType.view(model: model)
+                    .colorScheme(darkMode ? .dark : .light)
                 //                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
                     .frame(maxWidth: .infinity)
                     .background(.background)

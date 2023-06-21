@@ -52,6 +52,7 @@ public struct ComponentListView: View {
 struct ComponentGridItem<ComponentType: Component>: View {
 
     @StateObject var model = ComponentType.states[0].viewModel()
+    @AppStorage("componentPreview.darkMode") var darkMode = false
     let scale = 0.5
     let device = Device.iPhone14
     var body: some View {
@@ -62,6 +63,7 @@ struct ComponentGridItem<ComponentType: Component>: View {
                 ComponentType
                     .view(model: model)
                     .embedIn(device: device)
+                    .colorScheme(darkMode ? .dark: .light)
                     .previewReference()
                     .allowsHitTesting(false)
                     .scaleEffect(scale)

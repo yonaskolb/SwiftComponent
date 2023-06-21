@@ -14,10 +14,11 @@ public struct ViewPreviewer<Content: View>: View {
     @State var sizeCategory: ContentSizeCategory = .large
     @State var buttonScale: CGFloat = 0.20
     @State var device = Device.iPhone14
-    @State var colorScheme: ColorScheme?
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
     @State var showEnvironmentPickers = false
+    @AppStorage("componentPreview.darkMode") var darkMode = false
+    var colorScheme: ColorScheme { darkMode ? .dark : .light }
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
@@ -49,7 +50,7 @@ public struct ViewPreviewer<Content: View>: View {
                     content
                         .environment(\.sizeCategory, sizeCategory)
                         .embedIn(device: device)
-                        .colorScheme(colorScheme ?? systemColorScheme)
+                        .colorScheme(colorScheme)
                         .shadow(radius: 10)
                         .scaleEffect(device.contentScale)
                         .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
@@ -94,7 +95,7 @@ public struct ViewPreviewer<Content: View>: View {
                         previewContent
                             .environment(\.sizeCategory, size)
                             .embedIn(device: device)
-                            .colorScheme(colorScheme ?? systemColorScheme)
+                            .colorScheme(colorScheme)
                             .scaleEffect(buttonScale*device.contentScale)
                             .frame(height: device.height * buttonScale * device.contentScale)
                         Image(systemName: size == sizeCategory ? "checkmark.circle.fill" : "circle")
@@ -117,7 +118,7 @@ public struct ViewPreviewer<Content: View>: View {
     var colorSchemeSelector: some View {
         HStack(spacing: 12) {
             ForEach(ColorScheme.allCases, id: \.self) { colorScheme in
-                Button(action: { self.colorScheme = colorScheme }) {
+                Button(action: { self.darkMode = colorScheme == .dark}) {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
