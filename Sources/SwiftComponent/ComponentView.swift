@@ -133,6 +133,21 @@ extension ComponentView {
     }
 }
 
+extension ComponentView {
+
+    public func ActionButton<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+        ActionButtonView(model: model, action: action, animation: animation, file: file, line: line, label: label)
+    }
+
+    public func ActionButton(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
+        ActionButtonView(model: model, action: action, animation: animation, file: file, line: line) { Text(text) }
+    }
+
+    public func ActionButton(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
+        ActionButtonView(model: model, action: action, animation: animation, file: file, line: line) { Text(text) }
+    }
+}
+
 extension View {
 
     @ViewBuilder

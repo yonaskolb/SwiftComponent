@@ -11,15 +11,15 @@ import SwiftUI
 extension ViewModel {
 
     public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
-        ActionButton(model: self, action: action, animation: animation, file: file, line: line, label: label)
+        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line, label: label)
     }
 
     public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
-        ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
+        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
     }
 
     public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
-        ActionButton(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
+        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
     }
 }
 
@@ -44,7 +44,7 @@ extension EnvironmentValues {
     }
 }
 
-struct ActionButton<Model: ComponentModel, Label: View>: View {
+struct ActionButtonView<Model: ComponentModel, Label: View>: View {
 
     @State var actioned = false
     @Environment(\.showActionButtonFlash) var showActionButtonFlash
