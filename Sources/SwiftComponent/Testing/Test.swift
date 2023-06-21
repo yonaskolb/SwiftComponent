@@ -33,6 +33,7 @@ public struct Test<Model: ComponentModel> {
         self.assertions = assertions
         self.source = .capture(file: file, line: line)
         self.steps = steps()
+        self.dependencies = ComponentDependencies()
     }
 
     public enum TestState {
@@ -46,6 +47,7 @@ public struct Test<Model: ComponentModel> {
     public var steps: [TestStep<Model>]
     public let source: Source
     public let assertions: Set<TestAssertion>?
+    var dependencies: ComponentDependencies
 }
 
 @resultBuilder

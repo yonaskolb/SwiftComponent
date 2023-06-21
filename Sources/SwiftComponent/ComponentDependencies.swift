@@ -72,3 +72,11 @@ extension ComponentRoute {
         return self
     }
 }
+
+extension Test {
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        let test = self
+        test.dependencies.setDependency(keyPath, dependency)
+        return test
+    }
+}

@@ -22,6 +22,7 @@ extension ViewModel {
         let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
 
         self.store.dependencies.reset()
+        self.store.dependencies.apply(test.dependencies)
         self.store.dependencies.dependencyValues.context = .preview
 
         let sendEventsValue = store.sendGlobalEvents
