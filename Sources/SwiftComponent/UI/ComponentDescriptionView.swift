@@ -224,6 +224,12 @@ fileprivate extension String {
         if hasPrefix("ComponentRoute<") && hasSuffix(">") {
             return "\(String(self.dropFirst(15).dropLast(1)))".sanitizedType
         }
+        if hasPrefix("Resource<") && hasSuffix(">") {
+            return "\(String(self.dropFirst(9).dropLast(1)))".sanitizedType
+        }
+        if hasPrefix("Array<") && hasSuffix(">") {
+            return "[\(String(self.dropFirst(6).dropLast(1)))]".sanitizedType
+        }
         return self
     }
 }
