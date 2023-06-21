@@ -9,6 +9,9 @@ public protocol ComponentView: View {
     associatedtype ComponentView: View
     associatedtype DestinationView: View
     associatedtype Style = Never
+    typealias Input = Model.Input
+    typealias Output = Model.Output
+    typealias State = Model.State
     var model: ViewModel<Model> { get }
     @ViewBuilder @MainActor var view: Self.ComponentView { get }
     @ViewBuilder @MainActor func view(route: Model.Route) -> DestinationView
