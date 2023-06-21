@@ -106,14 +106,17 @@ public struct ResourceView<State: Equatable, Content: View, ErrorView: View>: Vi
 
     public var body: some View {
         switch resource.state() {
-            case .loaded(let value):
-                content(value)
-            case .error(let error):
-                self.error(error)
-            case .loading:
+        case .loaded(let value):
+            content(value)
+        case .error(let error):
+            self.error(error)
+        case .loading:
+            ZStack {
                 ProgressView()
-            case .unloaded:
-                EmptyView()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .unloaded:
+            EmptyView()
         }
     }
 }
