@@ -11,16 +11,16 @@ extension TestStep {
     public static func appear(first: Bool = true, await: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Appear", file: file, line: line) { context in
             if `await` {
-                await context.model.appearAsync(first: first)
+                await context.model.appearAsync(first: first, file: file, line: line)
             } else {
-                context.model.appear(first: first)
+                context.model.appear(first: first, file: file, line: line)
             }
         }
     }
 
     public static func disappear(file: StaticString = #filePath, line: UInt = #line) -> Self {
         .init(title: "Disappear", file: file, line: line) { context in
-            context.model.disappear()
+            context.model.disappear(file: file, line: line)
         }
     }
 
