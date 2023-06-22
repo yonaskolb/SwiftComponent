@@ -151,9 +151,9 @@ struct ExampleComponent: Component, PreviewProvider {
     static var tests: Tests {
         Test("Set date", state: .init(name: "Main")) {
             let date = Date().addingTimeInterval(10000)
-            Step.dependency(\.date, .constant(date))
             Step.action(.tap(2))
                 .expectState { $0.date = date }
+                .dependency(\.date, .constant(date))
         }
 
         Test("Fill out", state: .init(name: "Main")) {

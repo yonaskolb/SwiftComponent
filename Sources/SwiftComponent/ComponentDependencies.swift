@@ -73,6 +73,14 @@ extension ComponentRoute {
     }
 }
 
+extension TestStep {
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        beforeRun { context in
+            context.model.dependencies.setDependency(keyPath, dependency)
+        }
+    }
+}
+
 extension Test {
     public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T, file: StaticString = #filePath, line: UInt = #line) -> Self {
         let test = self

@@ -10,13 +10,15 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var source: Source
     public let id = UUID()
     public var expectations: [TestExpectation<Model>] = []
-    private var _run: (inout TestContext<Model>) async -> Void
+    var dependencies: ComponentDependencies
+    fileprivate var _run: (inout TestContext<Model>) async -> Void
 
     public init(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
         self.title = title
         self.details = details
         self.source = .capture(file: file, line: line)
         self._run = run
+        self.dependencies = .init()
     }
 
     @MainActor
@@ -30,6 +32,19 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
             string += " \(details)"
         }
         return string
+    }
+}
+
+extension TestStep {
+
+    public func beforeRun(_ run: @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        var step = self
+        let stepRun = _run
+        step._run = { context in
+            await run(&context)
+            await stepRun(&context)
+        }
+        return step
     }
 }
 
