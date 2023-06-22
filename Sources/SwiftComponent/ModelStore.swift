@@ -39,11 +39,6 @@ public class ComponentModelContext<Model: ComponentModel> {
         }
     }
 
-    @MainActor
-    public subscript<Value>(dynamicMember keyPath: WritableKeyPath<Model.Environment, Value>) -> Value {
-        store.environment[keyPath: keyPath]
-    }
-
     public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {
         store.addTask { @MainActor [weak self] in
             await self?.store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)

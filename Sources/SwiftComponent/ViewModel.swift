@@ -74,10 +74,6 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.state[keyPath: keyPath]
     }
 
-    public subscript<Value>(dynamicMember keyPath: KeyPath<Model.Environment, Value>) -> Value {
-        store.environment[keyPath: keyPath]
-    }
-
     @MainActor
     public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
         store.send(action, animation: animation, file: file, line: line)
