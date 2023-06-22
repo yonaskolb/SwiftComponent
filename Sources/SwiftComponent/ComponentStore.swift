@@ -308,8 +308,22 @@ extension ComponentStore {
     }
 
     @MainActor
+    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+        do {
+            try await self.task(name, cancellable: cancellable, source: source, task) as R
+        } catch {
+            catchError(error)
+        }
+    }
+
+    @MainActor
+    // TODO: combine with bottom
     func task<R>(_ name: String, cancellable: Bool, source: Source,  _ task: @escaping () async -> R) async -> R {
         let cancelID = name
+
+        if previewTaskDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
+        }
 
         let start = Date()
         startEvent()
@@ -324,20 +338,19 @@ extension ComponentStore {
         let value = await task.value
         tasksByID[cancelID] = nil
         let result = TaskResult(name: name, result: .success(value))
-        if previewTaskDelay > 0 {
-            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
-        }
         sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
         return value
     }
 
     @MainActor
-    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R) async throws -> R {
         let cancelID = name
         let start = Date()
         startEvent()
         mutations = []
-        let result: TaskResult
+        if previewTaskDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
+        }
         do {
             if cancellable {
                 cancelTask(cancelID: cancelID)
@@ -349,15 +362,12 @@ extension ComponentStore {
             addTask(task, cancelID: cancelID)
             let value = try await task.value
             tasksByID[cancelID] = nil
-            result = TaskResult(name: name, result: .success(value))
+            sendEvent(type: .task(TaskResult(name: name, result: .success(value))), start: start, mutations: mutations, source: source)
+            return value
         } catch {
-            catchError(error)
-            result = TaskResult(name: name, result: .failure(error))
+            sendEvent(type: .task(TaskResult(name: name, result: .failure(error))), start: start, mutations: mutations, source: source)
+            throw error
         }
-        if previewTaskDelay > 0 {
-            try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * previewTaskDelay))
-        }
-        sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
     }
 
     func cancelTask(cancelID: String) {
