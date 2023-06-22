@@ -283,6 +283,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                     .buttonStyle(.plain)
                     .popover(isPresented: $showViewOptions) {
                         VStack(alignment: .trailing, spacing: 12) {
+                            // TODO: add tasks
                             Toggle("Show step titles", isOn: $showStepTitles)
                             Toggle("Show dependencies", isOn: showStepTitles ? $showDependencies : .constant(false))
                                 .disabled(!showStepTitles)
@@ -477,7 +478,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 // groups are to fix a rare compiler type inference error
-                Group {
+                HStack {
+
                     if showStepTitles {
                         HStack(spacing: 0) {
                             Text(stepResult.title)
@@ -490,6 +492,19 @@ struct ComponentTestsView<ComponentType: Component>: View {
 //                            .foregroundColor(stepColor(stepResult: stepResult, test: test))
                             .foregroundColor(.testContent)
                             .padding(.top, verticalSpacing)
+                    }
+                    if showDependencies {
+                        Spacer()
+                        HStack {
+                            ForEach(stepResult.coverage.dependencies.sorted(), id: \.self) { dependency in
+                                Text(dependency)
+                                    .padding(.vertical, 3)
+                                    .padding(.horizontal, 6)
+                                    .foregroundColor(.white)
+                                    .background(Color.gray)
+                                    .cornerRadius(6)
+                            }
+                        }
                     }
                 }
                 Group {
@@ -508,10 +523,8 @@ struct ComponentTestsView<ComponentType: Component>: View {
                     if !stepResult.children.isEmpty {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(stepResult.children, id: \.id) { result in
-                                if showDependencies || result.title != "Dependency" {
-                                    // AnyView fixes compiler error
-                                    AnyView(self.stepResultRow(result, test: test))
-                                }
+                                // AnyView fixes compiler error
+                                AnyView(self.stepResultRow(result, test: test))
                             }
                         }
                     }

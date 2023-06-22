@@ -70,7 +70,12 @@ extension TestAssertion {
                 errors.append(.init(error: "Unexpected state", diff: diff, source: source, fixit: ".expectState(\\.<#keypath#>, <#state#>)"))
             }
         case .dependency:
-            let unsetDependencies = context.testCoverage.dependencies.subtracting(context.model.dependencies.setDependencies)
+            var setDependencies = context.model.dependencies.setDependencies
+            // make sure if a dependency path is accessed but the whole dependency is override that counts as being set
+            setDependencies.formUnion(Set(setDependencies.map {
+                $0.components(separatedBy: ".").first!
+            }))
+            let unsetDependencies = context.testCoverage.dependencies.subtracting(setDependencies)
             if !unsetDependencies.isEmpty {
                 context.testCoverage.dependencies.subtract(unsetDependencies)
                 let dependencies = unsetDependencies.sorted()
