@@ -21,8 +21,19 @@ extension TestStep {
         }
     }
 
-    private func expectTask(name: String, successful: Bool, file: StaticString = #filePath, line: UInt = #line) -> Self {
-        addExpectation(title: "Expect Task", details: "\(name.quoted) \(successful ? "success" : "failure")", file: file, line: line) { context in
+    private func expectTask(name: String, successful: Bool?, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        let result: String
+        switch successful {
+        case .none:
+            result = ""
+        case false:
+            result = "failure"
+        case true:
+            result = " success"
+        default:
+            result = ""
+        }
+        return addExpectation(title: "Expect Task", details: "\(name.quoted)\(result)", file: file, line: line) { context in
             let result: TaskResult? = context.findEventValue { event in
                 if case .task(let taskResult) = event.type {
                     return taskResult
@@ -32,11 +43,11 @@ extension TestStep {
             if let result {
                 switch result.result {
                     case .failure:
-                        if successful {
+                        if successful == true {
                             context.error("Expected \(name.quoted) task to succeed, but it failed")
                         }
                     case .success:
-                        if !successful {
+                        if successful == false {
                             context.error("Expected \(name.quoted) task to fail, but it succeeded")
                         }
                 }
@@ -46,14 +57,14 @@ extension TestStep {
         }
     }
 
-    public func expectTask(_ taskID: Model.Task, successful: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func expectTask(_ taskID: Model.Task, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: taskID.taskName, successful: successful, file: file, line: line)
     }
 
     //TODO: also clear mutation assertions
-    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool = true, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: getResourceTaskName(keyPath), successful: successful, file: file, line: line)
-            .expectState(keyPath.appending(path: \.isLoading), false)
+            .expectState(keyPath.appending(path: \.isLoading), false, file: file, line: line)
     }
 
     public func expectEmptyRoute(file: StaticString = #filePath, line: UInt = #line) -> Self {
