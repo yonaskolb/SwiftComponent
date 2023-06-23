@@ -75,8 +75,8 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    public func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
-        store.send(action, animation: animation, file: file, line: line)
+    public func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) {
+        store.send(action, file: file, line: line)
     }
 
     @MainActor

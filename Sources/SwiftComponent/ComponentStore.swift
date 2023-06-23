@@ -72,7 +72,6 @@ class ComponentStore<Model: ComponentModel> {
     private var mutations: [Mutation] = []
     var handledAppear = false
     var handledDisappear = false
-    var mutationAnimation: Animation?
     var sendGlobalEvents = true
     private var lastSource: Source? // used to get at the original source of a mutation, due to no source info on dynamic member lookup
     public var events = PassthroughSubject<Event, Never>()
@@ -196,10 +195,8 @@ class ComponentStore<Model: ComponentModel> {
 // MARK: View Accessors
 extension ComponentStore {
 
-    func send(_ action: Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
-        mutationAnimation = animation
+    func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) {
         processAction(action, source: .capture(file: file, line: line))
-        mutationAnimation = nil
     }
 
     @MainActor

@@ -10,16 +10,16 @@ import SwiftUI
 
 extension ViewModel {
 
-    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
-        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line, label: label)
+    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+        ActionButtonView(model: self, action: action, file: file, line: line, label: label)
     }
 
-    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
-        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
+        ActionButtonView(model: self, action: action, file: file, line: line) { Text(text) }
     }
 
-    public func button(_ action: @escaping @autoclosure () -> Model.Action, animation: Animation? = nil, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
-        ActionButtonView(model: self, action: action, animation: animation, file: file, line: line) { Text(text) }
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
+        ActionButtonView(model: self, action: action, file: file, line: line) { Text(text) }
     }
 }
 
@@ -55,7 +55,6 @@ struct ActionButtonView<Model: ComponentModel, Label: View>: View {
 
     var model: ViewModel<Model>
     var action: () -> Model.Action
-    var animation: Animation?
     var file: StaticString
     var line: UInt
     var label: Label
@@ -63,13 +62,11 @@ struct ActionButtonView<Model: ComponentModel, Label: View>: View {
     init(
         model: ViewModel<Model>,
         action: @escaping () -> Model.Action,
-        animation: Animation? = nil,
         file: StaticString = #filePath,
         line: UInt = #line,
         @ViewBuilder label: () -> Label) {
             self.model = model
             self.action = action
-            self.animation = animation
             self.file = file
             self.line = line
             self.label = label()
@@ -87,13 +84,7 @@ struct ActionButtonView<Model: ComponentModel, Label: View>: View {
 
     var body: some View {
         Button {
-            if let animation {
-                withAnimation(animation) {
-                    model.send(action(), file: file, line: line)
-                }
-            } else {
-                model.send(action(), file: file, line: line)
-            }
+            model.send(action(), file: file, line: line)
         } label: { label }
 #if DEBUG
             .onReceive(EventStore.shared.eventPublisher) { event in
