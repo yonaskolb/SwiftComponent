@@ -64,17 +64,17 @@ struct ComponentTestsView<ComponentType: Component>: View {
     }
 
     func testIsCollapsed(_ test: Test<Model>) -> Bool {
-        collapsedTests[test.name] ?? false
+        collapsedTests[test.testName] ?? false
     }
 
     func collapseTest(_ test: Test<Model>, _ collapsed: Bool) {
         withAnimation {
-            collapsedTests[test.name] = collapsed
+            collapsedTests[test.testName] = collapsed
         }
 
         var collapsedAllTests =
         UserDefaults.standard.value(forKey: "testPreview.collapsedTests") as? CollapsedTests ?? [:]
-        collapsedAllTests[ComponentType.Model.baseName, default: [:]][test.name] = collapsed
+        collapsedAllTests[ComponentType.Model.baseName, default: [:]][test.testName] = collapsed
         UserDefaults.standard.setValue(collapsedAllTests, forKey: "testPreview.collapsedTests")
     }
 
@@ -108,7 +108,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
     func runTest(_ test: Test<Model>) async {
 
         guard let state = ComponentType.state(for: test) else {
-            testRun.testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
+            testRun.testState[test.id] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }
         testRun.startTest(test)
@@ -128,7 +128,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         let indent = "   "
         let newline = "\n"
         string += result.success ? "✅" : "🛑"
-        string += " \(Model.baseName): \(test.name)"
+        string += " \(Model.baseName): \(test.testName)"
         for step in result.steps {
             for error in step.allErrors {
                 string += newline + indent + error.error
@@ -155,11 +155,11 @@ struct ComponentTestsView<ComponentType: Component>: View {
             case .none:
                 return true
             case .warnings:
-                return (testRun.testState[test.name]?.warningCount ?? 0) > 0
+                return (testRun.testState[test.id]?.warningCount ?? 0) > 0
             case .passed:
-                return testRun.testState[test.name]?.passed ?? false
+                return testRun.testState[test.id]?.passed ?? false
             case .failed:
-                return testRun.testState[test.name]?.failed ?? false
+                return testRun.testState[test.id]?.failed ?? false
         }
     }
 
@@ -199,7 +199,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
             ScrollView {
                 ScrollViewReader { scrollProxy in
                     LazyVStack(spacing: 20) {
-                        ForEach(ComponentType.tests, id: \.name) { test in
+                        ForEach(ComponentType.tests, id: \.id) { test in
                             if showTest(test) {
                                 testRow(test)
                                     .background(Color(white: 1))
@@ -362,7 +362,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
             if !testIsCollapsed(test) {
                 Divider()
                     .padding(.bottom, 8)
-                if let steps = testRun.testResults[test.name] {
+                if let steps = testRun.testResults[test.id] {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(steps, id: \.self) { step in
                             if let stepResult = testRun.testStepResults[step], showDependencies || stepResult.title != "Dependency" {
@@ -407,7 +407,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
                         }
                     }
                     .foregroundColor(testResult.color)
-                    Text(test.name)
+                    Text(test.testName)
                         .bold()
                         .foregroundColor(testResult.color)
                 }

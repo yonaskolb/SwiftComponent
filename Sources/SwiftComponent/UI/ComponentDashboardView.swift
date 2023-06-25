@@ -48,7 +48,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         testRun.startTest(test)
 
         guard let state = ComponentType.state(for: test) else {
-            testRun.testState[test.name] = .failedToRun(TestError(error: "Could not find state", source: test.source))
+            testRun.testState[test.id] = .failedToRun(TestError(error: "Could not find state", source: test.source))
             return
         }
 
@@ -207,7 +207,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var testSection: some View {
         Section(header: testHeader) {
-            ForEach(ComponentType.tests, id: \.name) { test in
+            ForEach(ComponentType.tests, id: \.id) { test in
                 let testResult = testRun.getTestState(test)
                 VStack(alignment: .leading, spacing: 8) {
                     Button {
@@ -235,7 +235,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                                     }
                                 }
                                 .foregroundColor(testResult.color)
-                                Text(test.name)
+                                Text(test.testName)
                                     .foregroundColor(testResult.color)
                                 Spacer()
                                 if let error = testResult.errors?.first {

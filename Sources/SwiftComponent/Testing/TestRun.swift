@@ -11,8 +11,8 @@ import SwiftUI
 
 struct TestRun<Model: ComponentModel> {
 
-    var testState: [String: TestState] = [:]
-    var testResults: [String: [TestStep<Model>.ID]] = [:]
+    var testState: [Test<Model>.ID: TestState] = [:]
+    var testResults: [Test<Model>.ID: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
     var testCoverage: TestCoverage = .init()
     var missingCoverage: TestCoverage = .init()
@@ -31,7 +31,7 @@ struct TestRun<Model: ComponentModel> {
     }
 
     func getTestState(_ test: Test<Model>) -> TestState {
-        testState[test.name] ?? .notRun
+        testState[test.id] ?? .notRun
     }
 
     mutating func reset(_ tests: [Test<Model>]) {
@@ -39,22 +39,22 @@ struct TestRun<Model: ComponentModel> {
         testResults = [:]
         testStepResults = [:]
         for test in tests {
-            testState[test.name] = .pending
+            testState[test.id] = .pending
         }
     }
 
     mutating func startTest(_ test: Test<Model>) {
-        testState[test.name] = .running
-        testResults[test.name] = []
+        testState[test.id] = .running
+        testResults[test.id] = []
     }
 
     mutating func addStepResult(_ result: TestStepResult, test: Test<Model>) {
-        testResults[test.name, default: []].append(result.id)
+        testResults[test.id, default: []].append(result.id)
         testStepResults[result.id] = result
     }
 
     mutating func completeTest(_ test: Test<Model>, result: TestResult<Model>) {
-        testState[test.name] = .complete(result)
+        testState[test.id] = .complete(result)
     }
 
     mutating func checkCoverage() {
@@ -85,7 +85,7 @@ struct TestRun<Model: ComponentModel> {
     func getTestResults(for tests: [Test<Model>]) -> [TestStepResult] {
         var results: [TestStepResult] = []
         for test in tests {
-            let steps = testResults[test.name] ?? []
+            let steps = testResults[test.id] ?? []
             for stepID in steps {
                 if let result = testStepResults[stepID] {
                     results.append(contentsOf: getTestResults(for: result))
