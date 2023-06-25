@@ -61,6 +61,17 @@ extension TestStep {
         expectTask(name: taskID.taskName, successful: successful, file: file, line: line)
     }
 
+    public func expectDependency<Value>(_ keyPath: KeyPath<DependencyValues, Value>, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        addExpectation(title: "Expect dependency", details: keyPath.propertyName, file: file, line: line) { context in
+            if let name = keyPath.propertyName {
+                if !context.model.dependencies.accessedDependencies.contains(name) {
+                    context.error("Expected accessed dependency \(name)")
+                    context.model.dependencies.accessedDependencies.remove(name)
+                }
+            }
+        }
+    }
+
     //TODO: also clear mutation assertions
     public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: getResourceTaskName(keyPath), successful: successful, file: file, line: line)
