@@ -66,6 +66,10 @@ extension Component {
             return state
         }
     }
+
+    public static func previewModel() -> ViewModel<Model> {
+        states[0].viewModel()
+    }
 }
 
 extension Component {

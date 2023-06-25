@@ -51,7 +51,7 @@ public struct ComponentListView: View {
 
 struct ComponentGridItem<ComponentType: Component>: View {
 
-    @StateObject var model = ComponentType.states[0].viewModel()
+    @StateObject var model = ComponentType.previewModel()
     @AppStorage("componentPreview.darkMode") var darkMode = false
     let scale = 0.5
     let device = Device.iPhone14
