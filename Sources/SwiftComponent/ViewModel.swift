@@ -84,7 +84,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     @MainActor
-    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line, onSet: ((Value) -> Model.Action?)? = nil) -> Binding<Value> {
+    public func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line) -> Binding<Value> {
         store.binding(keyPath, file: file, line: line)
     }
 

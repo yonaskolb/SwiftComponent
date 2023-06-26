@@ -209,7 +209,7 @@ extension ComponentStore {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
-                guard self.setBindingValue(keyPath, value) else { return }
+                guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
 
                 self.addTask { @MainActor [weak self]  in
                     guard let self else { return }
@@ -222,11 +222,11 @@ extension ComponentStore {
     /// called from test step
     @MainActor
     func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) async {
-        guard self.setBindingValue(keyPath, value) else { return }
+        guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
         await self.model.binding(keyPath: keyPath, model: self.modelContext)
     }
 
-    private func setBindingValue<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) -> Bool {
+    private func setBindingValue<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString, line: UInt) -> Bool {
         let start = Date()
         let oldState = self.state
         let oldValue = self.state[keyPath: keyPath]
