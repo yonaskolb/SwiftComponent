@@ -39,7 +39,12 @@ class ComponentStore<Model: ComponentModel> {
     private var appearanceTask: CancellableTask?
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
-    var environment: Model.Environment
+    let environmentChanged = PassthroughSubject<Model.Environment, Never>()
+    var environment: Model.Environment {
+        didSet {
+            environmentChanged.send(environment)
+        }
+    }
     let logger: Logger
     var logEvents: Set<EventSimpleType> = []
     var logChildEvents: Bool = true

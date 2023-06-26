@@ -51,6 +51,10 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
             self?.objectWillChange.send()
         }
         .store(in: &cancellables)
+        self.store.environmentChanged.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        .store(in: &cancellables)
         store.graph.add(self)
     }
 
