@@ -47,18 +47,25 @@ public class ComponentDependencies {
     }
 }
 
-extension ViewModel {
+public protocol DependencyContainer {
+    var dependencies: ComponentDependencies { get }
+}
+
+extension DependencyContainer {
 
     public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ value: T) -> Self {
-        self.store.dependencies.setDependency(keyPath, value)
+        self.dependencies.setDependency(keyPath, value)
         return self
     }
 
     func apply(_ dependencies: ComponentDependencies) -> Self {
-        self.store.dependencies.apply(dependencies)
+        self.dependencies.apply(dependencies)
         return self
     }
 }
+
+extension ViewModel: DependencyContainer { }
+extension ComponentSnapshot: DependencyContainer { }
 
 extension ComponentRoute {
 
