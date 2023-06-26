@@ -93,16 +93,16 @@ struct ItemView: ComponentView {
             .frame(height: 30)
             HStack {
                 Text("Detail name: \(model.state.detail.name)")
-                model.button(.updateDetail, "Update")
+                ActionButton(.updateDetail, "Update")
             }
             ItemDetailView(model: model.scope(state: \.detail, output: Model.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
-            model.button(.calculate, "Calculate")
-            model.button(.openDetail, "Item")
-            model.button(.pushItem, "Push Item")
+            ActionButton(.calculate, "Calculate")
+            ActionButton(.openDetail, "Item")
+            ActionButton(.pushItem, "Push Item")
             Spacer()
         }
         .padding()
@@ -158,13 +158,13 @@ struct ItemDetailView: ComponentView {
         VStack {
             Text("Item Detail \(model.state.name)")
                 .bold()
-            Button(action: { model.send(.updateName)}) {
+            ActionButton(.updateName) {
                 Text("Update")
             }
         }
         .navigationBarTitle(Text("Item"))
         .toolbar {
-            Button(action: { model.send(.close) }) {
+            ActionButton(.close) {
                 Text("Close")
             }
         }
@@ -178,18 +178,12 @@ struct ItemComponent: Component, PreviewProvider {
         ItemView(model: model)
     }
 
-    static var states: States {
-        State {
-            .init(name: "start", data: .loading)
-        }
-
-        State("Loaded") {
-            .init(name: "Loaded", data: .content(2))
-        }
-    }
+    static var preview = PreviewModel(state: .init(name: "start", data: .loading))
 
     static var tests: Tests {
         Test("Happy New style", state: .init(name: "john", data: .loading)) {
+            Step.appear()
+            Step.snapshot("loaded")
             Step.action(.updateDetail)
             Step.binding(\.text, "yeah")
                 .validateState("text is set") { state in
