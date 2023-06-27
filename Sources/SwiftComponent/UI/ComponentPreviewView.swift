@@ -9,7 +9,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
     enum ViewState: String, CaseIterable {
         case dashboard = "Component"
         case view = "View"
-        case description = "Description"
+        case model = "Model"
         case code = "Code"
         case tests = "Tests"
     }
@@ -30,7 +30,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
                         ComponentTestsView<ComponentType>()
                     case .code:
                         ComponentEditorView<ComponentType>()
-                    case .description:
+                    case .model:
                         ComponentDescriptionView<ComponentType>()
                 }
             }

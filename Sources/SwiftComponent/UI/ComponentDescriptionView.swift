@@ -130,24 +130,24 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
                 typeSection("Input", icon: "arrow.forward.square", componentDescription.model.input)
                 typeSection("Output", icon: "arrow.backward.square", componentDescription.model.output)
                 typeSection("Route", icon: "arrow.uturn.right.square", componentDescription.model.route)
-                section("States", icon: "square.text.square", color: .teal) {
-                    ForEach(componentDescription.component.states, id: \.self) { state in
-                        Text(state)
-                            .bold()
-                    }
-                    .item(color: .teal)
-                    .frame(maxWidth: maxPillWidth)
-                }
-                .isUsed(!componentDescription.component.states.isEmpty)
-                section("Tests", icon: "checkmark.square", color: .teal) {
-                    ForEach(componentDescription.component.tests, id: \.self) { test in
-                        Text(test)
-                            .bold()
-                    }
-                    .item(color: .teal)
-                    .frame(maxWidth: maxPillWidth)
-                }
-                .isUsed(!componentDescription.component.tests.isEmpty)
+//                section("States", icon: "square.text.square", color: .teal) {
+//                    ForEach(componentDescription.component.states, id: \.self) { state in
+//                        Text(state)
+//                            .bold()
+//                    }
+//                    .item(color: .teal)
+//                    .frame(maxWidth: maxPillWidth)
+//                }
+//                .isUsed(!componentDescription.component.states.isEmpty)
+//                section("Tests", icon: "checkmark.square", color: .teal) {
+//                    ForEach(componentDescription.component.tests, id: \.self) { test in
+//                        Text(test)
+//                            .bold()
+//                    }
+//                    .item(color: .teal)
+//                    .frame(maxWidth: maxPillWidth)
+//                }
+//                .isUsed(!componentDescription.component.tests.isEmpty)
             }
             .padding(20)
         }

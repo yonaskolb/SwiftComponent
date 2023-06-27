@@ -106,6 +106,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                     .padding(16)
                     .clipped()
 //                    .shadow(radius: 4)
+                    .frame(maxHeight: .infinity)
                     .background(Color(white: 0.95))
                 //                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
