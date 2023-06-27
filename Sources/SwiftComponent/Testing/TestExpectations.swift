@@ -149,7 +149,19 @@ extension TestStep {
         }
     }
 
-    /// expect state to have a keypath set to a value
+    // Used for getters
+    /// expect state to have a keypath set to a value.
+    public func expectState<Value>(_ keyPath: KeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        addExpectation(title: "Expect \(keyPath.propertyName ?? "State")", file: file, line: line) { context in
+            let currentState = context.model.state[keyPath: keyPath]
+            if let difference = StateDump.diff(value, currentState) {
+                context.error("Unexpected \(keyPath.propertyName?.quoted ?? "State")", diff: difference)
+            }
+        }
+    }
+
+    // Used for instance variables
+    /// expect state to have a keypath set to a value.
     public func expectState<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect \(keyPath.propertyName ?? "State")", file: file, line: line) { context in
             let currentState = context.model.state
