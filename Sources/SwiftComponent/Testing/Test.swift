@@ -59,7 +59,7 @@ public struct Test<Model: ComponentModel>: Identifiable {
     public var steps: [TestStep<Model>]
     public let source: Source
     public let assertions: Set<TestAssertion>?
-    var dependencies: ComponentDependencies
+    public var dependencies: ComponentDependencies
 }
 
 @resultBuilder

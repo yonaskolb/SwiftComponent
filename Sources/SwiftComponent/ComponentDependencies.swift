@@ -65,6 +65,7 @@ extension DependencyContainer {
 }
 
 extension ViewModel: DependencyContainer { }
+extension Test: DependencyContainer { }
 extension ComponentSnapshot: DependencyContainer { }
 
 extension ComponentRoute {
