@@ -93,16 +93,16 @@ struct ItemView: ComponentView {
             .frame(height: 30)
             HStack {
                 Text("Detail name: \(model.state.detail.name)")
-                ActionButton(.updateDetail, "Update")
+                button(.updateDetail, "Update")
             }
             ItemDetailView(model: model.scope(state: \.detail, output: Model.Input.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
-            ActionButton(.calculate, "Calculate")
-            ActionButton(.openDetail, "Item")
-            ActionButton(.pushItem, "Push Item")
+            button(.calculate, "Calculate")
+            button(.openDetail, "Item")
+            button(.pushItem, "Push Item")
             Spacer()
         }
         .padding()
@@ -158,13 +158,13 @@ struct ItemDetailView: ComponentView {
         VStack {
             Text("Item Detail \(model.state.name)")
                 .bold()
-            ActionButton(.updateName) {
+            button(.updateName) {
                 Text("Update")
             }
         }
         .navigationBarTitle(Text("Item"))
         .toolbar {
-            ActionButton(.close) {
+            button(.close) {
                 Text("Close")
             }
         }

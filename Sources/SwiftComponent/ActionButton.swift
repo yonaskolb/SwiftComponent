@@ -25,15 +25,15 @@ extension ViewModel {
 
 extension ComponentView {
 
-    public func ActionButton<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
+    public func button<Label: View>(_ action: @escaping @autoclosure () -> Model.Action, file: StaticString = #filePath, line: UInt = #line, @ViewBuilder label: () -> Label) -> some View {
         ActionButtonView(model: model, action: action, file: file, line: line, label: label)
     }
 
-    public func ActionButton(_ action: @escaping @autoclosure () -> Model.Action, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, _ text: LocalizedStringKey, file: StaticString = #filePath, line: UInt = #line) -> some View {
         ActionButtonView(model: model, action: action, file: file, line: line) { Text(text) }
     }
 
-    public func ActionButton(_ action: @escaping @autoclosure () -> Model.Action, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
+    public func button(_ action: @escaping @autoclosure () -> Model.Action, _ text: String, file: StaticString = #filePath, line: UInt = #line) -> some View {
         ActionButtonView(model: model, action: action, file: file, line: line) { Text(text) }
     }
 }

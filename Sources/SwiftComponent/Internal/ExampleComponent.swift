@@ -74,8 +74,8 @@ struct ExampleView: ComponentView {
             Text(model.name)
             ProgressView().opacity(model.loading ? 1 : 0)
             Text(model.date.formatted())
-            model.button(.tap(1), "Tap")
-            model.button(.open, "Open")
+            button(.tap(1), "Tap")
+            button(.open, "Open")
         }
     }
 }
