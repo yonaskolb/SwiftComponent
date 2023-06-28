@@ -17,6 +17,8 @@ public class ComponentDependencies {
 
     init() {
         dependencyValues = DependencyValues._current
+        // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
+        dependencyValues.context = .preview
     }
 
     public func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
@@ -44,6 +46,7 @@ public class ComponentDependencies {
         accessedDependencies = []
         setDependencies = []
         dependencyValues = DependencyValues._current
+        dependencyValues.context = .preview
     }
 }
 

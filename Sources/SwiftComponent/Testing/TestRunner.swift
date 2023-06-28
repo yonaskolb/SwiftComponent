@@ -24,7 +24,6 @@ extension ViewModel {
 
         self.store.dependencies.reset()
         self.store.dependencies.apply(test.dependencies)
-        self.store.dependencies.dependencyValues.context = .preview
 
         let sendEventsValue = store.sendGlobalEvents
         store.sendGlobalEvents = sendEvents
