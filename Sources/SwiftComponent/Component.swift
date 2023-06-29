@@ -65,14 +65,8 @@ extension Component {
         .previewDevice(.largestDevice)
     }
 
-    public static func state(name: String) -> Model.State? {
-        snapshots.first { $0.name == name }?.state
-    }
-
     public static func state(for test: Test<Model>) -> Model.State {
         switch test.state {
-        case .name(let stateName):
-            return Self.state(name: stateName)!
         case .state(let state):
             return state
         case .preview:

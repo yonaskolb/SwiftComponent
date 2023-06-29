@@ -26,14 +26,6 @@ public struct Test<Model: ComponentModel>: Identifiable {
         self.init(name, state: .preview, assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, stateName: String, assertions: Set<TestAssertion>? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
-        self.init(name, state: .name(stateName), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
-    }
-
-    public init(_ name: String? = nil, stateName: String, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
-        self.init(name, state: .name(stateName), assertions: assertions, environment: environment, file: file, line: line, steps)
-    }
-
     init(_ name: String? = nil, state: TestState, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
@@ -46,7 +38,6 @@ public struct Test<Model: ComponentModel>: Identifiable {
 
     public enum TestState {
         case state(Model.State)
-        case name(String)
         case preview
     }
 
