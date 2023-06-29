@@ -148,7 +148,7 @@ struct ComponentEventView: View {
 
 let previewEvents: [Event] = [
         Event(
-            type: .appear(first: true),
+            type: .view(.appear(first: true)),
             storeID: UUID(),
             componentPath: .init([ExampleModel.self]),
             start: Date().addingTimeInterval(-1.05),

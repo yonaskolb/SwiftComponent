@@ -262,7 +262,7 @@ extension ComponentStore {
         if let store = modelContext {
             await model.appear(model: store)
         }
-        sendEvent(type: .appear(first: first), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+        sendEvent(type: .view(.appear(first: first)), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
     }
 
     @MainActor
@@ -274,7 +274,7 @@ extension ComponentStore {
             self.mutations = []
             self.handledDisappear = true
             await self.model.disappear(model: self.modelContext)
-            self.sendEvent(type: .disappear, start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+            self.sendEvent(type: .view(.disappear), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
 
             appearanceTask?.cancel()
             appearanceTask = nil

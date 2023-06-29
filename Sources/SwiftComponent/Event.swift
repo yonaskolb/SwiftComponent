@@ -82,8 +82,7 @@ public enum ModelEvent<Model: ComponentModel> {
     case action(Model.Action)
     case input(Model.Input)
     case output(Model.Output)
-    case appear(first: Bool)
-    case disappear
+    case view(ViewEvent)
     case task(TaskResult)
     case route(Model.Route)
     case dismissRoute
@@ -104,10 +103,8 @@ extension Event {
                 return .input(input as! Model.Input)
             case .output(let output):
                 return .output(output as! Model.Output)
-            case .appear(let first):
-                return .appear(first: first)
-            case .disappear:
-                return .disappear
+            case .view(let event):
+                return .view(event)
             case .task(let result):
                 return .task(result)
             case .route(let route):
@@ -129,8 +126,7 @@ public enum EventType {
     case action(Any)
     case input(Any)
     case output(Any)
-    case appear(first: Bool)
-    case disappear
+    case view(ViewEvent)
     case task(TaskResult)
     case route(Any)
     case dismissRoute
@@ -142,11 +138,24 @@ public enum EventType {
             case .binding: return .binding
             case .output: return .output
             case .input: return .input
-            case .appear: return .appear
-            case .disappear: return .disappear
+            case .view: return .view
             case .task: return .task
             case .route: return .route
             case .dismissRoute: return .dismissRoute
+        }
+    }
+}
+
+public enum ViewEvent {
+    case appear(first: Bool)
+    case disappear
+
+    var name: String {
+        switch self {
+        case .appear:
+            return "appear"
+        case .disappear:
+            return "disappear"
         }
     }
 }
@@ -175,10 +184,8 @@ extension EventType {
                 return "Output"
             case .input:
                 return "Input Name"
-            case .appear:
-                return ""
-            case .disappear:
-                return ""
+            case .view:
+                return "View"
             case .task:
                 return "Name"
             case .mutation:
@@ -202,9 +209,7 @@ extension EventType {
                 return "Output"
             case .input:
                 return "Input"
-            case .appear:
-                return ""
-            case .disappear:
+            case .view:
                 return ""
             case .task(let result):
                 switch result.result {
@@ -230,10 +235,8 @@ extension EventType {
                 return getEnumCase(event).name
             case .input(let event):
                 return getEnumCase(event).name
-            case .appear:
-                return ""
-            case .disappear:
-                return ""
+            case .view(let event):
+                return event.name
             case .task(let result):
                 return result.name
             case .route(let route):
@@ -255,9 +258,7 @@ extension EventType {
                 return output
             case .input(let input):
                 return input
-            case .appear:
-                return ""
-            case .disappear:
+            case .view:
                 return ""
             case .task(let result):
                 switch result.result {
@@ -273,8 +274,7 @@ extension EventType {
 }
 
 public enum EventSimpleType: String, CaseIterable {
-    case appear
-    case disappear
+    case view
     case action
     case binding
     case mutation
@@ -292,8 +292,7 @@ public enum EventSimpleType: String, CaseIterable {
             case .binding: return "Binding"
             case .output: return "Output"
             case .input: return "Input"
-            case .appear: return "Appear"
-            case .disappear: return "Disappear"
+            case .view: return "View"
             case .task: return "Task"
             case .mutation: return "Mutation"
             case .route: return "Route"
@@ -311,9 +310,7 @@ public enum EventSimpleType: String, CaseIterable {
                 return .cyan
             case .input:
                 return .cyan
-            case .appear:
-                return .blue
-            case .disappear:
+            case .view:
                 return .blue
             case .task:
                 return .green // changed to green or red in event
