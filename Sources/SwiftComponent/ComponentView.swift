@@ -49,8 +49,20 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         var id: String { rawValue }
     }
 
+    @MainActor
+    func getView() -> some View {
+#if DEBUG
+        let start = Date()
+        let view = self.view
+        model.bodyAccessed(start: start)
+        return view
+#else
+        self.view
+#endif
+    }
+
     var body: some View {
-        view
+        getView()
         .onAppear {
             if !isPreviewReference {
                 let first = !hasAppeared

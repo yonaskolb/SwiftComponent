@@ -12,6 +12,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     public var dependencies: ComponentDependencies { store.dependencies }
     public var environment: Model.Environment { store.environment }
+    var sendViewBodyEvents = false
 
     public internal(set) var state: Model.State {
         get { store.state }
@@ -74,6 +75,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         return self
     }
 
+    public func sendViewBodyEvents(_ send: Bool = true) -> Self {
+        self.sendViewBodyEvents = send
+        return self
+    }
+
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
         store.state[keyPath: keyPath]
     }
@@ -101,6 +107,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
         store.disappear(file: file, line: line)
+    }
+
+    @MainActor
+    func bodyAccessed(start: Date, file: StaticString = #filePath, line: UInt = #line) {
+        if sendViewBodyEvents {
+            store.bodyAccessed(start: start, file: file, line: line)
+        }
     }
 }
 

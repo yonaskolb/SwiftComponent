@@ -280,6 +280,12 @@ extension ComponentStore {
             appearanceTask = nil
         }
     }
+
+    @MainActor
+    func bodyAccessed(start: Date, file: StaticString = #filePath, line: UInt = #line) {
+        startEvent()
+        sendEvent(type: .view(.body), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+    }
 }
 
 // MARK: Model Accessors

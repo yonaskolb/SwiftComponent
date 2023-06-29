@@ -149,6 +149,7 @@ public enum EventType {
 public enum ViewEvent {
     case appear(first: Bool)
     case disappear
+    case body
 
     var name: String {
         switch self {
@@ -156,6 +157,8 @@ public enum ViewEvent {
             return "appear"
         case .disappear:
             return "disappear"
+        case .body:
+            return "body"
         }
     }
 }
