@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import os
+import Dependencies
 
 class ComponentStore<Model: ComponentModel> {
 
@@ -489,6 +490,7 @@ extension ComponentStore {
             stateStorage = .binding(optionalBinding(state: keyPath, value: fallback))
         }
         let store = ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, environment: environment, route: route)
+        store.dependencies.apply(self.dependencies)
         if route == nil {
             if let existingRoute = graph.getRoute(store: store) {
                 store.route = existingRoute

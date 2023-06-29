@@ -155,9 +155,14 @@ extension Component {
 
     @MainActor
     public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
-        let state = Self.state(for: test)
-        let model = ViewModel<Model>(state: state, environment: test.environment)
-        return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
+        return await withDependencies {
+            // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
+            $0.context = .preview
+        } operation: {
+            let state = Self.state(for: test)
+            let model = ViewModel<Model>(state: state, environment: test.environment)
+            return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
+        }
     }
 }
 #endif
