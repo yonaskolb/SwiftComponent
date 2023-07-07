@@ -75,7 +75,7 @@ extension Component {
     }
 
     public static func previewModel() -> ViewModel<Model> {
-        preview.viewModel()
+        preview.viewModel().dependency(\.context, .preview)
     }
 }
 
