@@ -1,7 +1,8 @@
 import Foundation
 import SwiftUI
+import SwiftPreview
 
-public struct ViewPreviewer<Content: View>: View {
+public struct ComponentViewPreview<Content: View>: View {
     var sizeCategories: [ContentSizeCategory] = [
         .extraSmall,
         .large,
@@ -198,7 +199,7 @@ extension View {
     }
 
     public func preview(name: String? = nil) -> some View {
-        ViewPreviewer(content: self, name: name)
+        ComponentViewPreview(content: self, name: name)
     }
 }
 

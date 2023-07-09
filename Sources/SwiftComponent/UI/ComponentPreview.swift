@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftPreview
 
-struct ComponentPreviewView<ComponentType: Component>: View {
+struct ComponentPreview<ComponentType: Component>: View {
 
     @StateObject var model = ComponentType.previewModel().logEvents()
     @AppStorage("componentPreview.viewState") var viewState: ViewState = .dashboard
@@ -23,7 +23,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
                     case .dashboard:
                         ComponentDashboardView<ComponentType>(model: model)
                     case .view:
-                        ViewPreviewer(content: ComponentType.view(model: model))
+                        ComponentViewPreview(content: ComponentType.view(model: model))
                             .padding()
                             .previewReference()
                     case .tests:
@@ -60,7 +60,7 @@ struct ComponentPreviewView<ComponentType: Component>: View {
 struct ComponentPreviewView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ComponentPreviewView<ExampleComponent>()
+            ComponentPreview<ExampleComponent>()
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

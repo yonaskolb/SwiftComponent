@@ -59,7 +59,7 @@ extension Component {
     }
     public static var componentPreview: some View {
         NavigationView {
-            ComponentPreviewView<Self>()
+            ComponentPreview<Self>()
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

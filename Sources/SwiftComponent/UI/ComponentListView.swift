@@ -57,7 +57,7 @@ struct ComponentGridItem<ComponentType: Component>: View {
     let device = Device.iPhone14
     var body: some View {
         NavigationLink {
-            ComponentPreviewView<ComponentType>()
+            ComponentPreview<ComponentType>()
         } label: {
             VStack(spacing: 20) {
                 ComponentType

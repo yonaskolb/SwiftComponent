@@ -1,12 +1,18 @@
 import Foundation
 import SwiftUI
 
-struct ScalingView<Content: View>: View {
+public struct ScalingView<Content: View>: View {
     let size: CGSize
-    let scaling: Scaling = .fit
-    var content: () -> Content
+    let scaling: Scaling
+    var content: Content
 
-    enum Scaling {
+    public init(size: CGSize, scaling: Scaling = .fit, @ViewBuilder content: () -> Content) {
+        self.size = size
+        self.scaling = scaling
+        self.content = content()
+    }
+
+    public enum Scaling {
         case actual
         case fit
     }
@@ -15,17 +21,17 @@ struct ScalingView<Content: View>: View {
         min(frame.height / size.height, frame.width / size.width)
     }
 
-    var body: some View {
+    public var body: some View {
         switch scaling {
         case .actual:
             ScrollView {
-                content()
+                content
                     .padding()
                     .frame(maxWidth: .infinity)
             }
         case .fit:
             GeometryReader { proxy in
-                content()
+                content
                     .scaleEffect(scale(frame: proxy.size))
                     .frame(width: proxy.size.width, height: proxy.size.height)
             }
