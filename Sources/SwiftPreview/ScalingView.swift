@@ -1,6 +1,11 @@
 import Foundation
 import SwiftUI
 
+public enum Scaling: String {
+    case exact
+    case fit
+}
+
 public struct ScalingView<Content: View>: View {
     let size: CGSize
     let scaling: Scaling
@@ -12,18 +17,13 @@ public struct ScalingView<Content: View>: View {
         self.content = content()
     }
 
-    public enum Scaling {
-        case actual
-        case fit
-    }
-
     func scale(frame: CGSize) -> CGFloat {
         min(frame.height / size.height, frame.width / size.width)
     }
 
     public var body: some View {
         switch scaling {
-        case .actual:
+        case .exact:
             ScrollView {
                 content
                     .padding()

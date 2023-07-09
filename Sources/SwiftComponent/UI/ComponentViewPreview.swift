@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import SwiftPreview
 
-public struct ComponentViewPreview<Content: View>: View {
+struct ComponentViewPreview<Content: View>: View {
     var sizeCategories: [ContentSizeCategory] = [
         .extraSmall,
         .large,
@@ -17,21 +17,33 @@ public struct ComponentViewPreview<Content: View>: View {
     @State var device = Device.iPhone14
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
-    @State var showEnvironmentPickers = false
     @AppStorage("componentPreview.darkMode") var darkMode = false
+    @AppStorage("componentPreview.inDevice") var inDevice = false
+    @AppStorage("componentPreview.scale") var scaleString: String = Scaling.fit.rawValue
+    @AppStorage("componentPreview.showEnvironmentSelector") var showEnvironmentSelector = false
+
+    var scale: Binding<Scaling> {
+        Binding<Scaling>(
+            get: {
+                .init(rawValue: scaleString) ?? .fit
+            },
+            set: {
+                self.scaleString = $0.rawValue
+            }
+        )
+    }
     var colorScheme: ColorScheme { darkMode ? .dark : .light }
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
     let name: String?
 
-    public init(content: Content, name: String? = nil, showEnvironmentPickers: Bool = true) {
+    public init(content: Content, name: String? = nil) {
         self.content = content
         self.name = name
-        self._showEnvironmentPickers = .init(initialValue: showEnvironmentPickers)
     }
-
-    public var body: some View {
+    
+    var body: some View {
         GeometryReader { proxy in
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
@@ -41,7 +53,6 @@ public struct ComponentViewPreview<Content: View>: View {
                             .font(.title2)
                             .padding(.bottom)
                     }
-                    Spacer()
                     if showAccessibilityPreview {
 #if canImport(UIKit)
                         content.accessibilityPreview()
@@ -49,42 +60,104 @@ public struct ComponentViewPreview<Content: View>: View {
                         content
 #endif
                     } else {
-                        ScalingView(size: device.frameSize) {
+                        if inDevice {
+                            ScalingView(size: device.frameSize, scaling: scale.wrappedValue) {
+                                content
+                                    .environment(\.sizeCategory, sizeCategory)
+                                    .embedIn(device: device)
+                                    .colorScheme(colorScheme)
+                                    .shadow(radius: 10)
+                            }
+                        } else {
                             content
                                 .environment(\.sizeCategory, sizeCategory)
-                                .embedIn(device: device)
                                 .colorScheme(colorScheme)
-                                .shadow(radius: 10)
-                        }
-                        Button {
-                            showDevicePicker = true
-                        } label: {
-                            Text(device.name).bold().font(.title2)
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showDevicePicker) {
-                            deviceSelector
-                                .padding(20)
+                                .background(Color.white)
+                                .background(.background)
+                                .cornerRadius(12)
+                                .padding(16)
+                                .clipped()
+                                .shadow(radius: 4)
                         }
                     }
-                    Spacer()
                 }
                 Spacer()
-                if showEnvironmentPickers {
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 40) {
-                            sizeCategorySelector(height: min(200, proxy.size.height/5))
-                            colorSchemeSelector(height: min(200, proxy.size.height/5))
-                        }
-                        .padding(.top)
-                        .padding(.horizontal, 20)
-                    }
+                configBar(height: min(200, proxy.size.height/5))
+            }
+            .animation(.default, value: showEnvironmentSelector)
+            .animation(.default, value: inDevice)
+        }
+#if os(iOS)
+        .navigationViewStyle(StackNavigationViewStyle())
+#endif
+        .previewReference()
+    }
+
+    func configBar(height: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                Button(action: { showEnvironmentSelector.toggle() }) {
+                    Text("Environment")
+                        .bold()
+                        .font(.title2)
+                    Image(systemName: "chevron.down")
+                        .font(.title3)
+                    Spacer()
                 }
+                if inDevice {
+                    Button {
+                        showDevicePicker = true
+                    } label: {
+                        Text(device.name)
+                            .bold()
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showDevicePicker) {
+                        deviceSelector
+                            .padding(20)
+                    }
+                    Picker(selection: scale) {
+                        Text("100%")
+                            .tag(Scaling.exact)
+                        Text("Fit")
+                            .tag(Scaling.fit)
+                    } label: {
+                        EmptyView()
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+
+                Picker(selection: $inDevice) {
+                    Text("Device")
+                        .tag(true)
+                    Text("Fill View")
+                        .tag(false)
+                } label: {
+                    EmptyView()
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+            }
+            .foregroundColor(.primary)
+            .padding(.top)
+            .padding(.horizontal)
+            .buttonStyle(.plain)
+
+            if showEnvironmentSelector {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 40) {
+                        sizeCategorySelector(height: height)
+                        colorSchemeSelector(height: height)
+                    }
+                    .padding(.top)
+                    .padding(.horizontal, 20)
+                }
+                .transition(.move(edge: .bottom))
             }
         }
-        #if os(iOS)
-        .navigationViewStyle(StackNavigationViewStyle())
-        #endif
+        .background(Color(white: 0.95))
     }
 
     func sizeCategorySelector(height: CGFloat) -> some View {
@@ -153,7 +226,12 @@ public struct ComponentViewPreview<Content: View>: View {
     }
 
     func deviceView(_ device: Device) -> some View {
-        Button(action: { withAnimation { self.device = device } }) {
+        Button {
+            withAnimation {
+                self.device = device
+                self.inDevice = true
+            }
+        } label: {
             VStack(spacing: 2) {
                 device.icon
                     .font(.system(size: 100, weight: .ultraLight))
@@ -207,32 +285,32 @@ extension ContentSizeCategory {
 
     var acronym: String {
         switch self {
-            case .extraSmall:
-                return "XS"
-            case .small:
-                return "S"
-            case .medium:
-                return "M"
-            case .large:
-                return "L"
-            case .extraLarge:
-                return "XL"
-            case .extraExtraLarge:
-                return "XXL"
-            case .extraExtraExtraLarge:
-                return "XXXL"
-            case .accessibilityMedium:
-                return "AM"
-            case .accessibilityLarge:
-                return "AL"
-            case .accessibilityExtraLarge:
-                return "AXL"
-            case .accessibilityExtraExtraLarge:
-                return "AXXL"
-            case .accessibilityExtraExtraExtraLarge:
-                return "AXXXL"
-            @unknown default:
-                return ""
+        case .extraSmall:
+            return "XS"
+        case .small:
+            return "S"
+        case .medium:
+            return "M"
+        case .large:
+            return "L"
+        case .extraLarge:
+            return "XL"
+        case .extraExtraLarge:
+            return "XXL"
+        case .extraExtraExtraLarge:
+            return "XXXL"
+        case .accessibilityMedium:
+            return "AM"
+        case .accessibilityLarge:
+            return "AL"
+        case .accessibilityExtraLarge:
+            return "AXL"
+        case .accessibilityExtraExtraLarge:
+            return "AXXL"
+        case .accessibilityExtraExtraExtraLarge:
+            return "AXXXL"
+        @unknown default:
+            return ""
         }
     }
 }

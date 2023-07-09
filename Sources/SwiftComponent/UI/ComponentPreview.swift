@@ -24,8 +24,6 @@ struct ComponentPreview<ComponentType: Component>: View {
                         ComponentDashboardView<ComponentType>(model: model)
                     case .view:
                         ComponentViewPreview(content: ComponentType.view(model: model))
-                            .padding()
-                            .previewReference()
                     case .tests:
                         ComponentTestsView<ComponentType>()
                     case .code:
