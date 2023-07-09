@@ -18,20 +18,16 @@ struct ComponentViewPreview<Content: View>: View {
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
     @AppStorage("componentPreview.darkMode") var darkMode = false
-    @AppStorage("componentPreview.inDevice") var inDevice = false
-    @AppStorage("componentPreview.scale") var scaleString: String = Scaling.fit.rawValue
+    @AppStorage("componentPreview.viewMode") var viewMode: ViewMode = .device
+    @AppStorage("componentPreview.deviceScale") var deviceScale: Scaling = Scaling.fit
     @AppStorage("componentPreview.showEnvironmentSelector") var showEnvironmentSelector = false
 
-    var scale: Binding<Scaling> {
-        Binding<Scaling>(
-            get: {
-                .init(rawValue: scaleString) ?? .fit
-            },
-            set: {
-                self.scaleString = $0.rawValue
-            }
-        )
+    enum ViewMode: String {
+        case device
+        case fill
+        case fit
     }
+
     var colorScheme: ColorScheme { darkMode ? .dark : .light }
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
@@ -57,27 +53,27 @@ struct ComponentViewPreview<Content: View>: View {
 #if canImport(UIKit)
                         content.accessibilityPreview()
 #else
-                        content
+                        contentView
 #endif
                     } else {
-                        if inDevice {
-                            ScalingView(size: device.frameSize, scaling: scale.wrappedValue) {
-                                content
-                                    .environment(\.sizeCategory, sizeCategory)
+                        switch viewMode {
+                        case .device:
+                            ScalingView(size: device.frameSize, scaling: deviceScale) {
+                                contentView
                                     .embedIn(device: device)
                                     .colorScheme(colorScheme)
                                     .shadow(radius: 10)
                             }
-                        } else {
-                            content
+                        case .fill:
+                            contentView
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .environment(\.sizeCategory, sizeCategory)
-                                .colorScheme(colorScheme)
+                        case .fit:
+                            contentView
                                 .background(.background)
                                 .cornerRadius(12)
-                                .padding(16)
                                 .clipped()
                                 .shadow(radius: 4)
+                                .padding(16)
                         }
                     }
                 }
@@ -85,12 +81,23 @@ struct ComponentViewPreview<Content: View>: View {
                 configBar(height: min(200, proxy.size.height/5))
             }
             .animation(.default, value: showEnvironmentSelector)
-            .animation(.default, value: inDevice)
+            .animation(.default, value: viewMode)
         }
 #if os(iOS)
         .navigationViewStyle(StackNavigationViewStyle())
 #endif
-        .previewReference()
+    }
+
+    var contentView: some View {
+        content
+            .environment(\.sizeCategory, sizeCategory)
+            .colorScheme(colorScheme)
+    }
+
+    var environmentPreview: some View {
+        content
+            .allowsHitTesting(false)
+            .previewReference()
     }
 
     func configBar(height: CGFloat) -> some View {
@@ -105,7 +112,7 @@ struct ComponentViewPreview<Content: View>: View {
                         .font(.title3)
                     Spacer()
                 }
-                if inDevice {
+                if viewMode == .device {
                     Button {
                         showDevicePicker = true
                     } label: {
@@ -117,7 +124,8 @@ struct ComponentViewPreview<Content: View>: View {
                         deviceSelector
                             .padding(20)
                     }
-                    Picker(selection: scale) {
+                    
+                    Picker(selection: $deviceScale) {
                         Text("100%")
                             .tag(Scaling.exact)
                         Text("Fit")
@@ -129,11 +137,13 @@ struct ComponentViewPreview<Content: View>: View {
                     .fixedSize()
                 }
 
-                Picker(selection: $inDevice) {
+                Picker(selection: $viewMode) {
                     Text("Device")
-                        .tag(true)
-                    Text("Fill View")
-                        .tag(false)
+                        .tag(ViewMode.device)
+                    Text("Fill")
+                        .tag(ViewMode.fill)
+                     Text("Fit")
+                        .tag(ViewMode.fit)
                 } label: {
                     EmptyView()
                 }
@@ -168,7 +178,7 @@ struct ComponentViewPreview<Content: View>: View {
                         Text(size.acronym)
                             .bold()
                             .lineLimit(1)
-                        previewContent
+                        environmentPreview
                             .environment(\.sizeCategory, size)
                             .embedIn(device: device)
                             .colorScheme(colorScheme)
@@ -184,12 +194,6 @@ struct ComponentViewPreview<Content: View>: View {
         }
     }
 
-    var previewContent: some View {
-        content
-            .allowsHitTesting(false)
-            .previewReference()
-    }
-
     func colorSchemeSelector(height: CGFloat) -> some View {
         HStack(spacing: 12) {
             ForEach(ColorScheme.allCases, id: \.self) { colorScheme in
@@ -197,7 +201,7 @@ struct ComponentViewPreview<Content: View>: View {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
-                        previewContent
+                        environmentPreview
                             .environment(\.sizeCategory, sizeCategory)
                             .embedIn(device: device)
                             .colorScheme(colorScheme)
@@ -229,7 +233,7 @@ struct ComponentViewPreview<Content: View>: View {
         Button {
             withAnimation {
                 self.device = device
-                self.inDevice = true
+                self.viewMode = .device
             }
         } label: {
             VStack(spacing: 2) {
