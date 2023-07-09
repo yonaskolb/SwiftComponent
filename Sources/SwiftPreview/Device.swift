@@ -25,14 +25,6 @@ public struct Device: Equatable {
         CGSize(width: width + bezelWidth*2, height: height + bezelWidth*2)
     }
 
-    var contentScale: Double {
-        (iconType == .iPad || iconType == .iPadHome) ? 0.5 : 1
-    }
-
-    var scale: CGFloat {
-        width/Device.iPhone14.width
-    }
-
     public static let iPhoneSE = Device.iPhone(name: "iPhone SE", width: 320, height: 568, homeIndicator: false, notch: false)
     public static let iPhone13Mini = Device.iPhone(name: "iPhone 13 Mini", width: 375, height: 812)
     public static let iPhone14 = Device.iPhone(name: "iPhone 14", width: 390, height: 844)

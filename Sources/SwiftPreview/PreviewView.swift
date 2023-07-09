@@ -31,50 +31,54 @@ public struct ViewPreviewer<Content: View>: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
+        GeometryReader { proxy in
             VStack(spacing: 0) {
-                if let name {
-                    Text(name)
-                        .bold()
-                        .font(.title2)
-                        .padding(.bottom)
-                }
-                Spacer()
-                if showAccessibilityPreview {
+                VStack(spacing: 0) {
+                    if let name {
+                        Text(name)
+                            .bold()
+                            .font(.title2)
+                            .padding(.bottom)
+                    }
+                    Spacer()
+                    if showAccessibilityPreview {
 #if canImport(UIKit)
-                    content.accessibilityPreview()
+                        content.accessibilityPreview()
 #else
-                    content
+                        content
 #endif
-                } else {
-                    content
-                        .environment(\.sizeCategory, sizeCategory)
-                        .embedIn(device: device)
-                        .colorScheme(colorScheme)
-                        .shadow(radius: 10)
-                        .scaleEffect(device.contentScale)
-                        .frame(width: device.frameSize.width*device.contentScale, height: device.frameSize.height*device.contentScale)
-                        .padding()
-                    Button {
-                        showDevicePicker = true
-                    } label: {
-                        Text(device.name).bold().font(.title2)
+                    } else {
+                        ScalingView(size: device.frameSize) {
+                            content
+                                .environment(\.sizeCategory, sizeCategory)
+                                .embedIn(device: device)
+                                .colorScheme(colorScheme)
+                                .shadow(radius: 10)
+                        }
+                        Button {
+                            showDevicePicker = true
+                        } label: {
+                            Text(device.name).bold().font(.title2)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showDevicePicker) {
+                            deviceSelector
+                                .padding(20)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showDevicePicker) {
-                        deviceSelector
-                            .padding(20)
-                    }
+                    Spacer()
                 }
                 Spacer()
-            }
-            Spacer()
-            if showEnvironmentPickers {
-                HStack(spacing: 40) {
-                    sizeCategorySelector
-                    colorSchemeSelector
+                if showEnvironmentPickers {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 40) {
+                            sizeCategorySelector(height: min(200, proxy.size.height/5))
+                            colorSchemeSelector(height: min(200, proxy.size.height/5))
+                        }
+                        .padding(.top)
+                        .padding(.horizontal, 20)
+                    }
                 }
-                .padding()
             }
         }
         #if os(iOS)
@@ -82,27 +86,24 @@ public struct ViewPreviewer<Content: View>: View {
         #endif
     }
 
-    var sizeCategorySelector: some View {
+    func sizeCategorySelector(height: CGFloat) -> some View {
         HStack(spacing: 12) {
             ForEach(sizeCategories, id: \.self) { size in
                 Button(action: { withAnimation { sizeCategory = size } }) {
                     VStack(spacing: 8) {
                         Text(size.acronym)
                             .bold()
-                        //                            .fontWeight(size == sizeCategory ? .bold : .regular)
-                        //                            .font(.footnote)
-                        //                            .foregroundColor(size == sizeCategory ? .accentColor : .primary)
+                            .lineLimit(1)
                         previewContent
                             .environment(\.sizeCategory, size)
                             .embedIn(device: device)
                             .colorScheme(colorScheme)
-                            .scaleEffect(buttonScale*device.contentScale)
-                            .frame(height: device.height * buttonScale * device.contentScale)
+                            .scaleEffect(height / device.frameSize.height)
+                            .frame(height: height)
                         Image(systemName: size == sizeCategory ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
-                        //                            .foregroundColor(.blue)
                     }
-                    .frame(width: device.width * buttonScale * device.contentScale)
+                    .frame(width: device.frameSize.width * (height / device.frameSize.height))
                 }
                 .buttonStyle(.plain)
             }
@@ -115,25 +116,23 @@ public struct ViewPreviewer<Content: View>: View {
             .previewReference()
     }
 
-    var colorSchemeSelector: some View {
+    func colorSchemeSelector(height: CGFloat) -> some View {
         HStack(spacing: 12) {
             ForEach(ColorScheme.allCases, id: \.self) { colorScheme in
                 Button(action: { self.darkMode = colorScheme == .dark}) {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
-                        //                            .font(.footnote)
                         previewContent
                             .environment(\.sizeCategory, sizeCategory)
                             .embedIn(device: device)
                             .colorScheme(colorScheme)
-                            .scaleEffect(buttonScale*device.contentScale)
-                            .frame(height: device.height * buttonScale * device.contentScale)
+                            .scaleEffect(height / device.frameSize.height)
+                            .frame(height: height)
                         Image(systemName: self.colorScheme == colorScheme ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
-                        //                            .foregroundColor(.blue)
                     }
-                    .frame(width: device.width * buttonScale * device.contentScale)
+                    .frame(width: device.frameSize.width * (height / device.frameSize.height))
                 }
                 .buttonStyle(.plain)
             }
