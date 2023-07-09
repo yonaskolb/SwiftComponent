@@ -9,7 +9,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
-    @AppStorage("componentPreview.darkMode") var darkMode = false
     @AppStorage("previewTests") var previewTests = true
     @Environment(\.colorScheme) var colorScheme: ColorScheme
     @State var showTestEvents = true

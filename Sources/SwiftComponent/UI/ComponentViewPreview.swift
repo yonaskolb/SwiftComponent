@@ -17,7 +17,6 @@ struct ComponentViewPreview<Content: View>: View {
     @State var device = Device.iPhone14
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
-    @AppStorage("componentPreview.darkMode") var darkMode = false
     @AppStorage("componentPreview.viewMode") var viewMode: ViewMode = .device
     @AppStorage("componentPreview.deviceScale") var deviceScale: Scaling = Scaling.fit
     @AppStorage("componentPreview.showEnvironmentSelector") var showEnvironmentSelector = false
@@ -28,7 +27,6 @@ struct ComponentViewPreview<Content: View>: View {
         case fit
     }
 
-    var colorScheme: ColorScheme { darkMode ? .dark : .light }
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
 
     let content: Content
@@ -61,7 +59,7 @@ struct ComponentViewPreview<Content: View>: View {
                             ScalingView(size: device.frameSize, scaling: deviceScale) {
                                 contentView
                                     .embedIn(device: device)
-                                    .colorScheme(colorScheme)
+                                    .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
                                     .shadow(radius: 10)
                             }
                         case .fill:
@@ -91,7 +89,7 @@ struct ComponentViewPreview<Content: View>: View {
     var contentView: some View {
         content
             .environment(\.sizeCategory, sizeCategory)
-            .colorScheme(colorScheme)
+            .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
     }
 
     var environmentPreview: some View {
@@ -181,7 +179,7 @@ struct ComponentViewPreview<Content: View>: View {
                         environmentPreview
                             .environment(\.sizeCategory, size)
                             .embedIn(device: device)
-                            .colorScheme(colorScheme)
+                            .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
                             .scaleEffect(height / device.frameSize.height)
                             .frame(height: height)
                         Image(systemName: size == sizeCategory ? "checkmark.circle.fill" : "circle")
@@ -197,7 +195,13 @@ struct ComponentViewPreview<Content: View>: View {
     func colorSchemeSelector(height: CGFloat) -> some View {
         HStack(spacing: 12) {
             ForEach(ColorScheme.allCases, id: \.self) { colorScheme in
-                Button(action: { self.darkMode = colorScheme == .dark}) {
+                Button {
+                    if PreviewColorScheme.current.colorScheme == colorScheme {
+                        PreviewColorScheme.current = .system
+                    } else {
+                        PreviewColorScheme.current = .init(colorScheme: colorScheme)
+                    }
+                } label: {
                     VStack(spacing: 8) {
                         Text(colorScheme == .light ? "Light" : (colorScheme == .dark ? "Dark" : "Automatic"))
                             .bold()
@@ -207,7 +211,7 @@ struct ComponentViewPreview<Content: View>: View {
                             .colorScheme(colorScheme)
                             .scaleEffect(height / device.frameSize.height)
                             .frame(height: height)
-                        Image(systemName: self.colorScheme == colorScheme ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: PreviewColorScheme.current.colorScheme == colorScheme ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 20))
                     }
                     .frame(width: device.frameSize.width * (height / device.frameSize.height))
@@ -256,29 +260,7 @@ struct ComponentViewPreview<Content: View>: View {
     }
 }
 
-struct PreviewReferenceKey: EnvironmentKey {
-
-    static var defaultValue: Bool = false
-}
-
-extension EnvironmentValues {
-
-    public var isPreviewReference: Bool {
-        get {
-            self[PreviewReferenceKey.self]
-        }
-        set {
-            self[PreviewReferenceKey.self] = newValue
-        }
-    }
-}
-
 extension View {
-
-    /// disables component views from calling their appearance task
-    public func previewReference() -> some View {
-        self.environment(\.isPreviewReference, true)
-    }
 
     public func preview(name: String? = nil) -> some View {
         ComponentViewPreview(content: self, name: name)
