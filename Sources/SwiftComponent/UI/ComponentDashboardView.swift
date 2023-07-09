@@ -93,25 +93,15 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 }
                 .navigationViewStyle(.stack)
                 .frame(maxWidth: .infinity)
-//                .transition(.move(edge: .trailing).animation(.default)) // won't animate for some reason
             }
-//            Divider()
+            Divider()
             if showView {
                 ComponentType.view(model: model)
-                    .colorScheme(darkMode ? .dark : .light)
-                //                ViewPreviewer(content: ComponentType.view(model: model), showEnvironmentPickers: false)
-                    .frame(maxWidth: .infinity)
-                    .background(.background)
-                    .cornerRadius(12)
-                    .padding(16)
-                    .clipped()
-//                    .shadow(radius: 4)
-                    .frame(maxHeight: .infinity)
+                    .preview()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(colorScheme == .light ? Color(white: 0.95) : Color.black) // match form background
-                //                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
         }
-        .edgesIgnoringSafeArea(.all)
         .task {
             runAllTests(delay: 0)
         }

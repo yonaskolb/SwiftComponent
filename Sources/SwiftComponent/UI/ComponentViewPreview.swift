@@ -65,17 +65,21 @@ struct ComponentViewPreview<Content: View>: View {
                         case .fill:
                             contentView
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(.background)
+                                .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
                         case .fit:
                             contentView
                                 .background(.background)
+                                .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
                                 .cornerRadius(12)
                                 .clipped()
                                 .shadow(radius: 4)
                                 .padding(16)
+                                .frame(maxHeight: .infinity)
                         }
                     }
                 }
-                Spacer()
+
                 configBar(height: min(200, proxy.size.height/5))
             }
             .animation(.default, value: showEnvironmentSelector)
@@ -99,54 +103,40 @@ struct ComponentViewPreview<Content: View>: View {
     }
 
     func configBar(height: CGFloat) -> some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             Divider()
-            HStack(spacing: 12) {
-                Button(action: { showEnvironmentSelector.toggle() }) {
-                    Text("Environment")
-                        .bold()
-                        .font(.title2)
-                    Image(systemName: "chevron.down")
-                        .font(.title3)
-                    Spacer()
-                }
-                if viewMode == .device {
-                    Button {
-                        showDevicePicker = true
-                    } label: {
-                        Text(device.name)
-                            .bold()
+            Group {
+                if #available(iOS 16.0, *) {
+                    ViewThatFits {
+                        HStack(spacing: 12) {
+                            viewModeSelector
+                            deviceControls
+                            Spacer()
+                            environmentToggle
+                        }
+                        VStack(alignment: .leading) {
+                            HStack(spacing: 12) {
+                                viewModeSelector
+                                Spacer()
+                                environmentToggle
+                            }
+                            if viewMode == .device {
+                                deviceControls
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showDevicePicker) {
-                        deviceSelector
-                            .padding(20)
+                } else {
+                    VStack(alignment: .leading) {
+                        HStack(spacing: 12) {
+                            viewModeSelector
+                            Spacer()
+                            environmentToggle
+                        }
+                        if viewMode == .device {
+                            deviceControls
+                        }
                     }
-                    
-                    Picker(selection: $deviceScale) {
-                        Text("100%")
-                            .tag(Scaling.exact)
-                        Text("Fit")
-                            .tag(Scaling.fit)
-                    } label: {
-                        EmptyView()
-                    }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
                 }
-
-                Picker(selection: $viewMode) {
-                    Text("Device")
-                        .tag(ViewMode.device)
-                    Text("Fill")
-                        .tag(ViewMode.fill)
-                     Text("Fit")
-                        .tag(ViewMode.fit)
-                } label: {
-                    EmptyView()
-                }
-                .pickerStyle(.segmented)
-                .fixedSize()
             }
             .foregroundColor(.primary)
             .padding(.top)
@@ -156,8 +146,8 @@ struct ComponentViewPreview<Content: View>: View {
             if showEnvironmentSelector {
                 ScrollView(.horizontal) {
                     HStack(spacing: 40) {
-                        sizeCategorySelector(height: height)
                         colorSchemeSelector(height: height)
+                        sizeCategorySelector(height: height)
                     }
                     .padding(.top)
                     .padding(.horizontal, 20)
@@ -166,6 +156,64 @@ struct ComponentViewPreview<Content: View>: View {
             }
         }
         .background(systemColorScheme == .dark ? Color(white: 0.05) : Color(white: 0.95))
+    }
+
+    var environmentToggle: some View {
+        Button(action: { showEnvironmentSelector.toggle() }) {
+            Text("Environment")
+            Image(systemName: "chevron.down")
+        }
+        .font(.subheadline)
+        .buttonStyle(.bordered)
+    }
+
+    var viewModeSelector: some View {
+        Picker(selection: $viewMode) {
+            Text("Device")
+                .tag(ViewMode.device)
+            Text("Fill")
+                .tag(ViewMode.fill)
+            Text("Fit")
+                .tag(ViewMode.fit)
+        } label: {
+            EmptyView()
+        }
+        .pickerStyle(.segmented)
+        .fixedSize()
+    }
+
+    var deviceControls: some View {
+        HStack(spacing: 12) {
+            Button {
+                showDevicePicker = true
+            } label: {
+                HStack {
+                    device.icon
+                    Text(device.name)
+                }
+                .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .popover(isPresented: $showDevicePicker) {
+                deviceSelector
+                    .padding(20)
+            }
+            .disabled(viewMode != .device)
+            .opacity(viewMode == .device ? 1 : 0)
+
+            Picker(selection: $deviceScale) {
+                Text("100%")
+                    .tag(Scaling.exact)
+                Text("Fit")
+                    .tag(Scaling.fit)
+            } label: {
+                EmptyView()
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .disabled(viewMode != .device)
+            .opacity(viewMode == .device ? 1 : 0)
+        }
     }
 
     func sizeCategorySelector(height: CGFloat) -> some View {
@@ -303,7 +351,7 @@ extension ContentSizeCategory {
 
 struct ViewPreviewer_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+//        NavigationView {
             VStack {
                 Text("🌻")
                     .font(.system(size: 100))
@@ -316,7 +364,7 @@ struct ViewPreviewer_Previews: PreviewProvider {
                     Image(systemName: "plus")
                 }
             }
-        }
+//        }
         .preview()
         .previewDevice(.largestDevice)
     }
