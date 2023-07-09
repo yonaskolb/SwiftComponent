@@ -11,6 +11,7 @@ extension View {
 struct DeviceWrapper: ViewModifier {
     var device: Device
     var frameColor = Color(white: 0.05)
+    var borderColor = Color(white: 0.15)
     var notchHeight: CGFloat = 34
     var notchTopRadius: CGFloat = 8
 
@@ -51,6 +52,9 @@ struct DeviceWrapper: ViewModifier {
             deviceShape
                 .inset(by: -device.bezelWidth/2)
                 .stroke(frameColor, lineWidth: device.bezelWidth)
+            deviceShape
+                .inset(by: -device.bezelWidth)
+                .stroke(borderColor, lineWidth: 2)
         }
         .clipShape(deviceShape.inset(by: -device.bezelWidth))
         .padding(device.bezelWidth)

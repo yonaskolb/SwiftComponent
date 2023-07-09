@@ -11,6 +11,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @AppStorage("componentPreview.showComponent") var showComponent = true
     @AppStorage("componentPreview.darkMode") var darkMode = false
     @AppStorage("previewTests") var previewTests = true
+    @Environment(\.colorScheme) var colorScheme: ColorScheme
     @State var showTestEvents = true
     @State var autoRunTests = true
     @State var testRun: TestRun<ComponentType.Model> = TestRun()
@@ -107,7 +108,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                     .clipped()
 //                    .shadow(radius: 4)
                     .frame(maxHeight: .infinity)
-                    .background(Color(white: 0.95))
+                    .background(colorScheme == .light ? Color(white: 0.95) : Color.black) // match form background
                 //                    .transition(.move(edge: .leading).animation(.default)) // won't animate for some reason
             }
         }
@@ -325,7 +326,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 struct ComponentDashboard_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ComponentDashboardView<ExampleComponent>(model: ExampleComponent.snapshots[0].viewModel())
+            ComponentDashboardView<ExampleComponent>(model: ExampleComponent.previewModel())
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

@@ -70,9 +70,9 @@ struct ComponentViewPreview<Content: View>: View {
                             }
                         } else {
                             content
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .environment(\.sizeCategory, sizeCategory)
                                 .colorScheme(colorScheme)
-                                .background(Color.white)
                                 .background(.background)
                                 .cornerRadius(12)
                                 .padding(16)
@@ -157,7 +157,7 @@ struct ComponentViewPreview<Content: View>: View {
                 .transition(.move(edge: .bottom))
             }
         }
-        .background(Color(white: 0.95))
+        .background(systemColorScheme == .dark ? Color(white: 0.05) : Color(white: 0.95))
     }
 
     func sizeCategorySelector(height: CGFloat) -> some View {

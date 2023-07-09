@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftPreview
 
 public struct ComponentListView: View {
+    @Environment(\.colorScheme) var colorScheme: ColorScheme
     var components: [any Component.Type]
 
     public init(components: [any Component.Type]) {
@@ -34,7 +35,9 @@ public struct ComponentListView: View {
                             .navigationViewStyle(.stack)
                     }
                 }
+                .padding(.top)
             }
+            .background(colorScheme == .dark ? Color(white: 0.1) : .white)
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)
@@ -64,7 +67,7 @@ struct ComponentGridItem<ComponentType: Component>: View {
                     .view(model: model)
                     .embedIn(device: device)
                     .colorScheme(darkMode ? .dark: .light)
-                    .previewReference()
+//                    .previewReference()
                     .allowsHitTesting(false)
                     .scaleEffect(scale)
                     .frame(width: device.width*scale, height: device.height*scale)
@@ -73,7 +76,7 @@ struct ComponentGridItem<ComponentType: Component>: View {
                     .font(.title2)
             }
             .interactiveBackground()
-            .padding()
+            .padding(20)
         }
         .buttonStyle(.plain)
     }
