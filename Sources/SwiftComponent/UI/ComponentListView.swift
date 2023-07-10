@@ -37,7 +37,7 @@ public struct ComponentListView: View {
                 }
                 .padding(.top)
             }
-            .background(colorScheme == .dark ? Color(white: 0.1) : .white)
+            .background(colorScheme == .dark ? Color.darkBackground : .white)
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)

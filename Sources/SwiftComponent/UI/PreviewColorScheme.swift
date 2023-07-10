@@ -51,3 +51,7 @@ enum PreviewColorScheme: String {
         }
     }
 }
+
+extension Color {
+    static let darkBackground = Color(white: 0.15)
+}
