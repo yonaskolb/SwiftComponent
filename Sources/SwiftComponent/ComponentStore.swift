@@ -291,6 +291,7 @@ extension ComponentStore {
 // MARK: Model Accessors
 extension ComponentStore {
 
+    @MainActor
     func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, value: Value, animation: Animation? = nil, source: Source?) {
         // we can't get the source in dynamic member lookup, so just use the original action or input
         let source = source ?? lastSource ?? .capture()
@@ -317,7 +318,7 @@ extension ComponentStore {
     }
 
     @MainActor
-    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+    func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @MainActor @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         do {
             try await self.task(name, cancellable: cancellable, source: source, task) as R
         } catch {

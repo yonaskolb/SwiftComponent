@@ -21,6 +21,7 @@ public class ComponentModelContext<Model: ComponentModel> {
     public var path: ComponentPath { store.path }
     public var dependencies: ComponentDependencies { store.dependencies }
 
+    @MainActor
     public func mutate<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
         store.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
     }
@@ -95,7 +96,7 @@ extension ComponentModelContext {
     public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<Model.State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
         let name = getResourceTaskName(keyPath)
-        await store.task(name, cancellable: true, source: .capture(file: file, line: line)) {
+        await store.task(name, cancellable: true, source: .capture(file: file, line: line)) { @MainActor in
             let content = try await load()
             self.mutate(keyPath.appending(path: \.content), content, animation: animation)
             if self.store.state[keyPath: keyPath.appending(path: \.error)] != nil {
