@@ -15,8 +15,12 @@ struct DeviceWrapper: ViewModifier {
     var notchHeight: CGFloat = 34
     var notchTopRadius: CGFloat = 8
 
-    /// works for regular content, except navigation bars
-    var useTopSafeArea = false
+    /*
+     NavigationView resets any safe area insets.
+     This means any content that is within a NavigationView won't be inset correctly.
+     A workaround is to push content in but that breaks content content that ignores the safe area like a fullbleed background.
+     */
+    var insetUsingSafeArea = false
 
     var deviceShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 40, style: .continuous)
@@ -24,27 +28,36 @@ struct DeviceWrapper: ViewModifier {
 
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
-            if !useTopSafeArea {
-
+            if !insetUsingSafeArea {
                 topBar
                     .frame(height: device.topSafeAreaHeight)
             }
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if !insetUsingSafeArea {
+                Group {
+                    if device.homeIndicator {
+                        homeIndicator
+                    }
+                }
+                .frame(height: device.bottomSafeAreaHeight, alignment: .bottom)
+            }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if useTopSafeArea {
+            if insetUsingSafeArea {
                 topBar
                 .frame(height: device.topSafeAreaHeight)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Group {
-                if device.homeIndicator {
-                    homeIndicator
+            if insetUsingSafeArea {
+                Group {
+                    if device.homeIndicator {
+                        homeIndicator
+                    }
                 }
+                .frame(height: device.bottomSafeAreaHeight, alignment: .bottom)
             }
-            .frame(height: device.bottomSafeAreaHeight, alignment: .bottom)
         }
         .frame(width: device.width, height: device.height)
         .background(.background)
@@ -123,8 +136,14 @@ struct Device_Previews: PreviewProvider {
         Group {
             NavigationView {
                 ZStack {
-                    Color.gray
-                    Text("iPhone")
+                    Color.blue
+                    VStack {
+                        Spacer()
+                        Text("iPhone")
+                        Spacer()
+                        Text("Bottom")
+                            .padding(.bottom, 8)
+                    }
                 }
                 .navigationTitle(Text("Title"))
                 .navigationBarTitleDisplayMode(.inline)
