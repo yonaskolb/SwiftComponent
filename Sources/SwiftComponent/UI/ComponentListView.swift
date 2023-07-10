@@ -55,7 +55,6 @@ public struct ComponentListView: View {
 struct ComponentGridItem<ComponentType: Component>: View {
 
     @StateObject var model = ComponentType.previewModel()
-    @Environment(\.colorScheme) var colorScheme: ColorScheme
     let scale = 0.5
     let device = Device.iPhone14
     var body: some View {
@@ -66,7 +65,7 @@ struct ComponentGridItem<ComponentType: Component>: View {
                 ComponentType
                     .view(model: model)
                     .embedIn(device: device)
-                    .colorScheme(PreviewColorScheme.current.colorScheme ?? colorScheme)
+                    .previewColorScheme()
 //                    .previewReference()
                     .allowsHitTesting(false)
                     .scaleEffect(scale)

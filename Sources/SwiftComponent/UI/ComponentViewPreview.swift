@@ -59,18 +59,18 @@ struct ComponentViewPreview<Content: View>: View {
                             ScalingView(size: device.frameSize, scaling: deviceScale) {
                                 contentView
                                     .embedIn(device: device)
-                                    .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
+                                    .previewColorScheme()
                                     .shadow(radius: 10)
                             }
                         case .fill:
                             contentView
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .background(.background)
-                                .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
+                                .previewColorScheme()
                         case .fit:
                             contentView
                                 .background(.background)
-                                .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
+                                .previewColorScheme()
                                 .cornerRadius(12)
                                 .clipped()
                                 .shadow(radius: 4)
@@ -93,7 +93,7 @@ struct ComponentViewPreview<Content: View>: View {
     var contentView: some View {
         content
             .environment(\.sizeCategory, sizeCategory)
-            .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
+            .previewColorScheme()
     }
 
     var environmentPreview: some View {
@@ -227,7 +227,7 @@ struct ComponentViewPreview<Content: View>: View {
                         environmentPreview
                             .environment(\.sizeCategory, size)
                             .embedIn(device: device)
-                            .colorScheme(PreviewColorScheme.current.colorScheme ?? systemColorScheme)
+                            .previewColorScheme()
                             .scaleEffect(height / device.frameSize.height)
                             .frame(height: height)
                         Image(systemName: size == sizeCategory ? "checkmark.circle.fill" : "circle")

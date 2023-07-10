@@ -1,12 +1,32 @@
 import Foundation
 import SwiftUI
 
+extension View {
+
+    func previewColorScheme() -> some View {
+        modifier(PreviewColorSchemeModifier())
+    }
+}
+
+struct PreviewColorSchemeModifier: ViewModifier {
+    @AppStorage(PreviewColorScheme.key)
+    var previewColorScheme: PreviewColorScheme = .system
+    @Environment(\.colorScheme)
+    var systemColorScheme: ColorScheme
+
+    func body(content: Content) -> some View {
+        content.colorScheme(previewColorScheme.colorScheme ?? systemColorScheme)
+    }
+}
+
 enum PreviewColorScheme: String {
     case system
     case dark
     case light
 
-    @AppStorage("componentPreview.colorScheme")
+    static let key = "componentPreview.colorScheme"
+
+    @AppStorage(key)
     static var current: PreviewColorScheme = .system
 
     var colorScheme: ColorScheme? {
