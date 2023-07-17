@@ -67,7 +67,7 @@ public struct TestResult<Model: ComponentModel> {
     public var success: Bool { errors.isEmpty && steps.allSatisfy(\.success) }
     public var stepErrors: [TestError] { steps.reduce([]) { $0 + $1.errors } }
     public var errors: [TestError] { stepErrors }
-    var snapshots: [ComponentSnapshot<Model>]
+    public var snapshots: [ComponentSnapshot<Model>]
 
     public var duration: TimeInterval {
         end.timeIntervalSince1970 - start.timeIntervalSince1970
