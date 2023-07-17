@@ -160,11 +160,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var snapshotsSection: some View {
         Section(header: Text("Snapshots")) {
-            Button {
-                selectSnapshot(ComponentType.preview)
-            } label: {
-                Text("preview")
-            }
             ForEach(snapshots, id: \.name) { snapshot in
                 Button {
                     selectSnapshot(snapshot)
