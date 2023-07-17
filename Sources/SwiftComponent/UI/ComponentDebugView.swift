@@ -31,7 +31,7 @@ struct ComponentDebugView<Model: ComponentModel>: View {
     var events: [Event] {
         EventStore.shared.componentEvents(for: model.store.path, includeChildren: showChildEvents)
             .filter { eventTypes.contains($0.type.type) }
-            .sorted { $0.start < $1.start }
+            .sorted { $0.start > $1.start }
     }
 
     var body: some View {
@@ -72,7 +72,10 @@ struct ComponentDebugView<Model: ComponentModel>: View {
                     }
                 }
                 Section {
-                    ComponentEventList(events: events, allEvents: EventStore.shared.events.sorted { $0.start < $1.start })
+                    ComponentEventList(
+                        events: events,
+                        allEvents: EventStore.shared.events,
+                        indent: false)
                 }
             }
             .animation(.default, value: eventTypes)

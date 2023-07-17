@@ -48,7 +48,7 @@ struct ComponentEventList: View {
                     Text(event.type.details)
                         .font(.footnote)
                 }
-                .padding(.leading, 16*Double(max(0, eventDepth(event)))) // inset children
+                .padding(.leading, 8*Double(max(0, eventDepth(event)))) // inset children
             }
         }
     }
@@ -58,8 +58,16 @@ struct ComponentEventView: View {
 
     let event: Event
     var allEvents: [Event]
-    var childEvents: [Event] { allEvents.filter { $0.start > event.start && $0.end < event.end } }
-    var parentEvents: [Event] { allEvents.filter { $0.start < event.start && $0.end > event.end } }
+    var childEvents: [Event] {
+        allEvents
+            .filter { $0.start > event.start && $0.end < event.end }
+            .sorted { $0.start < $1.start }
+    }
+    var parentEvents: [Event] {
+        allEvents
+            .filter { $0.start < event.start && $0.end > event.end }
+            .sorted { $0.start < $1.start }
+    }
     @State var showValue = false
     @State var showMutation: UUID?
 
