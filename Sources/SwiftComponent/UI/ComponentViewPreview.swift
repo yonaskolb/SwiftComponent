@@ -165,6 +165,7 @@ struct ComponentViewPreview<Content: View>: View {
         }
         .font(.subheadline)
         .buttonStyle(.bordered)
+        .transformEffect(.identity) // fixes postion during animation https://stackoverflow.com/questions/70253645/swiftui-animate-view-transition-and-position-change-at-the-same-time/76094274#76094274
     }
 
     var viewModeSelector: some View {
