@@ -13,6 +13,10 @@ struct ComponentSnapshotView<ComponentType: Component>: View {
 
     @MainActor
     func generateSnapshot() async {
+        if let snapshot = ComponentType.snapshots.first(where: { $0.name == snapshotName}) {
+            self.snapshot = snapshot
+            return
+        }
         for test in ComponentType.tests {
             let state = ComponentType.state(for: test)
             let model = ViewModel<ComponentType.Model>(state: state, environment: test.environment)

@@ -49,9 +49,9 @@ extension Component {
                     .previewReference()
                     .previewLayout(PreviewLayout.device)
             }
-            ForEach(snapshotNames, id: \.self) { snapshotName in
-                ComponentSnapshotView<Self>(snapshotName: snapshotName)
-                    .previewDisplayName("\(Model.baseName): \(snapshotName)")
+            ForEach(testSnapshots, id: \.name) { snapshot in
+                ComponentSnapshotView<Self>(snapshotName: snapshot.name)
+                    .previewDisplayName("\(Model.baseName): \(snapshot.name)")
                     .previewReference()
                     .previewLayout(PreviewLayout.device)
             }

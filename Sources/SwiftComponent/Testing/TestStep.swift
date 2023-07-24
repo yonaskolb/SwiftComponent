@@ -11,7 +11,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public let id = UUID()
     public var expectations: [TestExpectation<Model>] = []
     var dependencies: ComponentDependencies
-    var snapshots: [String] = []
+    var snapshots: [TestSnapshot] = []
     fileprivate var _run: (inout TestContext<Model>) async -> Void
 
     public init(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {

@@ -25,7 +25,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var snapshots: [ComponentSnapshot<ComponentType.Model>] {
         ComponentType.snapshots +
-        ComponentType.snapshotNames.compactMap { testRun.snapshots[$0] }
+        ComponentType.testSnapshots.compactMap { testRun.snapshots[$0.name] }
     }
 
     func clearEvents() {
@@ -134,11 +134,11 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var form: some View {
         Form {
-            if !snapshots.isEmpty {
-                snapshotsSection
-            }
             if !(ComponentType.Model.State.self == Void.self) {
                 stateSection
+            }
+            if !snapshots.isEmpty {
+                snapshotsSection
             }
             routeSection
             if !ComponentType.tests.isEmpty {
