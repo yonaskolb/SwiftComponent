@@ -29,6 +29,7 @@ extension Component {
     public static var routes: Routes { [] }
     public static var testAssertions: Set<TestAssertion> { .normal }
     public static var snapshots: Snapshots { [] }
+    public static var environmentName: String { String(describing: Model.Environment.self) }
 }
 
 extension Component {

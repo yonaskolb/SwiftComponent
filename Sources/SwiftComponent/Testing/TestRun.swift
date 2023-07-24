@@ -19,6 +19,18 @@ struct TestRun<Model: ComponentModel> {
     var missingCoverage: TestCoverage = .init()
     var totalCoverage: TestCoverage = .init()
 
+    var passedStepCount: Int {
+        testStepResults.values.filter { $0.success }.count
+    }
+
+    var failedStepCount: Int {
+        testStepResults.values.filter { !$0.success }.count
+    }
+
+    var totalStepCount: Int {
+        testStepResults.values.count
+    }
+
     var passedTestCount: Int {
         testState.values.filter { $0.passed }.count
     }
