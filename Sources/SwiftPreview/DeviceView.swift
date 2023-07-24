@@ -28,7 +28,7 @@ struct DeviceWrapper: ViewModifier {
 
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
-            if !insetUsingSafeArea {
+            if device.statusBar, !insetUsingSafeArea {
                 topBar
                     .frame(height: device.topSafeAreaHeight)
             }
@@ -44,7 +44,7 @@ struct DeviceWrapper: ViewModifier {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            if insetUsingSafeArea {
+            if device.statusBar, insetUsingSafeArea {
                 topBar
                 .frame(height: device.topSafeAreaHeight)
             }
@@ -159,6 +159,11 @@ struct Device_Previews: PreviewProvider {
                 Text("iPad")
             }
             .embedIn(device: .iPadPro12)
+            ZStack {
+                Color.gray
+                Text("iPad")
+            }
+            .embedIn(device: .phone)
         }
         .navigationViewStyle(.stack)
         .previewLayout(.sizeThatFits)

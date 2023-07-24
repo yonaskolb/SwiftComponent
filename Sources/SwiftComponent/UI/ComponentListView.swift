@@ -4,6 +4,8 @@ import SwiftPreview
 public struct ComponentListView: View {
     @Environment(\.colorScheme) var colorScheme: ColorScheme
     var components: [any Component.Type]
+    let scale = 0.5
+    let device = Device.mediumPhone
 
     public init(components: [any Component.Type]) {
         self.components = components
@@ -29,13 +31,13 @@ public struct ComponentListView: View {
     public var body: some View {
         NavigationView {
             ScrollView {
-                LazyVGrid(columns: [.init(.adaptive(minimum: 200))]) {
+                LazyVGrid(columns: [.init(.adaptive(minimum: device.width * scale + 20))], spacing: 0) {
                     ForEach(componentModels) { component in
                         componentGridView(component.component)
                             .navigationViewStyle(.stack)
                     }
                 }
-                .padding(.top)
+                .padding()
             }
             .background(colorScheme == .dark ? Color.darkBackground : .white)
         }
@@ -48,15 +50,16 @@ public struct ComponentListView: View {
     }
 
     func componentGridUnwrap<ComponentType: Component>( _ component: ComponentType.Type) -> AnyView {
-        AnyView(ComponentGridItem<ComponentType>())
+        AnyView(ComponentGridItem<ComponentType>(scale: scale, device: device))
     }
 }
 
 struct ComponentGridItem<ComponentType: Component>: View {
 
     @StateObject var model = ComponentType.previewModel()
-    let scale = 0.5
-    let device = Device.iPhone14
+    let scale: Double
+    let device: Device
+
     var body: some View {
         NavigationLink {
             ComponentPreview<ComponentType>()

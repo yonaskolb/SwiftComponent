@@ -8,10 +8,11 @@ public struct Device: Equatable {
     public var height: Double
     var iconType: Icon {
         switch (homeIndicator, type) {
-            case (true, .iPad): return .iPad
-            case (false, .iPad): return .iPadHome
-            case (true, .iPhone): return .iPhone
-            case (false, .iPhone): return .iPhoneHome
+        case (true, .iPad): return .iPad
+        case (false, .iPad): return .iPadHome
+        case (true, .iPhone): return .iPhone
+        case (false, .iPhone): return .iPhoneHome
+        case (_, .custom): return .custom
         }
     }
     //TODO: edit these for different devices
@@ -20,10 +21,16 @@ public struct Device: Equatable {
     var bottomSafeAreaHeight: Double = 34
     var homeIndicator: Bool
     var notch: Bool
+    var statusBar: Bool = true
 
     public var frameSize: CGSize {
         CGSize(width: width + bezelWidth*2, height: height + bezelWidth*2)
     }
+
+    public static let smallPhone = Device(name: "small", type: .custom, width: 320, height: 600, homeIndicator: false, notch: false, statusBar: false)
+    public static let mediumPhone = Device(name: "medium", type: .custom, width: 375, height: 812, homeIndicator: false, notch: false, statusBar: false)
+    public static let largePhone = Device(name: "large", type: .custom, width: 430, height: 932, homeIndicator: false, notch: false, statusBar: false)
+    public static let phone = Device(name: "phone", type: .custom, width: 375, height: 812, homeIndicator: false, notch: false, statusBar: false)
 
     public static let iPhoneSE = Device.iPhone(name: "iPhone SE", width: 320, height: 568, homeIndicator: false, notch: false)
     public static let iPhone13Mini = Device.iPhone(name: "iPhone 13 Mini", width: 375, height: 812)
@@ -68,6 +75,7 @@ public struct Device: Equatable {
     public enum DeviceType: String {
         case iPhone = "iPhone"
         case iPad = "iPad"
+        case custom = "Custom"
     }
 
     enum Icon: String {
@@ -75,6 +83,7 @@ public struct Device: Equatable {
         case iPhoneHome = "iphone.homebutton"
         case iPad = "ipad"
         case iPadHome = "ipad.homebutton"
+        case custom = "rectangle.dashed"
     }
 
     public var icon: Image {

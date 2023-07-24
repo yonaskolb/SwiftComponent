@@ -17,7 +17,7 @@ struct ComponentViewPreview<Content: View>: View {
     @State var device = Device.iPhone14
     @State var showDevicePicker = false
     @State var showAccessibilityPreview = false
-    @AppStorage("componentPreview.viewMode") var viewMode: ViewMode = .device
+    @AppStorage("componentPreview.viewMode") var viewMode: ViewMode = .phone
     @AppStorage("componentPreview.deviceScale") var deviceScale: Scaling = Scaling.fit
     @AppStorage("componentPreview.showEnvironmentSelector") var showEnvironmentSelector = false
 
@@ -25,6 +25,7 @@ struct ComponentViewPreview<Content: View>: View {
         case device
         case fill
         case fit
+        case phone
     }
 
     @Environment(\.colorScheme) var systemColorScheme: ColorScheme
@@ -59,6 +60,13 @@ struct ComponentViewPreview<Content: View>: View {
                             ScalingView(size: device.frameSize, scaling: deviceScale) {
                                 contentView
                                     .embedIn(device: device)
+                                    .previewColorScheme()
+                                    .shadow(radius: 10)
+                            }
+                        case .phone:
+                            ScalingView(size: Device.mediumPhone.frameSize, scaling: .fit) {
+                                contentView
+                                    .embedIn(device: .phone)
                                     .previewColorScheme()
                                     .shadow(radius: 10)
                             }
@@ -170,6 +178,8 @@ struct ComponentViewPreview<Content: View>: View {
 
     var viewModeSelector: some View {
         Picker(selection: $viewMode) {
+            Text("Phone")
+                .tag(ViewMode.phone)
             Text("Device")
                 .tag(ViewMode.device)
             Text("Fill")
@@ -195,6 +205,7 @@ struct ComponentViewPreview<Content: View>: View {
                 .font(.subheadline)
             }
             .buttonStyle(.bordered)
+            .fixedSize()
             .popover(isPresented: $showDevicePicker) {
                 deviceSelector
                     .padding(20)
