@@ -11,7 +11,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @AppStorage("testPreview.showDependencies") var showDependencies = false
     @AppStorage("testPreview.showExpectations") var showExpectations = false
     @AppStorage("testPreview.showErrors") var showErrors = true
-    @AppStorage("testPreview.showWarnings") var showWarnings = true
+    @AppStorage("testPreview.showWarnings") var showWarnings = false
     @AppStorage("testPreview.showErrorDiffs") var showErrorDiffs = true
     @AppStorage("testPreview.testFilter") var testFilter: TestFilter?
     @State var collapsedTests: [String: Bool] = [:]
