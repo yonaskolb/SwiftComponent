@@ -40,6 +40,12 @@ public class ComponentModelContext<Model: ComponentModel> {
         }
     }
 
+    // so we can access read only properties
+    @MainActor
+    public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
+        store.state[keyPath: keyPath]
+    }
+
     public func addTask(_ taskID: Model.Task, cancellable: Bool = false, cancelID: String? = nil, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {
         store.addTask { @MainActor [weak self] in
             await self?.store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
