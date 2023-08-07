@@ -1,13 +1,22 @@
 import Foundation
 import SwiftUI
 
-public struct Resource<State> {
-    public var content: State?
+@propertyWrapper
+public struct Resource<Value> {
+    public var wrappedValue: Value?
+    public var content: Value? {
+        get { wrappedValue }
+        set { wrappedValue = newValue }
+    }
     public var error: Error?
     public var isLoading: Bool = false
 
-    public init(content: State? = nil, error: Error? = nil, isLoading: Bool = false) {
-        self.content = content
+    public init(wrappedValue: Value?) {
+        self.wrappedValue = wrappedValue
+    }
+
+    public init(content: Value? = nil, error: Error? = nil, isLoading: Bool = false) {
+        self.wrappedValue = content
         self.error = error
         self.isLoading = isLoading
     }
@@ -15,7 +24,7 @@ public struct Resource<State> {
     public enum ResourceState {
         case unloaded
         case loading
-        case loaded(State)
+        case loaded(Value)
         case error(Error)
 
         public enum ResourceStateType {
@@ -56,6 +65,11 @@ public struct Resource<State> {
         }
 
     }
+
+    public var projectedValue: Self {
+        get { self }
+        set { self = newValue }
+    }
 }
 
 public extension Resource {
@@ -65,15 +79,15 @@ public extension Resource {
     static func error(_ error: Error) -> Resource { Resource(content: nil, error: error, isLoading: false) }
 }
 
-extension Resource: Equatable where State: Equatable {
-    public static func == (lhs: Resource<State>, rhs: Resource<State>) -> Bool {
+extension Resource: Equatable where Value: Equatable {
+    public static func == (lhs: Resource<Value>, rhs: Resource<Value>) -> Bool {
         lhs.content == rhs.content && lhs.isLoading == rhs.isLoading && lhs.error?.localizedDescription == rhs.error?.localizedDescription
     }
 }
 
-extension Resource where State: Collection, State: ExpressibleByArrayLiteral {
+extension Resource where Value: Collection, Value: ExpressibleByArrayLiteral {
 
-    public var list: State {
+    public var list: Value {
         get {
             if let content {
                 return content
@@ -92,13 +106,13 @@ extension Resource where State: Collection, State: ExpressibleByArrayLiteral {
 }
 
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
-public struct ResourceView<State: Equatable, Content: View, ErrorView: View>: View {
+public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: View {
 
-    let resource: Resource<State>
-    let content: (State) -> Content
+    let resource: Resource<Value>
+    let content: (Value) -> Content
     let error: (Error) -> ErrorView
 
-    public init(_ resource: Resource<State>, @ViewBuilder content: @escaping (State) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
+    public init(_ resource: Resource<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
         self.resource = resource
         self.content = content
         self.error = error
