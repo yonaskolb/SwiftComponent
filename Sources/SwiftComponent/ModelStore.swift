@@ -74,6 +74,10 @@ public class ComponentModelContext<Model: ComponentModel> {
         store.dismissRoute(source: .capture(file: file, line: line))
     }
 
+    public func updateView() {
+        store.stateChanged.send(store.state)
+    }
+
     public func statePublisher() -> AnyPublisher<Model.State, Never> {
         store.stateChanged
             .eraseToAnyPublisher()
