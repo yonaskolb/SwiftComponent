@@ -3,11 +3,11 @@ import SwiftUI
 
 @propertyWrapper
 public struct Resource<Value> {
-    public var wrappedValue: Value?
-    public var content: Value? {
-        get { wrappedValue }
-        set { wrappedValue = newValue }
+    public var wrappedValue: Value? {
+        get { content }
+        set { content = newValue }
     }
+    public var content: Value?
     public var error: Error?
     public var isLoading: Bool = false
 
@@ -16,7 +16,7 @@ public struct Resource<Value> {
     }
 
     public init(content: Value? = nil, error: Error? = nil, isLoading: Bool = false) {
-        self.wrappedValue = content
+        self.content = content
         self.error = error
         self.isLoading = isLoading
     }
