@@ -8,11 +8,12 @@ extension KeyPath {
         if #available(iOS 16.4, *) {
             // Is in format "\State.standup.name" so drop the slash and type
             return debugDescription
-                .dropFirst()
+                .dropFirst() // drop slash
                 .split(separator: ".")
-                .dropFirst()
+                .dropFirst() // drop State
                 .joined(separator: ".")
                 .replacingOccurrences(of: "<Unknown>", with: "_")
+                .replacingOccurrences(of: #"^\$"#, with: "", options: .regularExpression) // drop leading $
         } else {
             return mirrorPropertyName
         }
