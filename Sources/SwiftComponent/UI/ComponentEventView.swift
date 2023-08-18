@@ -237,7 +237,7 @@ struct EventView_Previews: PreviewProvider {
             }
             .navigationViewStyle(.stack)
             ExampleView(model: .init(state: .init(name: "Hello")))
-                .debugView()
+                .debugSheet()
                 .navigationViewStyle(.stack)
         }
 

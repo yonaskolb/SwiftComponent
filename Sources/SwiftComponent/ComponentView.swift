@@ -83,13 +83,17 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         }
         .sheet(isPresented: $showDebug) {
             if #available(iOS 16.0, *) {
-                ComponentDebugView(model: model)
+                debugSheet
                     .presentationDetents([.medium, .large])
             } else {
-                ComponentDebugView(model: model)
+                debugSheet
             }
         }
 #endif
+    }
+
+    var debugSheet: some View {
+        ComponentDebugSheet(model: model)
     }
 }
 
