@@ -151,7 +151,6 @@ extension TestStep {
     }
 }
 
-#if DEBUG
 extension Component {
 
     @MainActor
@@ -166,4 +165,3 @@ extension Component {
         }
     }
 }
-#endif
