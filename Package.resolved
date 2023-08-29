@@ -3,10 +3,10 @@
     {
       "identity" : "accessibilitysnapshot",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/cashapp/AccessibilitySnapshot",
+      "location" : "https://github.com/DavidBrunow/AccessibilitySnapshot",
       "state" : {
-        "branch" : "master",
-        "revision" : "047fd175b745ce2688a55b1ac98cffde0313a6d3"
+        "branch" : "bugfix/navigationStackSortOrder",
+        "revision" : "4321111b9cd0175f41bceb828aa7744d1324afa1"
       }
     },
     {
@@ -34,6 +34,15 @@
       "state" : {
         "revision" : "ea112a73f7a8772a92b125ceeaaf61f1844466bd",
         "version" : "2.2.6"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "46989693916f56d1186bd59ac15124caef896560",
+        "version" : "1.3.1"
       }
     },
     {

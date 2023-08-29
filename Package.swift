@@ -9,6 +9,7 @@ var package = Package(
     platforms: [.iOS(.v15), .macOS(.v12)],
     products: [
         .library(name: "SwiftComponent", targets: ["SwiftComponent"]),
+        .plugin(name: "SwiftComponentBuildPlugin", targets: ["SwiftComponentBuildPlugin"])
     ],
     dependencies: [
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
@@ -19,8 +20,13 @@ var package = Package(
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.6"),
         .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/DavidBrunow/AccessibilitySnapshot", branch: "bugfix/navigationStackSortOrder"),
+		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
     ],
     targets: [
+        .executableTarget(name: "SwiftComponentCLI", dependencies: [
+            .product(name: "SwiftParser", package: "swift-syntax"),
+            .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        ]),
         .target(
             name: "SwiftComponent",
             dependencies: [
@@ -44,7 +50,8 @@ var package = Package(
                 "SwiftComponent",
                 .product(name: "MacroTesting", package: "swift-macro-testing"),
             ]),
-        .macro(
+        .plugin(name: "SwiftComponentBuildPlugin", capability: .buildTool(), dependencies: ["SwiftComponentCLI"]),
+		.macro(
             name: "SwiftComponentMacros",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),

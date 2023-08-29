@@ -95,6 +95,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				CCE36EA52BD4FA00008E912F /* PBXTargetDependency */,
 			);
 			name = Example;
 			packageProductDependencies = (
@@ -160,6 +161,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CCE36EA52BD4FA00008E912F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = CCE36EA42BD4FA00008E912F /* SwiftComponentBuildPlugin */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CCD1D18C28E875A1009171C7 /* Debug */ = {
@@ -376,6 +384,10 @@
 		CCD1D19328E875BB009171C7 /* SwiftComponent */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftComponent;
+		};
+		CCE36EA42BD4FA00008E912F /* SwiftComponentBuildPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = "plugin:SwiftComponentBuildPlugin";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

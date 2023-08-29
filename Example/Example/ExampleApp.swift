@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftComponent
 
 @main
 struct ExampleApp: App {
@@ -11,5 +12,11 @@ struct ExampleApp: App {
             }
 //            ItemPreview.componentPreview
         }
+    }
+}
+
+struct MyPreviewProvider_Previews: PreviewProvider {
+    static var previews: some View {
+        ComponentListView(components: components)
     }
 }
