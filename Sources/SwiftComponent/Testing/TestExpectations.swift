@@ -35,7 +35,7 @@ extension TestStep {
         }
         return addExpectation(title: "Expect Task", details: "\(name.quoted)\(result)", file: file, line: line) { context in
             let result: TaskResult? = context.findEventValue { event in
-                if case .task(let taskResult) = event.type {
+                if case .task(let taskResult) = event.type, taskResult.name == name {
                     return taskResult
                 }
                 return nil
