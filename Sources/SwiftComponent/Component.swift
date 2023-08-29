@@ -40,19 +40,19 @@ extension Component {
     public static var previews: some View {
         Group {
             componentPreview
-                .previewDisplayName("\(Model.baseName) Component")
+                .previewDisplayName(Model.baseName)
             view(model: preview.viewModel())
-                .previewDisplayName("\(Model.baseName) preview")
+                .previewDisplayName("Preview")
                 .previewLayout(PreviewLayout.device)
             ForEach(snapshots, id: \.name) { snapshot in
                 view(model: snapshot.viewModel())
-                    .previewDisplayName("\(Model.baseName): \(snapshot.name)")
+                    .previewDisplayName(snapshot.name)
                     .previewReference()
                     .previewLayout(PreviewLayout.device)
             }
             ForEach(testSnapshots, id: \.name) { snapshot in
                 ComponentSnapshotView<Self>(snapshotName: snapshot.name)
-                    .previewDisplayName("\(Model.baseName): \(snapshot.name)")
+                    .previewDisplayName(snapshot.name)
                     .previewReference()
                     .previewLayout(PreviewLayout.device)
             }
