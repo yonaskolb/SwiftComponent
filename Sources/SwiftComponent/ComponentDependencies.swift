@@ -30,10 +30,7 @@ public class ComponentDependencies {
         if let name = keyPath.propertyName {
             accessedDependencies.insert(name)
         }
-        let dependencies = self.dependencyValues.merging(DependencyValues._current)
-        return DependencyValues.$_current.withValue(dependencies) {
-            DependencyValues._current[keyPath: keyPath]
-        }
+        return dependencyValues[keyPath: keyPath]
     }
 
     func apply(_ dependencies: ComponentDependencies) {
