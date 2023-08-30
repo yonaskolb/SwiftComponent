@@ -37,6 +37,10 @@ public class ComponentDependencies {
         self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
     }
 
+    func setValues(_ values: DependencyValues) {
+        self.dependencyValues = values
+    }
+
     func reset() {
         accessedDependencies = []
         setDependencies = []

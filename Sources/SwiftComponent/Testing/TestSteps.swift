@@ -157,6 +157,7 @@ extension TestStep {
 
             let state = context.model.state
             let route = context.model.route
+            let dependencyValues = context.model.dependencies.dependencyValues
             for step in steps {
                 let results = await step.runTest(context: &context)
                 context.childStepResults.append(results)
@@ -165,6 +166,7 @@ extension TestStep {
             context.model.state = state
             context.state = state
             context.model.route = route
+            context.model.dependencies.setValues(dependencyValues)
 
             // don't assert on this step
             context.runAssertions = false
