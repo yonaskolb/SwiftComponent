@@ -105,6 +105,13 @@ extension Resource where Value: Collection, Value: ExpressibleByArrayLiteral {
     }
 }
 
+extension Resource {
+
+    public func map<T>(_ map: (Value) -> T) -> Resource<T> {
+        Resource<T>(content: content.map(map), error: error, isLoading: isLoading)
+    }
+}
+
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
 public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: View {
 
