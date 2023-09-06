@@ -88,7 +88,7 @@ struct ComponentViewPreview<Content: View>: View {
                     }
                 }
 
-                configBar(height: min(200, proxy.size.height/5))
+                configBar(previewHeight: min(200, proxy.size.height/5))
             }
             .animation(.default, value: showEnvironmentSelector)
             .animation(.default, value: viewMode)
@@ -110,27 +110,37 @@ struct ComponentViewPreview<Content: View>: View {
             .previewReference()
     }
 
-    func configBar(height: CGFloat) -> some View {
+    func configBar(previewHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
             Group {
                 if #available(iOS 16.0, *) {
-                    ViewThatFits {
-                        HStack(spacing: 12) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
                             viewModeSelector
+                                .fixedSize()
                             deviceControls
                             Spacer()
                             environmentToggle
+                                .frame(width: 200)
                         }
                         VStack(alignment: .leading) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 8) {
                                 viewModeSelector
+                                    .fixedSize()
                                 Spacer()
                                 environmentToggle
                             }
                             if viewMode == .device {
                                 deviceControls
                             }
+                        }
+                        VStack(alignment: .leading) {
+                            viewModeSelector
+                            if viewMode == .device {
+                                deviceControls
+                            }
+                            environmentToggle
                         }
                     }
                 } else {
@@ -154,8 +164,8 @@ struct ComponentViewPreview<Content: View>: View {
             if showEnvironmentSelector {
                 ScrollView(.horizontal) {
                     HStack(spacing: 40) {
-                        colorSchemeSelector(height: height)
-                        sizeCategorySelector(height: height)
+                        colorSchemeSelector(height: previewHeight)
+                        sizeCategorySelector(height: previewHeight)
                     }
                     .padding(.top)
                     .padding(.horizontal, 20)
@@ -190,7 +200,6 @@ struct ComponentViewPreview<Content: View>: View {
             EmptyView()
         }
         .pickerStyle(.segmented)
-        .fixedSize()
     }
 
     var deviceControls: some View {
