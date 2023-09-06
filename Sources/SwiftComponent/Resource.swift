@@ -132,12 +132,11 @@ public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: Vi
         case .error(let error):
             self.error(error)
         case .loading:
-            ZStack {
-                ProgressView()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Spacer()
+            ProgressView()
+            Spacer()
         case .unloaded:
-            EmptyView()
+            Spacer()
         }
     }
 }
