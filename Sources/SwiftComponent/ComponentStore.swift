@@ -79,6 +79,7 @@ class ComponentStore<Model: ComponentModel> {
     var handledAppear = false
     var handledDisappear = false
     var sendGlobalEvents = true
+    var presentationMode: Binding<PresentationMode>?
     private var lastSource: Source? // used to get at the original source of a mutation, due to no source info on dynamic member lookup
     public var events = PassthroughSubject<Event, Never>()
     private var subscriptions: Set<AnyCancellable> = []
@@ -285,6 +286,11 @@ extension ComponentStore {
     func bodyAccessed(start: Date, file: StaticString = #filePath, line: UInt = #line) {
         startEvent()
         sendEvent(type: .view(.body), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+    }
+
+    @MainActor
+    func setPresentationMode(_ presentationMode: Binding<PresentationMode>) {
+        self.presentationMode = presentationMode
     }
 }
 

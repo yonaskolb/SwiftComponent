@@ -74,6 +74,11 @@ public class ComponentModelContext<Model: ComponentModel> {
         store.dismissRoute(source: .capture(file: file, line: line))
     }
 
+    /// dismisses the last view that rendered a body with this model
+    public func dismiss() {
+        store.presentationMode?.wrappedValue.dismiss()
+    }
+
     public func updateView() {
         store.stateChanged.send(store.state)
     }

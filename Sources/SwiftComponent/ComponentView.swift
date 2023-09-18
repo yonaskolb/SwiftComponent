@@ -38,6 +38,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
     @State var showDebug = false
     @State var viewModes: [ComponentViewMode] = [.view]
     @Environment(\.isPreviewReference) var isPreviewReference
+    @Environment(\.presentationMode) private var presentationMode
 
     enum ComponentViewMode: String, Identifiable {
         case view
@@ -51,13 +52,14 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
     @MainActor
     func getView() -> some View {
+        model.store.setPresentationMode(presentationMode)
 #if DEBUG
         let start = Date()
         let view = self.view
         model.bodyAccessed(start: start)
         return view
 #else
-        self.view
+        return self.view
 #endif
     }
 
