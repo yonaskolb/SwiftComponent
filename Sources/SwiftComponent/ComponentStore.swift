@@ -121,10 +121,12 @@ class ComponentStore<Model: ComponentModel> {
         tasks = []
     }
 
+    @MainActor
     private func startEvent() {
         eventsInProgress += 1
     }
 
+    @MainActor
     fileprivate func sendEvent(type: EventType, start: Date, mutations: [Mutation], source: Source) {
         eventsInProgress -= 1
         if eventsInProgress < 0 {
@@ -147,6 +149,7 @@ class ComponentStore<Model: ComponentModel> {
         }
     }
 
+    @MainActor
     func processAction(_ action: Model.Action, source: Source) {
         lastSource = source
         addTask { @MainActor [weak self]  in
@@ -181,7 +184,7 @@ class ComponentStore<Model: ComponentModel> {
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
-    func onOutput(_ handle: @escaping (Model.Output, Event) -> Void) -> Self {
+    func onOutput(_ handle: @MainActor @escaping (Model.Output, Event) -> Void) -> Self {
         self.onEvent { event in
             if case let .output(output) = event.type, let output = output as? Model.Output {
                 handle(output, event)
@@ -190,9 +193,10 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     @discardableResult
-    func onEvent(_ handle: @escaping (Event) -> Void) -> Self {
-        self.events.sink { event in
-            handle(event)
+    func onEvent(_ handle: @MainActor @escaping (Event) -> Void) -> Self {
+        self.events
+        .sink { event in
+                Task { @MainActor in handle(event) }
         }
         .store(in: &cancellables)
         return self
@@ -202,6 +206,7 @@ class ComponentStore<Model: ComponentModel> {
 // MARK: View Accessors
 extension ComponentStore {
 
+    @MainActor
     func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) {
         processAction(action, source: .capture(file: file, line: line))
     }
@@ -228,6 +233,7 @@ extension ComponentStore {
         await self.model.binding(keyPath: keyPath, model: self.modelContext)
     }
 
+    @MainActor
     private func setBindingValue<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString, line: UInt) -> Bool {
         let start = Date()
         let oldState = self.state
@@ -318,6 +324,7 @@ extension ComponentStore {
         //print(diff(oldState, self.state) ?? "  No state changes")
     }
 
+    @MainActor
     func output(_ event: Model.Output, source: Source) {
         startEvent()
         self.sendEvent(type: .output(event), start: Date(), mutations: [], source: source)
@@ -462,7 +469,7 @@ extension ComponentStore {
         }
     }
 
-    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
+    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @MainActor @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -472,7 +479,7 @@ extension ComponentStore {
         }
         .store(in: &store.subscriptions)
 
-        return store.onOutput { output, event in
+        return store.onOutput { @MainActor output, event in
             handleOutput(output, event)
         }
     }
@@ -527,7 +534,7 @@ extension ComponentStore {
     }
 
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> {
-        connectTo(scopedStore(state: state, environment: environment, route: route)) { [weak self] output, event in
+        connectTo(scopedStore(state: state, environment: environment, route: route)) { @MainActor [weak self] output, event in
             guard let self else { return }
             switch scopedOutput{
             case .input(let toInput):

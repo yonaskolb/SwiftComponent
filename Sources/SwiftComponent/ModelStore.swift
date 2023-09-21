@@ -26,6 +26,7 @@ public class ComponentModelContext<Model: ComponentModel> {
         store.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
     }
 
+    @MainActor
     public func output(_ event: Model.Output, file: StaticString = #filePath, line: UInt = #line) {
         store.output(event, source: .capture(file: file, line: line))
     }

@@ -17,6 +17,6 @@ public protocol ActionOutput: ComponentModel where Action == Output {}
 public extension ActionOutput {
 
     func handle(action: Action, model: Model) async {
-        model.output(action)
+        await model.output(action)
     }
 }
