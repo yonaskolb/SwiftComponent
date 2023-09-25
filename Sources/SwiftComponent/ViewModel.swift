@@ -86,7 +86,13 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     @MainActor
     public func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) {
-        store.send(action, file: file, line: line)
+        store.processAction(action, source: .capture(file: file, line: line))
+    }
+
+    @MainActor
+    /// an async version of send. Can be used when you want to wait for the action to be handled, such as in a SwiftUI refreshable closure
+    public func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) async {
+        await store.processAction(action, source: .capture(file: file, line: line))
     }
 
     @MainActor

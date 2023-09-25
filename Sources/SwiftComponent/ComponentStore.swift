@@ -207,11 +207,6 @@ class ComponentStore<Model: ComponentModel> {
 extension ComponentStore {
 
     @MainActor
-    func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) {
-        processAction(action, source: .capture(file: file, line: line))
-    }
-
-    @MainActor
     func binding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, file: StaticString = #filePath, line: UInt = #line) -> Binding<Value> {
         Binding(
             get: { self.state[keyPath: keyPath] },
