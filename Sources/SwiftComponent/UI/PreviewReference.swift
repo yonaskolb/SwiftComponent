@@ -17,9 +17,28 @@ extension EnvironmentValues {
     }
 }
 
+struct ViewAppearanceTaskKey: EnvironmentKey {
+
+    static var defaultValue: Bool = true
+}
+
+extension EnvironmentValues {
+
+    public var viewAppearanceTask: Bool {
+        get {
+            self[ViewAppearanceTaskKey.self]
+        }
+        set {
+            self[ViewAppearanceTaskKey.self] = newValue
+        }
+    }
+}
+
 extension View {
     /// disables component views from calling their appearance task
     public func previewReference() -> some View {
-        self.environment(\.isPreviewReference, true)
+        self
+            .environment(\.isPreviewReference, true)
+            .environment(\.viewAppearanceTask, false)
     }
 }

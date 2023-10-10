@@ -37,7 +37,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
     @State var hasAppeared = false
     @State var showDebug = false
     @State var viewModes: [ComponentViewMode] = [.view]
-    @Environment(\.isPreviewReference) var isPreviewReference
+    @Environment(\.viewAppearanceTask) var viewAppearanceTask
     @Environment(\.presentationMode) private var presentationMode
 
     enum ComponentViewMode: String, Identifiable {
@@ -65,15 +65,16 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
 
     var body: some View {
         getView()
+        .environment(\.viewAppearanceTask, true)
         .onAppear {
-            if !isPreviewReference {
+            if viewAppearanceTask {
                 let first = !hasAppeared
                 hasAppeared = true
                 model.appear(first: first)
             }
         }
         .onDisappear {
-            if !isPreviewReference {
+            if viewAppearanceTask {
                 model.disappear()
             }
         }
