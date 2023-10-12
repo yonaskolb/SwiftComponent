@@ -1,7 +1,8 @@
 import Foundation
 import SwiftUI
 
-struct ExampleModel: ComponentModel {
+@ComponentModel
+struct ExampleModel {
 
     struct State: Equatable {
         var name: String
@@ -27,31 +28,31 @@ struct ExampleModel: ComponentModel {
         case open(ComponentRoute<ExampleChildModel>)
     }
 
-    func appear(model: Model) async {
-        await model.task("get thing") {
-            model.loading = false
+    func appear() async {
+        await task("get thing") {
+            state.loading = false
         }
     }
 
-    func connect(route: Route, model: Model) -> Connection {
+    func connect(route: Route) -> Connection {
         switch route {
         case .open(let route):
-            return model.connect(route, output: Input.child)
+            connect(route, output: Input.child)
         }
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action) async {
         switch action {
-            case .tap(let int):
-                model.date = model.dependencies.date()
-                model.output(.finished)
-            case .open:
-                model.route(to: Route.open, state: .init(name: model.name))
-                     .dependency(\.uuid, .constant(.init(1)))
+        case .tap(let int):
+            state.date = dependencies.date()
+                output(.finished)
+        case .open:
+            route(to: Route.open, state: .init(name: state.name))
+                 .dependency(\.uuid, .constant(.init(1)))
         }
     }
 
-    func handle(input: Input, model: Model) async {
+    func handle(input: Input) async {
         switch input {
         case .child(let output): break
         }
@@ -80,7 +81,8 @@ struct ExampleView: ComponentView {
     }
 }
 
-struct ExampleChildModel: ComponentModel {
+@ComponentModel
+struct ExampleChildModel {
 
     struct State: Equatable {
         var name: String
@@ -94,10 +96,10 @@ struct ExampleChildModel: ComponentModel {
         case finished
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action) async {
         switch action {
-            case .tap(let int):
-                model.name += int.description
+        case .tap(let int):
+            state.name += int.description
         }
     }
 

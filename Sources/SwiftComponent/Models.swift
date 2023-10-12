@@ -16,7 +16,8 @@ import Foundation
 public protocol ActionOutput: ComponentModel where Action == Output {}
 public extension ActionOutput {
 
-    func handle(action: Action, model: Model) async {
-        await model.output(action)
+    @MainActor
+    func handle(action: Action) async {
+        output(action)
     }
 }

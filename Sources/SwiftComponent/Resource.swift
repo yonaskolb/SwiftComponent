@@ -112,6 +112,33 @@ extension Resource {
     }
 }
 
+func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> String {
+    "load \(keyPath.propertyName ?? "resource")"
+}
+
+extension ComponentModel {
+
+    @MainActor
+    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
+        mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
+        let name = getResourceTaskName(keyPath)
+        await store.task(name, cancellable: true, source: .capture(file: file, line: line)) { @MainActor in
+            let content = try await load()
+            self.mutate(keyPath.appending(path: \.content), content, animation: animation)
+            if self.store.state[keyPath: keyPath.appending(path: \.error)] != nil {
+                self.mutate(keyPath.appending(path: \.error), nil, animation: animation)
+            }
+            return content
+        } catch: { error in
+            if overwriteContent, store.state[keyPath: keyPath.appending(path: \.content)] != nil {
+                mutate(keyPath.appending(path: \.content), nil, animation: animation)
+            }
+            mutate(keyPath.appending(path: \.error), error, animation: animation)
+        }
+        mutate(keyPath.appending(path: \.isLoading), false, animation: animation)
+    }
+}
+
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
 public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: View {
 

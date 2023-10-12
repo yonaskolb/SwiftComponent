@@ -49,6 +49,7 @@ class ComponentStore<Model: ComponentModel> {
     let logger: Logger
     var logEvents: Set<EventSimpleType> = []
     var logChildEvents: Bool = true
+    var modelCancellables: Set<AnyCancellable> = []
 
     var state: Model.State {
         get {
@@ -72,8 +73,8 @@ class ComponentStore<Model: ComponentModel> {
             }
         }
     }
-    var modelContext: ComponentModelContext<Model>!
-    var model: Model
+    var modelContext: ModelContext<Model>!
+    var model: Model!
     var cancellables: Set<AnyCancellable> = []
     private var mutations: [Mutation] = []
     var handledAppear = false
@@ -91,16 +92,18 @@ class ComponentStore<Model: ComponentModel> {
 
     init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, environment: Model.Environment, route: Model.Route? = nil) {
         self.stateStorage = state
-        self.model = Model()
+
         self.graph = graph
         self.environment = environment
         let path = path?.appending(Model.self) ?? ComponentPath(Model.self)
         self.path = path
         self.dependencies = ComponentDependencies()
         self.logger = Logger(subsystem: "SwiftComponent", category: path.string)
-        self.modelContext = ComponentModelContext(store: self)
+        let modelContext = ModelContext(store: self)
+        self.model = Model(context: modelContext)
+        self.modelContext = modelContext
         if let route = route {
-            model.connect(route: route, model: modelContext)
+            model.connect(route: route)
             self.route = route
         }
         events.sink { [weak self] event in
@@ -110,7 +113,7 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     deinit {
-        modelContext.cancellables = []
+        modelCancellables = []
         cancelTasks()
     }
 
@@ -152,9 +155,8 @@ class ComponentStore<Model: ComponentModel> {
     @MainActor
     func processAction(_ action: Model.Action, source: Source) {
         lastSource = source
-        addTask { @MainActor [weak self]  in
-            guard let self else { return }
-            await self.processAction(action, source: source)
+        addTask { @MainActor [weak self] in
+            await self?.processAction(action, source: source)
         }
     }
 
@@ -163,15 +165,14 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(action: action, model: modelContext)
+        await model.handle(action: action)
         sendEvent(type: .action(action), start: eventStart, mutations: mutations, source: source)
     }
 
     func processInput(_ input: Model.Input, source: Source) {
         lastSource = source
-        addTask { @MainActor [weak self]  in
-            guard let self else { return }
-            await self.processInput(input, source: source)
+        addTask { @MainActor [weak self] in
+            await self?.processInput(input, source: source)
         }
     }
 
@@ -180,7 +181,7 @@ class ComponentStore<Model: ComponentModel> {
         let eventStart = Date()
         startEvent()
         mutations = []
-        await model.handle(input: input, model: modelContext)
+        await model.handle(input: input)
         sendEvent(type: .input(input), start: eventStart, mutations: mutations, source: source)
     }
 
@@ -213,9 +214,8 @@ extension ComponentStore {
             set: { value in
                 guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
 
-                self.addTask { @MainActor [weak self]  in
-                    guard let self else { return }
-                    await self.model.binding(keyPath: keyPath, model: self.modelContext)
+                self.addTask { @MainActor [weak self] in
+                    await self?.model.binding(keyPath: keyPath)
                 }
             }
         )
@@ -225,7 +225,7 @@ extension ComponentStore {
     @MainActor
     func setBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>, _ value: Value, file: StaticString = #filePath, line: UInt = #line) async {
         guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
-        await self.model.binding(keyPath: keyPath, model: self.modelContext)
+        await self.model.binding(keyPath: keyPath)
     }
 
     @MainActor
@@ -250,7 +250,7 @@ extension ComponentStore {
 
     @MainActor
     func appear(first: Bool, file: StaticString = #filePath, line: UInt = #line) {
-        appearanceTask = addTask { @MainActor [weak self]  in
+        appearanceTask = addTask { @MainActor [weak self] in
             await self?.appear(first: first, file: file, line: line)
         }
     }
@@ -261,21 +261,19 @@ extension ComponentStore {
         startEvent()
         mutations = []
         handledAppear = true
-        if let store = modelContext {
-            await model.appear(model: store)
-        }
+        await model?.appear()
         sendEvent(type: .view(.appear(first: first)), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
     }
 
     @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
-        addTask { @MainActor [weak self]  in
+        addTask { @MainActor [weak self] in
             guard let self else { return }
             let start = Date()
             self.startEvent()
             self.mutations = []
             self.handledDisappear = true
-            await self.model.disappear(model: self.modelContext)
+            await self.model.disappear()
             self.sendEvent(type: .view(.disappear), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
 
             appearanceTask?.cancel()
@@ -411,7 +409,7 @@ extension ComponentStore {
 
     @MainActor
     func present(_ route: Model.Route, source: Source) {
-        _ = model.connect(route: route, model: modelContext)
+        _ = model.connect(route: route)
         self.route = route
         startEvent()
         sendEvent(type: .route(route), start: Date(), mutations: [], source: source)

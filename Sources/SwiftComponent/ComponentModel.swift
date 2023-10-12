@@ -1,7 +1,9 @@
 import Foundation
+import SwiftUI
+import Combine
 
 @MainActor
-public protocol ComponentModel<State, Action> {
+public protocol ComponentModel<State, Action>: DependencyContainer {
 
     associatedtype State = Void
     associatedtype Action = Never
@@ -10,16 +12,17 @@ public protocol ComponentModel<State, Action> {
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
     associatedtype Environment = EmptyEnvironment
-    @MainActor func appear(model: Model) async
-    @MainActor func disappear(model: Model) async
-    @MainActor func binding(keyPath: PartialKeyPath<State>, model: Model) async
-    @MainActor func handle(action: Action, model: Model) async
-    @MainActor func handle(input: Input, model: Model) async
+    @MainActor func appear() async
+    @MainActor func disappear() async
+    @MainActor func binding(keyPath: PartialKeyPath<State>) async
+    @MainActor func handle(action: Action) async
+    @MainActor func handle(input: Input) async
     nonisolated func handle(event: Event)
-    @discardableResult nonisolated func connect(route: Route, model: Model) -> Connection
-    nonisolated init()
+    @discardableResult nonisolated func connect(route: Route) -> Connection
+    nonisolated init(context: Context)
+    var context: Context { get }
 
-    typealias Model = ComponentModelContext<Self>
+    typealias Context = ModelContext<Self>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 
@@ -35,6 +38,8 @@ extension RawRepresentable where RawValue == String {
 }
 
 extension ComponentModel {
+
+    public var state: Context { context }
 
     nonisolated
     public static var baseName: String {
@@ -54,22 +59,96 @@ extension ComponentModel {
 }
 
 public extension ComponentModel where Action == Void {
-    func handle(action: Void, model: Model) async {}
+    func handle(action: Void) async {}
 }
 
 public extension ComponentModel where Input == Void {
-    func handle(input: Void, model: Model) async {}
+    func handle(input: Void) async {}
 }
 
 public extension ComponentModel where Route == Never {
-    func connect(route: Route, model: Model) -> Connection { Connection() }
+    func connect(route: Route) -> Connection { Connection() }
 }
 
+// default handlers
 public extension ComponentModel {
-    func binding(keyPath: PartialKeyPath<State>, model: Model) async { }
-    func appear(model: Model) async { model.store.handledAppear = false }
-    func disappear(model: Model) async { model.store.handledDisappear = false }
+    @MainActor func binding(keyPath: PartialKeyPath<State>) async { }
+    @MainActor func appear() async { store.handledAppear = false }
+    @MainActor func disappear() async { store.handledDisappear = false }
     @MainActor func handle(event: Event) { }
+}
+
+// functions for model to call
+extension ComponentModel {
+
+    @MainActor var store: ComponentStore<Self>! { context.store }
+    @MainActor public var environment: Environment { store.environment }
+    @MainActor public var dependencies: ComponentDependencies { store.dependencies }
+
+    @MainActor
+    public func mutate<Value>(_ keyPath: WritableKeyPath<State, Value>, _ value: Value, animation: Animation? = nil, file: StaticString = #filePath, line: UInt = #line) {
+        store.mutate(keyPath, value: value, animation: animation, source: .capture(file: file, line: line))
+    }
+
+    @MainActor
+    public func output(_ event: Output, file: StaticString = #filePath, line: UInt = #line) {
+        store.output(event, source: .capture(file: file, line: line))
+    }
+
+    @discardableResult
+    @MainActor
+    public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> R) async -> R {
+        await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
+    }
+
+    @MainActor
+    public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+        await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
+    }
+
+    @discardableResult
+    @MainActor
+    public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R) async throws -> R {
+        try await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line)) {
+            try await task()
+        }
+    }
+
+    @MainActor
+    public func cancelTask(_ taskID: Task) {
+        store.cancelTask(cancelID: taskID.taskName)
+    }
+
+    @MainActor
+    public func dismissRoute(file: StaticString = #filePath, line: UInt = #line) {
+        store.dismissRoute(source: .capture(file: file, line: line))
+    }
+
+    /// dismisses the last view that rendered a body with this model
+    @MainActor
+    public func dismiss() {
+        store.presentationMode?.wrappedValue.dismiss()
+    }
+
+    @MainActor
+    public func updateView() {
+        store.stateChanged.send(context.state)
+    }
+
+    @MainActor
+    public func statePublisher() -> AnyPublisher<State, Never> {
+        store.stateChanged
+            .eraseToAnyPublisher()
+    }
+
+    // removes duplicates from equatable values, so only changes are published
+    @MainActor
+    public func statePublisher<Value: Equatable>(_ keypath: KeyPath<State, Value>) -> AnyPublisher<Value, Never> {
+        statePublisher()
+            .map { $0[keyPath: keypath] }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
 }
 
 public struct ComponentConnection<From: ComponentModel, To: ComponentModel> {

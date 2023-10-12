@@ -80,8 +80,14 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         return self
     }
 
+    /// access state
     public subscript<Value>(dynamicMember keyPath: KeyPath<Model.State, Value>) -> Value {
         store.state[keyPath: keyPath]
+    }
+
+    /// access getters directly on a model that can access things like state, environment or dependencies
+    public subscript<Value>(dynamicMember keyPath: KeyPath<Model, Value>) -> Value {
+        store.model[keyPath: keyPath]
     }
 
     @MainActor

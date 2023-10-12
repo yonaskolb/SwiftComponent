@@ -1,7 +1,8 @@
 import SwiftUI
 import SwiftComponent
 
-struct ItemModel: ComponentModel {
+@ComponentModel
+struct ItemModel  {
 
     struct State {
         var name: String
@@ -26,35 +27,35 @@ struct ItemModel: ComponentModel {
         case detail(ItemDetailModel.Output)
     }
 
-    func connect(route: Route, model: Model) -> Connection {
+    func connect(route: Route) -> Connection {
         switch route {
             case .detail(let route):
-                return model.connect(route, output: Input.detail)
+                return connect(route, output: Input.detail)
         }
     }
 
-    func appear(model: Model) async {
-        await model.loadResource(\.data) {
-            try await model.dependencies.continuousClock.sleep(for: .seconds(1))
+    func appear() async {
+        await loadResource(\.data) {
+            try await dependencies.continuousClock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
-        }
+        } 
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action) async {
         switch action {
             case .calculate:
-                try? await model.dependencies.continuousClock.sleep(for: .seconds(1))
+                try? await dependencies.continuousClock.sleep(for: .seconds(1))
                 model.name = String(UUID().uuidString.prefix(6))
             case .openDetail:
                 model.presentDetail = model.detail
             case .pushItem:
-                model.route(to: Route.detail, state: model.detail)
+                route(to: Route.detail, state: model.detail)
             case .updateDetail:
                 model.detail.name = Int.random(in: 0...1000).description
         }
     }
 
-    func handle(input: Input, model: Model) async {
+    func handle(input: Input) async {
         switch input {
             case .detail(.finished(let name)):
                 model.detail.name = name
@@ -116,7 +117,8 @@ struct ItemView: ComponentView {
     }
 }
 
-struct ItemDetailModel: ComponentModel {
+@ComponentModel
+struct ItemDetailModel {
 
     struct State: Identifiable, Equatable {
         var id: String
@@ -132,18 +134,18 @@ struct ItemDetailModel: ComponentModel {
         case finished(String)
     }
 
-    func appear(model: Model) async {
+    func appear() async {
 
     }
 
-    func handleBinding(keyPath: PartialKeyPath<State>, model: Model) async {
+    func binding(keyPath: PartialKeyPath<State>) async {
 
     }
 
-    func handle(action: Action, model: Model) async {
+    func handle(action: Action) async {
         switch action {
             case .close:
-                model.output(.finished(model.name))
+                output(.finished(model.name))
             case .updateName:
                 model.name = Int.random(in: 0...100).description
         }

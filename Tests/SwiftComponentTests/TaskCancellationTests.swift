@@ -58,7 +58,8 @@ final class TaskCancellationTests: XCTestCase {
         XCTAssertEqual(viewModel.count, 0)
     }
 
-    struct TestModel: ComponentModel {
+    @ComponentModel
+    struct TestModel {
 
         struct State {
             var count = 0
@@ -69,26 +70,26 @@ final class TaskCancellationTests: XCTestCase {
             case stop
         }
 
-        func appear(model: Model) async {
+        func appear() async {
             do {
-                try await model.dependencies.continuousClock.sleep(for: .seconds(2))
-                model.count = 1
+                try await dependencies.continuousClock.sleep(for: .seconds(2))
+                state.count = 1
             } catch {
 
             }
         }
 
-        func handle(action: Action, model: Model) async {
+        func handle(action: Action) async {
             switch action {
             case .start:
-                await model.task("sleep", cancellable: true) {
+                await task("sleep", cancellable: true) {
                     do {
-                        try await model.dependencies.continuousClock.sleep(for: .seconds(2))
-                        model.count = 1
+                        try await dependencies.continuousClock.sleep(for: .seconds(2))
+                        state.count = 1
                     } catch {}
                 }
             case .stop:
-                model.cancelTask("sleep")
+                cancelTask("sleep")
             }
         }
     }

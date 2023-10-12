@@ -3,7 +3,7 @@ import SwiftUI
 import SwiftGUI
 import SwiftPreview
 
-public protocol ComponentView: View {
+public protocol ComponentView: View, DependencyContainer {
 
     associatedtype Model: ComponentModel
     associatedtype ComponentView: View
@@ -22,6 +22,11 @@ public extension ComponentView {
     func presentation(route: Model.Route) -> Presentation {
         .sheet
     }
+
+    @MainActor
+    var dependencies: ComponentDependencies { model.dependencies }
+    @MainActor
+    var environment: Model.Environment { model.environment }
 }
 
 public extension ComponentView where Model.Route == Never {

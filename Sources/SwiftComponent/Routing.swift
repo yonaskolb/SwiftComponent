@@ -1,26 +1,26 @@
 import Foundation
 
-extension ComponentModelContext {
+extension ComponentModel {
 
     @MainActor
     @discardableResult
-    public func route<Child: ComponentModel>(to route: (ComponentRoute<Child>) -> Model.Route, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> ComponentRoute<Child> {
+    public func route<Child: ComponentModel>(to route: (ComponentRoute<Child>) -> Route, state: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> ComponentRoute<Child> {
         let componentRoute = ComponentRoute<Child>(state: state, route: childRoute)
         store.present(route(componentRoute), source: .capture(file: file, line: line))
         return componentRoute
     }
 }
 
-extension ComponentModelContext {
+extension ComponentModel {
 
     // MARK: different environment
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toInput: @escaping (Child.Output) -> Model.Input) -> Connection {
+    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toInput: @escaping (Child.Output) -> Input) -> Connection {
         route.setStore(store.scope(state: .initial(route.state), environment: environment, route: route.route, output: .input(toInput)))
         return Connection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toOutput: @escaping (Child.Output) -> Model.Output) -> Connection {
+    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toOutput: @escaping (Child.Output) -> Output) -> Connection {
         route.setStore(store.scope(state: .initial(route.state), environment: environment, route: route.route, output: .output(toOutput)))
         return Connection()
     }
@@ -30,7 +30,7 @@ extension ComponentModelContext {
         return Connection()
     }
 
-    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Model.Scope<Child>, environment: Child.Environment) -> Connection {
+    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>, environment: Child.Environment) -> Connection {
         let routeViewModel = scope.convert(store.viewModel())
         route.setStore(routeViewModel.store)
         return Connection()
@@ -38,22 +38,22 @@ extension ComponentModelContext {
 
     // MARK: same environment
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, output toInput: @escaping (Child.Output) -> Model.Input) -> Connection where Model.Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>, output toInput: @escaping (Child.Output) -> Input) -> Connection where Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .input(toInput)))
         return Connection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, output toOutput: @escaping (Child.Output) -> Model.Output) -> Connection where Model.Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>, output toOutput: @escaping (Child.Output) -> Output) -> Connection where Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .output(toOutput)))
         return Connection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>) -> Connection where Child.Output == Never, Model.Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>) -> Connection where Child.Output == Never, Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route))
         return Connection()
     }
 
-    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Model.Scope<Child>) -> Connection where Model.Environment == Child.Environment {
+    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>) -> Connection where Environment == Child.Environment {
         let routeViewModel = scope.convert(store.viewModel())
         route.setStore(routeViewModel.store)
         return Connection()

@@ -1,7 +1,9 @@
-// swift-tools-version: 5.6
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import CompilerPluginSupport
+
 
 let package = Package(
     name: "SwiftComponent",
@@ -14,9 +16,10 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.0.0"),
         .package(url: "https://github.com/yonaskolb/swift-dependencies", branch: "merging"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.2.1"),
         .package(url: "https://github.com/cashapp/AccessibilitySnapshot", from: "0.6.0"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.4"),
-        .package(url: "https://github.com/apple/swift-syntax", branch: "main")
+        .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0")
     ],
     targets: [
         .target(
@@ -29,6 +32,7 @@ let package = Package(
                 "SwiftGUI",
                 "SwiftPreview",
                 "Runtime",
+                "SwiftComponentMacros",
             ]),
         .target(
             name: "SwiftPreview",
@@ -37,6 +41,16 @@ let package = Package(
             ]),
         .testTarget(
             name: "SwiftComponentTests",
-            dependencies: ["SwiftComponent"]),
+            dependencies: [
+                "SwiftComponent",
+                .product(name: "MacroTesting", package: "swift-macro-testing"),
+            ]),
+        .macro(
+            name: "SwiftComponentMacros",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ]
+        ),
     ]
 )
