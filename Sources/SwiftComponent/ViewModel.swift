@@ -89,9 +89,10 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.processAction(action, source: .capture(file: file, line: line))
     }
 
-    @MainActor
     /// an async version of send. Can be used when you want to wait for the action to be handled, such as in a SwiftUI refreshable closure
-    public func send(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) async {
+    @MainActor
+    // would like to use @_disfavoredOverload but doesn't seem to work when called from tests
+    public func sendAsync(_ action: Model.Action, file: StaticString = #filePath, line: UInt = #line) async {
         await store.processAction(action, source: .capture(file: file, line: line))
     }
 
