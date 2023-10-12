@@ -14,37 +14,54 @@ public class ComponentDependencies {
     var dependencyValues: DependencyValues
     var accessedDependencies: Set<String> = []
     var setDependencies: Set<String> = []
+    let lock = NSLock()
 
     init() {
         dependencyValues = DependencyValues._current
     }
 
+    func withLock<T>(_ closure: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return closure()
+    }
+
     public func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
-        if let name = keyPath.propertyName {
-            setDependencies.insert(name)
+        withLock {
+            if let name = keyPath.propertyName {
+                setDependencies.insert(name)
+            }
+            dependencyValues[keyPath: keyPath] = dependency
         }
-        dependencyValues[keyPath: keyPath] = dependency
     }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<DependencyValues, Value>) -> Value {
-        if let name = keyPath.propertyName {
-            accessedDependencies.insert(name)
+        withLock {
+            if let name = keyPath.propertyName {
+                accessedDependencies.insert(name)
+            }
+            return dependencyValues[keyPath: keyPath]
         }
-        return dependencyValues[keyPath: keyPath]
     }
 
     func apply(_ dependencies: ComponentDependencies) {
-        self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
+        withLock {
+            self.dependencyValues = self.dependencyValues.merging(dependencies.dependencyValues)
+        }
     }
 
     func setValues(_ values: DependencyValues) {
-        self.dependencyValues = values
+        withLock {
+            self.dependencyValues = values
+        }
     }
 
     func reset() {
-        accessedDependencies = []
-        setDependencies = []
-        dependencyValues = DependencyValues._current
+        withLock {
+            accessedDependencies = []
+            setDependencies = []
+            dependencyValues = DependencyValues._current
+        }
     }
 }
 

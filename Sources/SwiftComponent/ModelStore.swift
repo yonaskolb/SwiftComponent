@@ -19,6 +19,7 @@ public class ComponentModelContext<Model: ComponentModel> {
     public var state: Model.State { store.state }
     public var environment: Model.Environment { store.environment }
     public var path: ComponentPath { store.path }
+    @MainActor 
     public var dependencies: ComponentDependencies { store.dependencies }
 
     @MainActor
