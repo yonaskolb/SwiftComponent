@@ -3,6 +3,9 @@ import Foundation
 
 extension KeyPath {
 
+    // swift 5.8 has a debugDescription on KeyPath, and even works with getters, but it doesn't work with index lookups
+    // We can use mirror as a fallback but it doesn't work with getters or indices
+    // TODO: enable Item.array[0].string to be "array[0].string" somehow. For now just do array.string
     var propertyName: String? {
 #if swift(>=5.8)
         if #available(iOS 16.4, *) {
@@ -10,10 +13,12 @@ extension KeyPath {
             return debugDescription
                 .dropFirst() // drop slash
                 .split(separator: ".")
+                .filter { !($0.hasPrefix("<computed") && $0.hasSuffix(">")) }
                 .dropFirst() // drop State
                 .joined(separator: ".")
                 .replacingOccurrences(of: "<Unknown>", with: "_")
                 .replacingOccurrences(of: #"^\$"#, with: "", options: .regularExpression) // drop leading $
+                .replacingOccurrences(of: #"\?$"#, with: "", options: .regularExpression) // drop trailing ?
         } else {
             return mirrorPropertyName
         }
