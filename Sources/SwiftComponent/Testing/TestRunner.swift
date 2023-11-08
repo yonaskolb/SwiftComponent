@@ -63,7 +63,13 @@ extension TestStep {
         var stepEvents: [Event] = []
         var unexpectedEvents: [Event] = []
         context.state = context.model.state
+
+        let previousChildStepResults = context.childStepResults
         context.childStepResults = []
+        defer {
+            context.childStepResults = previousChildStepResults
+        }
+
         let runAssertions = context.runAssertions
         let storeID = context.model.store.id
 
