@@ -21,20 +21,14 @@ struct ComponentEventList: View {
             NavigationLink(tag: event.id, selection: $showEvent, destination: {
                 ComponentEventView(event: event, allEvents: allEvents)
             }) {
-                HStack {
-//                    if eventDepth(event) > 0 {
-//                        Image(systemName: "arrow.turn.down.right")
-//                            .opacity(0.3)
-//                            .font(.system(size: 14))
-//                            .padding(.top, 14)
-//                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(event.path.string)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .padding(.leading, 18)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        //                    if eventDepth(event) > 0 {
+                        //                        Image(systemName: "arrow.turn.down.right")
+                        //                            .opacity(0.3)
+                        //                            .font(.system(size: 14))
+                        //                            .padding(.top, 14)
+                        //                    }
                         HStack(spacing: 6) {
                             Circle()
                                 .fill(event.type.color)
@@ -42,11 +36,18 @@ struct ComponentEventList: View {
                             Text(event.type.title)
                                 .bold()
                         }
+                        Spacer()
+                        Text(event.type.details)
+                            .font(.footnote)
                     }
                     .font(.footnote)
-                    Spacer()
-                    Text(event.type.details)
-                        .font(.footnote)
+                    .padding(.top, 6)
+                    Text(event.path.string)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .padding(.leading, 18)
                 }
                 .padding(.leading, 8*Double(max(0, eventDepth(event)))) // inset children
             }
