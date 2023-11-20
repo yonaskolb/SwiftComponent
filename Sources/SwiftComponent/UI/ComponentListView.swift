@@ -8,6 +8,8 @@ public struct ComponentListView: View {
     let device = Device.mediumPhone
     var environments: [String]
     @State var testRuns: [String: ItemTestRun] = [:]
+    @State var selectedSnapshotTag: String?
+    @State var snapshotTags: Set<String> = []
     @AppStorage("componentList.viewType")
     var viewType: ViewType = .grid
     @AppStorage("componentList.environmentGroups")
@@ -56,12 +58,14 @@ public struct ComponentListView: View {
         let snapshot: String
         let environment: String
         let view: AnyView
+        let tags: Set<String>
 
         var id: String { "\(component).\(snapshot)"}
     }
 
-    public init(components: [any Component.Type]) {
+    public init(components: [any Component.Type], selectedSnapshotTag: String? = nil) {
         self.components = components
+        self._selectedSnapshotTag = .init(initialValue: selectedSnapshotTag)
         let environments = components.map { $0.environmentName }
         self.environments = Set(environments).sorted {
             if $0 == String(describing: EmptyEnvironment.self) {
@@ -74,18 +78,19 @@ public struct ComponentListView: View {
         }
     }
 
-    var snapshotModels: [SnapshotViewModel] {
-        testRuns
-            .sorted { $0.key < $1.key }
-            .reduce([]) { $0 + $1.value.snapshots }
-    }
-
-    func snapshotModels(environment: String) -> [SnapshotViewModel] {
+    func snapshotModels(environment: String? = nil) -> [SnapshotViewModel] {
         testRuns
             .sorted { $0.key < $1.key }
             .map(\.value)
-            .filter { $0.environment == environment }
+            .filter { environment == nil || $0.environment == environment }
             .reduce([]) { $0 + $1.snapshots }
+            .filter {
+                if let selectedSnapshotTag {
+                    $0.tags.contains(selectedSnapshotTag)
+                } else {
+                    true
+                }
+            }
     }
 
     var componentModels: [ComponentViewModel] {
@@ -121,6 +126,7 @@ public struct ComponentListView: View {
             }
             testRun.completeTest(test, result: result)
             snapshots.append(contentsOf: result.snapshots)
+            snapshotTags.formUnion(result.snapshots.reduce([]) { $0 + $1.tags})
         }
         let itemTestRun = ItemTestRun(
             component: component,
@@ -129,13 +135,13 @@ public struct ComponentListView: View {
             failed: testRun.failedStepCount,
             total: testRun.totalStepCount,
             snapshots: snapshots
-                .filter(\.featured)
                 .map {
                     .init(
                         componentType: component,
                         snapshot: $0.name,
                         environment: C.environmentName,
-                        view: AnyView(C.view(model: $0.viewModel()))
+                        view: AnyView(C.view(model: $0.viewModel())),
+                        tags: $0.tags
                     )
                 }
         )
@@ -144,32 +150,61 @@ public struct ComponentListView: View {
 
     public var body: some View {
         NavigationView {
-            content
+            VStack {
+                header
+                content
+            }
             .navigationViewStyle(.stack)
             .background(colorScheme == .dark ? Color.darkBackground : .white)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("View", selection: $viewType) {
-                        ForEach(ViewType.allCases, id: \.rawValue) { viewType in
-                            Text(viewType.label)
-                                .tag(viewType)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if environments.count > 1 {
-                        Toggle(isOn: $environmentGroups) {
-                            Text("Environments")
-                        }
-                    }
-                }
-            }
         }
         .navigationViewStyle(.stack)
         .previewDevice(.largestDevice)
         .task { runTests() }
+    }
+
+    var header: some View {
+        HStack(spacing: 20) {
+            Picker("View", selection: $viewType.animation()) {
+                ForEach(ViewType.allCases, id: \.rawValue) { viewType in
+                    Text(viewType.label)
+                        .tag(viewType)
+                }
+            }
+            .pickerStyle(.segmented)
+            .fixedSize()
+            .padding(.vertical, 2) // to give space for snapshot picker
+
+            Spacer()
+            if viewType == .snapshots, !snapshotTags.isEmpty {
+                HStack(spacing: 0) {
+                    Text("Tags")
+                        .font(.callout)
+                    Picker("Tags", selection: $selectedSnapshotTag.animation()) {
+                        Text("All")
+                            .tag(Optional<String>.none)
+                        ForEach(snapshotTags.sorted(), id: \.self) { tag in
+                            Text(tag)
+                                .tag(tag as String?)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+            }
+            if environments.count > 1 {
+                HStack {
+                    Text("Environment")
+                        .font(.callout)
+                    Toggle(isOn: $environmentGroups.animation()) {
+                        Text("Environments")
+                    }
+                    .fixedSize()
+                    .labelsHidden()
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 
     var content: some View {
@@ -208,7 +243,7 @@ public struct ComponentListView: View {
                             }
                         }
                     } else {
-                        snapsotItemViews(snapshotModels)
+                        snapsotItemViews(snapshotModels())
                     }
                 }
             }

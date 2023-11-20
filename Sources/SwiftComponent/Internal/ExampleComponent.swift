@@ -151,13 +151,13 @@ struct ExampleComponent: Component, PreviewProvider {
         }
 
         Test("Fill out", state: .init(name: "Main")) {
-            Step.snapshot("empty")
+            Step.snapshot("empty", tags: ["empty"])
             Step.appear()
             Step.binding(\.name, "test")
                 .expectTask("get thing", successful: true)
                 .expectState(\.name, "invalid")
                 .expectState(\.date, Date())
-            Step.snapshot("filled")
+            Step.snapshot("filled", tags: ["featured"])
         }
 
         Test("Open child", state: .init(name: "Main"), assertions: [.output]) {
