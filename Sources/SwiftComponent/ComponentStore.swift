@@ -361,6 +361,7 @@ extension ComponentStore {
     }
 
     @MainActor
+    @discardableResult
     func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @escaping () async throws -> R) async throws -> R {
         let cancelID = name
         let start = Date()

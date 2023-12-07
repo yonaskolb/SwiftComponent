@@ -54,7 +54,8 @@ public class ComponentModelContext<Model: ComponentModel> {
         }
     }
 
-    public func task(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) async {
+    @discardableResult
+    public func task<R>(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> R) async -> R {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
     }
 
@@ -62,6 +63,7 @@ public class ComponentModelContext<Model: ComponentModel> {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
     }
 
+    @discardableResult
     public func task<R>(_ taskID: Model.Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R) async throws -> R {
         try await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line)) {
             try await task()
