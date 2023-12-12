@@ -29,8 +29,8 @@ struct ItemModel  {
 
     func connect(route: Route) -> Connection {
         switch route {
-            case .detail(let route):
-                return connect(route, output: Input.detail)
+        case .detail(let route):
+            return connect(route, output: Input.detail)
         }
     }
 
@@ -38,29 +38,29 @@ struct ItemModel  {
         await loadResource(\.data) {
             try await dependencies.continuousClock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
-        } 
+        }
     }
 
     func handle(action: Action) async {
         switch action {
-            case .calculate:
-                try? await dependencies.continuousClock.sleep(for: .seconds(1))
-                model.name = String(UUID().uuidString.prefix(6))
-            case .openDetail:
-                model.presentDetail = model.detail
-            case .pushItem:
-                route(to: Route.detail, state: model.detail)
-            case .updateDetail:
-                model.detail.name = Int.random(in: 0...1000).description
+        case .calculate:
+            try? await dependencies.continuousClock.sleep(for: .seconds(1))
+            state.name = String(UUID().uuidString.prefix(6))
+        case .openDetail:
+            state.presentDetail = state.detail
+        case .pushItem:
+            route(to: Route.detail, state: state.detail)
+        case .updateDetail:
+            state.detail.name = Int.random(in: 0...1000).description
         }
     }
 
     func handle(input: Input) async {
         switch input {
-            case .detail(.finished(let name)):
-                model.detail.name = name
-                model.name = name
-                model.presentDetail = nil
+        case .detail(.finished(let name)):
+            state.detail.name = name
+            state.name = name
+            state.presentDetail = nil
         }
     }
 }
@@ -71,15 +71,15 @@ struct ItemView: ComponentView {
 
     func presentation(for route: ItemModel.Route) -> Presentation {
         switch route {
-            case .detail:
-                return .push
+        case .detail:
+            return .push
         }
     }
 
     func view(route: ItemModel.Route) -> some View {
         switch route {
-            case .detail(let route):
-                ItemDetailView(model: route.model)
+        case .detail(let route):
+            ItemDetailView(model: route.model)
         }
     }
 
@@ -144,10 +144,10 @@ struct ItemDetailModel {
 
     func handle(action: Action) async {
         switch action {
-            case .close:
-                output(.finished(model.name))
-            case .updateName:
-                model.name = Int.random(in: 0...100).description
+        case .close:
+            output(.finished(state.name))
+        case .updateName:
+            state.name = Int.random(in: 0...100).description
         }
     }
 }
