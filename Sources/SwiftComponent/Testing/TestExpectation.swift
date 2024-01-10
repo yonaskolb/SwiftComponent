@@ -20,9 +20,9 @@ public struct TestExpectation<Model: ComponentModel> {
         let source: Source
         var events: [Event]
         var errors: [TestError] = []
-        var model: ViewModel<Model> { testContext.model }
+        public var model: ViewModel<Model> { testContext.model }
 
-        mutating func findEventValue<T>(_ find: (Event) -> T?) -> T? {
+        public mutating func findEventValue<T>(_ find: (Event) -> T?) -> T? {
             for (index, event) in events.enumerated() {
                 if let eventValue = find(event) {
                     events.remove(at: index)
@@ -32,7 +32,7 @@ public struct TestExpectation<Model: ComponentModel> {
             return nil
         }
 
-        mutating func error(_ error: String, diff: [String]? = nil) {
+        public mutating func error(_ error: String, diff: [String]? = nil) {
             errors.append(TestError(error: error, diff: diff, source: source))
         }
     }
