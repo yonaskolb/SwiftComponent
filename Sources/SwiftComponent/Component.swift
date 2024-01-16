@@ -19,7 +19,7 @@ public protocol Component: PreviewProvider {
     @RouteBuilder static var routes: Routes { get }
     static var preview: PreviewModel { get }
     @ViewBuilder static func view(model: ViewModel<Model>) -> ViewType
-    static var testAssertions: Set<TestAssertion> { get }
+    static var testAssertions: [TestAssertion] { get }
     // provided by tests or snapshots if they exist
     static var filePath: StaticString { get }
 }
@@ -27,7 +27,7 @@ public protocol Component: PreviewProvider {
 extension Component {
 
     public static var routes: Routes { [] }
-    public static var testAssertions: Set<TestAssertion> { .normal }
+    public static var testAssertions: [TestAssertion] { .standard }
     public static var snapshots: Snapshots { [] }
     public static var environmentName: String { String(describing: Model.Environment.self) }
 }

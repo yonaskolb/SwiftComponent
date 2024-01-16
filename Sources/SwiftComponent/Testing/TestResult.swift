@@ -108,11 +108,19 @@ public struct TestCoverage {
 }
 
 public struct TestError: CustomStringConvertible, Identifiable, Hashable {
+    
     public var error: String
     public var diff: [String]?
     public let source: Source
     public var fixit: String?
     public let id = UUID()
+    
+    public init(error: String, diff: [String]? = nil, source: Source, fixit: String? = nil) {
+        self.error = error
+        self.diff = diff
+        self.source = source
+        self.fixit = fixit
+    }
 
     public var description: String {
         var string = error

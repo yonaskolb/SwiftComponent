@@ -2,31 +2,31 @@ import Foundation
 
 public struct Test<Model: ComponentModel>: Identifiable {
 
-    public init(_ name: String? = nil, assertions: Set<TestAssertion>? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void, Model.Environment: ComponentEnvironment {
+    public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void, Model.Environment: ComponentEnvironment {
         self.init(name, state: .state(()), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void {
+    public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void {
         self.init(name, state: .state(()), assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, state: Model.State, assertions: Set<TestAssertion>? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
+    public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
         self.init(name, state: .state(state), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, state: Model.State, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.init(name, state: .state(state), assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, assertions: Set<TestAssertion>? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
+    public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
         self.init(name, state: .preview, assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
-    public init(_ name: String? = nil, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.init(name, state: .preview, assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
-    init(_ name: String? = nil, state: TestState, assertions: Set<TestAssertion>? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
+    init(_ name: String? = nil, state: TestState, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
         self.environment = environment
@@ -49,7 +49,7 @@ public struct Test<Model: ComponentModel>: Identifiable {
     public var environment: Model.Environment
     public var steps: [TestStep<Model>]
     public let source: Source
-    public let assertions: Set<TestAssertion>?
+    public let assertions: [TestAssertion]?
     public var dependencies: ComponentDependencies
 }
 

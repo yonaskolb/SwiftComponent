@@ -18,9 +18,9 @@ public struct TestContext<Model: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: Set<TestAssertion>, delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: [TestAssertion], delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
         let start = Date()
-        let assertions = Array(test.assertions ?? assertions).sorted { $0.rawValue < $1.rawValue }
+        let assertions = test.assertions ?? assertions
 
         self.store.dependencies.reset()
         self.store.dependencies.apply(test.dependencies)
@@ -47,7 +47,9 @@ extension ViewModel {
         var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
         for step in test.steps {
             context.stepErrors = []
-            var result = await step.runTest(context: &context)
+            var result = await TestStepID.$current.withValue(step.id) {
+                await step.runTest(context: &context)
+            }
             result.stepErrors.append(contentsOf: context.stepErrors)
             stepComplete?(result)
             stepResults.append(result)
@@ -133,12 +135,16 @@ extension TestStep {
         if context.runAssertions {
 
             for assertion in context.assertions {
-                assertionErrors += assertion.assert(events: unexpectedEvents, context: &context, source: source)
+                var assertionContext = TestAssertionContext(events: unexpectedEvents, source: source, testContext: context, stepID: self.id)
+                assertion.assert(context: &assertionContext)
+                assertionErrors += assertionContext.errors
             }
 
-            for assertion in TestAssertion.allCases {
-                if !context.assertions.contains(assertion) {
-                    assertionWarnings += assertion.assert(events: unexpectedEvents, context: &context, source: source)
+            for assertion in [TestAssertion].all {
+                if !context.assertions.contains(where: { $0.id == assertion.id }) {
+                    var assertionContext = TestAssertionContext(events: unexpectedEvents, source: source, testContext: context, stepID: self.id)
+                    assertion.assert(context: &assertionContext)
+                    assertionWarnings += assertionContext.errors
                 }
             }
         }
@@ -160,7 +166,7 @@ extension TestStep {
 extension Component {
 
     @MainActor
-    public static func run(_ test: Test<Model>, assertions: Set<TestAssertion>? = nil) async -> TestResult<Model> {
+    public static func run(_ test: Test<Model>, assertions: [TestAssertion]? = nil) async -> TestResult<Model> {
         return await withDependencies {
             // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
             $0.context = .preview

@@ -3,6 +3,10 @@ import Foundation
 public typealias TestStepContext<Model: ComponentModel> = TestStep<Model>
 public typealias Step = TestStep
 
+public enum TestStepID {
+    @TaskLocal public static var current = UUID()
+}
+
 public struct TestStep<Model: ComponentModel>: Identifiable {
 
     public var title: String

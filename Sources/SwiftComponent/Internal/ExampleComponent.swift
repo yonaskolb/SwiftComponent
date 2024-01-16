@@ -162,7 +162,7 @@ struct ExampleComponent: Component, PreviewProvider {
             Step.snapshot("filled", tags: ["featured"])
         }
 
-        Test("Open child", state: .init(name: "Main"), assertions: [.output]) {
+        Test("Open child", state: .init(name: "Main")) {
             Step.action(.open)
                 .expectRoute(/Model.Route.open, state: .init(name: "Main"))
             Step.route(/Model.Route.open) {

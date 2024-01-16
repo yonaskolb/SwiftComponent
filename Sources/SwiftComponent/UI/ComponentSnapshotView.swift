@@ -20,7 +20,7 @@ struct ComponentSnapshotView<ComponentType: Component>: View {
         for test in ComponentType.tests {
             let state = ComponentType.state(for: test)
             let model = ViewModel<ComponentType.Model>(state: state, environment: test.environment)
-            let result = await model.runTest(test, initialState: state, assertions: .none, delay: 0, sendEvents: false)
+            let result = await model.runTest(test, initialState: state, assertions: [], delay: 0, sendEvents: false)
             for snapshot in result.snapshots {
                 if snapshot.name == snapshotName {
                     self.snapshot = snapshot
