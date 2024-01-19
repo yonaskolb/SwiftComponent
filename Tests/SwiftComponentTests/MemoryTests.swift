@@ -26,6 +26,8 @@ final class MemoryTests: XCTestCase {
         child.binding(\.count).wrappedValue = 3
         _ = child.count
 
+        try? await Task.sleep(for: .seconds(0.5))
+
         checkForMemoryLeak(viewModel)
         checkForMemoryLeak(viewModel.store)
         checkForMemoryLeak(viewModel.store.graph)
@@ -60,7 +62,7 @@ final class MemoryTests: XCTestCase {
         func handle(action: Action) async {
             switch action {
             case .start:
-                try? await dependencies.continuousClock.sleep(for: .seconds(2))
+                try? await dependencies.continuousClock.sleep(for: .seconds(0.1))
                 state.count = 1
                 await self.task("task") {
                     state.count = 2

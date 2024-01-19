@@ -36,7 +36,7 @@ class ComponentStore<Model: ComponentModel> {
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
     private var tasksByID: [String: CancellableTask] = [:]
-    private var tasks: [CancellableTask] = []
+    private var tasks: [UUID: CancellableTask] = [:]
     private var appearanceTask: CancellableTask?
     let stateChanged = PassthroughSubject<Model.State, Never>()
     let routeChanged = PassthroughSubject<Model.Route?, Never>()
@@ -120,8 +120,8 @@ class ComponentStore<Model: ComponentModel> {
     func cancelTasks() {
         tasksByID.forEach { $0.value.cancel() }
         tasksByID = [:]
-        tasks.forEach { $0.cancel() }
-        tasks = []
+        tasks.values.forEach { $0.cancel() }
+        tasks = [:]
     }
 
     @MainActor
@@ -155,8 +155,8 @@ class ComponentStore<Model: ComponentModel> {
     @MainActor
     func processAction(_ action: Model.Action, source: Source) {
         lastSource = source
-        addTask { @MainActor [weak self] in
-            await self?.processAction(action, source: source)
+        addTask { @MainActor in
+            await self.processAction(action, source: source)
         }
     }
 
@@ -171,8 +171,8 @@ class ComponentStore<Model: ComponentModel> {
 
     func processInput(_ input: Model.Input, source: Source) {
         lastSource = source
-        addTask { @MainActor [weak self] in
-            await self?.processInput(input, source: source)
+        addTask { @MainActor in
+            await self.processInput(input, source: source)
         }
     }
 
@@ -214,8 +214,8 @@ extension ComponentStore {
             set: { value in
                 guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
 
-                self.addTask { @MainActor [weak self] in
-                    await self?.model.binding(keyPath: keyPath)
+                self.addTask { @MainActor in
+                    await self.model.binding(keyPath: keyPath)
                 }
             }
         )
@@ -250,8 +250,8 @@ extension ComponentStore {
 
     @MainActor
     func appear(first: Bool, file: StaticString = #filePath, line: UInt = #line) {
-        appearanceTask = addTask { @MainActor [weak self] in
-            await self?.appear(first: first, file: file, line: line)
+        appearanceTask = addTask { @MainActor in
+            await self.appear(first: first, file: file, line: line)
         }
     }
 
@@ -267,8 +267,7 @@ extension ComponentStore {
 
     @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
-        addTask { @MainActor [weak self] in
-            guard let self else { return }
+        addTask { @MainActor in
             let start = Date()
             self.startEvent()
             self.mutations = []
@@ -276,8 +275,8 @@ extension ComponentStore {
             await self.model.disappear()
             self.sendEvent(type: .view(.disappear), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
 
-            appearanceTask?.cancel()
-            appearanceTask = nil
+            self.appearanceTask?.cancel()
+            self.appearanceTask = nil
         }
     }
 
@@ -400,10 +399,12 @@ extension ComponentStore {
 
     @discardableResult
     func addTask(_ handle: @escaping () async -> Void) -> CancellableTask {
+        let taskID = UUID()
         let task = Task { @MainActor in
             await handle()
+            tasks[taskID] = nil
         }
-        tasks.append(task)
+        tasks[taskID] = task
         return task
     }
 
