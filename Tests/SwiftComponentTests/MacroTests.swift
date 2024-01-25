@@ -1,3 +1,4 @@
+#if canImport(SwiftComponentMacros)
 import MacroTesting
 import Foundation
 import XCTest
@@ -65,3 +66,4 @@ final class ModelMacroTests: XCTestCase {
         }
     }
 }
+#endif

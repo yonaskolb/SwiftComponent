@@ -110,7 +110,9 @@ struct ComponentEditorView<ComponentType: Component>: View {
                     hasChanges = true
                 }))
             .autocorrectionDisabled(true)
+            #if os(iOS)
             .textInputAutocapitalization(.never)
+            #endif
             .colorScheme(.dark)
             .padding(.horizontal, 4)
             .background(.black)

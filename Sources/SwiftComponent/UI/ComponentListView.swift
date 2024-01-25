@@ -154,10 +154,14 @@ public struct ComponentListView: View {
                 header
                 content
             }
+#if os(iOS)
             .navigationViewStyle(.stack)
+#endif
             .background(colorScheme == .dark ? Color.darkBackground : .white)
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
         .previewDevice(.largestDevice)
         .task { runTests() }
     }

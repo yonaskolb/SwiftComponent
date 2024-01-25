@@ -49,7 +49,7 @@ struct ComponentViewPreview<Content: View>: View {
                             .padding(.bottom)
                     }
                     if showAccessibilityPreview {
-#if canImport(UIKit)
+#if os(iOS)
                         content.accessibilityPreview()
 #else
                         contentView
@@ -114,7 +114,7 @@ struct ComponentViewPreview<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
             Group {
-                if #available(iOS 16.0, *) {
+                if #available(iOS 16.0, macOS 13.0, *) {
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 8) {
                             viewModeSelector

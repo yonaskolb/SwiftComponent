@@ -112,8 +112,6 @@ struct ItemView: ComponentView {
                 ItemDetailView(model: model.scope(state: \.presentDetail, value: state, output: Model.Input.detail))
             }
         }
-        .navigationBarTitleDisplayMode(.large)
-        .navigationTitle(Text("Item"))
     }
 }
 
@@ -164,7 +162,6 @@ struct ItemDetailView: ComponentView {
                 Text("Update")
             }
         }
-        .navigationBarTitle(Text("Item"))
         .toolbar {
             button(.close) {
                 Text("Close")

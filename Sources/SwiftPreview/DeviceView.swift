@@ -146,12 +146,14 @@ struct Device_Previews: PreviewProvider {
                     }
                 }
                 .navigationTitle(Text("Title"))
+#if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Image(systemName: "plus")
                     }
                 }
+#endif
             }
             .embedIn(device: .iPhone14Pro)
             ZStack {
@@ -165,7 +167,9 @@ struct Device_Previews: PreviewProvider {
             }
             .embedIn(device: .phone)
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
         .previewLayout(.sizeThatFits)
         .previewDevice(.largestDevice)
     }

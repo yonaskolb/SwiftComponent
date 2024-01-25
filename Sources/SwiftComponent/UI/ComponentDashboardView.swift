@@ -89,9 +89,13 @@ struct ComponentDashboardView<ComponentType: Component>: View {
                 NavigationView {
                     form
                         .navigationTitle(String(describing: ComponentType.self))
+                    #if os(iOS)
                         .navigationBarTitleDisplayMode(.inline)
+                    #endif
                 }
+                #if os(iOS)
                 .navigationViewStyle(.stack)
+                #endif
                 .frame(maxWidth: .infinity)
             }
             Divider()
@@ -312,7 +316,9 @@ struct ComponentDashboard_Previews: PreviewProvider {
         NavigationView {
             ComponentDashboardView<ExampleComponent>(model: ExampleComponent.previewModel())
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
         .previewDevice(.largestDevice)
     }
 }

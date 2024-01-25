@@ -10,11 +10,13 @@ struct ComponentDebugSheet<Model: ComponentModel>: View {
         NavigationView {
             ComponentDebugView(model: model)
                 .toolbar {
+#if os(iOS)
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { dismiss ()}) {
                             Text("Close")
                         }
                     }
+#endif
                 }
         }
     }
@@ -85,7 +87,9 @@ public struct ComponentDebugView<Model: ComponentModel>: View {
                             }
                         }
                     }
+#if os(iOS)
                     .navigationBarTitle(Text("Events"))
+#endif
                 } label: {
                     Text("Filter Event Types")
                 }
@@ -100,7 +104,9 @@ public struct ComponentDebugView<Model: ComponentModel>: View {
         .animation(.default, value: eventTypes)
         .animation(.default, value: showChildEvents)
         .navigationTitle(model.componentName + " Component")
+#if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+#endif
     }
 
     var eventsHeader: some View {
@@ -133,6 +139,8 @@ struct ComponentDebugView_Previews: PreviewProvider {
         EventStore.shared.events = previewEvents
         return ExampleView(model: .init(state: .init(name: "Hello")))
             .debugSheet()
+        #if os(iOS)
             .navigationViewStyle(.stack)
+        #endif
     }
 }

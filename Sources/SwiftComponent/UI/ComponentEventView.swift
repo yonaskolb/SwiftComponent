@@ -142,7 +142,9 @@ struct ComponentEventView: View {
             }
         }
         .navigationTitle(Text(event.type.title))
+#if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+#endif
     }
 
     func line<Content: View>(_ name: String, content: () -> Content) -> some View {
@@ -236,10 +238,14 @@ struct EventView_Previews: PreviewProvider {
             NavigationView {
                 ComponentEventView(event: previewEvents[1], allEvents: previewEvents)
             }
+#if os(iOS)
             .navigationViewStyle(.stack)
+#endif
             ExampleView(model: .init(state: .init(name: "Hello")))
                 .debugSheet()
+#if os(iOS)
                 .navigationViewStyle(.stack)
+#endif
         }
 
     }

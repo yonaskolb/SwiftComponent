@@ -734,7 +734,9 @@ struct ComponentTests_Previews: PreviewProvider {
         NavigationView {
             ComponentTestsView<ExampleComponent>()
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
         .previewDevice(.largestDevice)
     }
 }

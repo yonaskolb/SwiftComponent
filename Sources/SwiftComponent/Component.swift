@@ -62,7 +62,9 @@ extension Component {
         NavigationView {
             ComponentPreview<Self>()
         }
+#if os(iOS)
         .navigationViewStyle(.stack)
+#endif
         .previewDevice(.largestDevice)
     }
 

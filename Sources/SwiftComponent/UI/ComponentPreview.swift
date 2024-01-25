@@ -46,8 +46,10 @@ struct ComponentPreview<ComponentType: Component>: View {
                     .fixedSize()
                 }
             }
+            #if os(iOS)
             .navigationViewStyle(.stack)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .previewDevice(.largestDevice)
         }
 //        .edgesIgnoringSafeArea(.all)
@@ -60,7 +62,9 @@ struct ComponentPreviewView_Previews: PreviewProvider {
         NavigationView {
             ComponentPreview<ExampleComponent>()
         }
+        #if os(iOS)
         .navigationViewStyle(.stack)
+        #endif
         .previewDevice(.largestDevice)
     }
 }

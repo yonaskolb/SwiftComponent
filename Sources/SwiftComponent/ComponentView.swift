@@ -91,7 +91,7 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
             showDebug = !showDebug
         }
         .sheet(isPresented: $showDebug) {
-            if #available(iOS 16.0, *) {
+            if #available(iOS 16.0, macOS 13.0, *) {
                 debugSheet
                     .presentationDetents([.medium, .large])
             } else {
@@ -140,11 +140,13 @@ extension ComponentView {
                     view(route: route)
                 }
             }
+        #if os(iOS)
             .fullScreenCover(isPresented: presentationBinding(.fullScreenCover)) {
                 if let route = model.route {
                     view(route: route)
                 }
             }
+        #endif
     }
 
     public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
@@ -161,7 +163,7 @@ extension View {
 
     @ViewBuilder
     func push<Content: View>(isPresented: Binding<Bool>, @ViewBuilder destination: () -> Content) -> some View {
-        if #available(iOS 16.0, *), !Presentation.useNavigationViewOniOS16 {
+        if #available(iOS 16.0, macOS 13.0, *), !Presentation.useNavigationViewOniOS16 {
             self.navigationDestination(isPresented: isPresented, destination: destination)
         } else {
            self.background {

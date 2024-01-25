@@ -1,7 +1,7 @@
+#if os(iOS)
 import Foundation
 import SwiftUI
 import UIKit
-#if canImport(AccessibilitySnapshotCore)
 import AccessibilitySnapshotCore
 
 extension AccessibilityHierarchy {

@@ -1,7 +1,7 @@
+#if os(iOS)
 import Foundation
-import UIKit
 import SwiftUI
-#if canImport(AccessibilitySnapshotCore)
+import UIKit
 import AccessibilitySnapshotCore
 
 public typealias AccessibilityHierarchy = [AccessibilityMarker]

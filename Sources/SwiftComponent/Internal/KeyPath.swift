@@ -8,7 +8,7 @@ extension KeyPath {
     // TODO: enable Item.array[0].string to be "array[0].string" somehow. For now just do array.string
     var propertyName: String? {
 #if swift(>=5.8)
-        if #available(iOS 16.4, *) {
+        if #available(iOS 16.4, macOS 13.3, *) {
             // Is in format "\State.standup.name" so drop the slash and type
             return debugDescription
                 .dropFirst() // drop slash

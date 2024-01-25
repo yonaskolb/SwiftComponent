@@ -1,6 +1,6 @@
+#if os(iOS)
 import Foundation
 import SwiftUI
-#if canImport(AccessibilitySnapshotCore)
 import AccessibilitySnapshotCore
 import UIKit
 
