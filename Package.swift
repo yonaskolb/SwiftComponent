@@ -17,7 +17,8 @@ var package = Package(
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.1.0"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.2.1"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.4"),
-        .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0")
+        .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
+        .package(url: "https://github.com/cashapp/AccessibilitySnapshot", branch: "master"),
     ],
     targets: [
         .target(
@@ -34,7 +35,9 @@ var package = Package(
             ]),
         .target(
             name: "SwiftPreview",
-            dependencies: []),
+            dependencies: [
+                .product(name: "AccessibilitySnapshotCore", package: "AccessibilitySnapshot", condition: .when(platforms: [.iOS])),
+            ]),
         .testTarget(
             name: "SwiftComponentTests",
             dependencies: [
@@ -50,10 +53,3 @@ var package = Package(
         ),
     ]
 )
-
-#if canImport(UIKit)
-if var targetIndex = package.targets.first(where: { $0.name == "SwiftPreview"}) {
-    package.targets[index].dependencies.append(.product(name: "AccessibilitySnapshotCore", package: "AccessibilitySnapshot"))
-}
-package.dependencies.append(.package(url: "https://github.com/cashapp/AccessibilitySnapshot", branch: "master"))
-#endif
