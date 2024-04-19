@@ -85,7 +85,6 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
             }
         }
 #if DEBUG
-        .frame(maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             showDebug = !showDebug
