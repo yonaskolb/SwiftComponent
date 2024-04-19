@@ -11,7 +11,7 @@ extension AccessibilityHierarchy {
         self.filter { !$0.description.trimmingCharacters(in: .whitespaces).isEmpty }
             .enumerated()
             .map { $1.markdown(index: $0) }
-            .joined(separator: "\n")
+            .joined(separator: "\n\n")
     }
 }
 
@@ -33,17 +33,14 @@ extension AccessibilityMarker {
         if let type {
             switch type.type {
             case .image:
-                string += "- 🖼️ " + type.content
+                string += "🖼️ " + type.content
             case .button:
-                string += "- [\(type.content)]()"
+                string += "[\(type.content)](\(action ?? ""))"
             case .heading:
-                if index > 0 {
-                    string += "\n"
-                }
                 string += "#### \(type.content)"
             }
         } else {
-            string += "- \(description)"
+            string += description
         }
 
         if let hint, !hint.isEmpty {
