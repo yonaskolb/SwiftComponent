@@ -24,7 +24,7 @@ extension ComponentSnapshot {
 
         let view = view.previewReference()
 
-#if canImport(UIKit) && canImport(AccessibilitySnapshot)
+#if canImport(UIKit)
         // accessibility markdown
         let accessibilitySnapshot = view.accessibilityHierarchy().markdown()
         try accessibilitySnapshot.data(using: .utf8)?.write(to: filePath.appendingPathExtension("md"))
