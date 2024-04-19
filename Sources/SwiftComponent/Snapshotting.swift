@@ -36,7 +36,7 @@ extension ComponentSnapshot {
 #endif
         // state
         let state = dumpToString(self.state)
-        try state.data(using: .utf8)?.write(to: filePath.appendingPathExtension("txt"))
+        try state.data(using: .utf8)?.write(to: filePath.appendingPathExtension("swift"))
 
         return filePath
     }
