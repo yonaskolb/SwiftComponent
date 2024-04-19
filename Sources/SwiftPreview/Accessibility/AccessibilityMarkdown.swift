@@ -3,6 +3,7 @@ import Foundation
 import SwiftUI
 import UIKit
 import AccessibilitySnapshotCore
+import RegexBuilder
 
 extension AccessibilityHierarchy {
 
@@ -17,6 +18,17 @@ extension AccessibilityHierarchy {
 extension AccessibilityMarker {
 
     func markdown(index: Int) -> String {
+        var hint = self.hint
+        var action: String?
+        if #available(iOS 16.0, *), let existingHint = hint {
+            let regex  = #/action: (.*)/#
+            if let match = existingHint.firstMatch(of: regex) {
+                let actionString = match.output.1
+                action = String(actionString)
+                hint = existingHint.replacing(regex, with: "")
+            }
+        }
+
         var string = ""
         if let type {
             switch type.type {
@@ -34,7 +46,7 @@ extension AccessibilityMarker {
             string += "- \(description)"
         }
 
-        if let hint {
+        if let hint, !hint.isEmpty {
             string += " (\(hint))"
         }
         if !customActions.isEmpty {

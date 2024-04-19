@@ -102,6 +102,8 @@ struct ActionButtonView<Model: ComponentModel, Label: View>: View {
             model.send(action(), file: file, line: line)
         } label: { label }
 #if DEBUG
+            .accessibility(hint: Text("action: \(getEnumCase(action()).name)"))
+            //.accessibilityCustomContent("swift.component.action", getEnumCase(action()).name, importance: .high) // AccessibilitySnapshot doesn't seem to pick this up. Yet?
             .onReceive(EventStore.shared.eventPublisher) { event in
                 guard showActionButtonFlash else { return }
                 switch event.type {
