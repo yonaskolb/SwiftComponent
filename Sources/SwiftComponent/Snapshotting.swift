@@ -10,7 +10,7 @@ extension ComponentSnapshot {
         with view: V,
         snapshotDirectory: String? = nil,
         file: StaticString = #file
-    ) async throws {
+    ) async throws -> URL {
 
         let fileUrl = URL(fileURLWithPath: "\(file)", isDirectory: false)
 
@@ -20,7 +20,7 @@ extension ComponentSnapshot {
             .appendingPathComponent("Snapshots")
 
         try FileManager.default.createDirectory(at: snapshotsPath, withIntermediateDirectories: true)
-        let filePath = snapshotsPath.appendingPathComponent("\(Model.baseName).\(name)")
+        let filePath = snapshotsPath.appendingPathComponent("\(Model.baseName) \(name)")
 
         let view = view.previewReference()
 
@@ -38,6 +38,7 @@ extension ComponentSnapshot {
         let state = dumpToString(self.state)
         try state.data(using: .utf8)?.write(to: filePath.appendingPathExtension("txt"))
 
+        return filePath
     }
 }
 
