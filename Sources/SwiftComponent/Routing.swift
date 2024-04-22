@@ -15,53 +15,53 @@ extension ComponentModel {
 
     // MARK: different environment
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toInput: @escaping (Child.Output) -> Input) -> Connection {
+    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toInput: @escaping (Child.Output) -> Input) -> RouteConnection {
         route.setStore(store.scope(state: .initial(route.state), environment: environment, route: route.route, output: .input(toInput)))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toOutput: @escaping (Child.Output) -> Output) -> Connection {
+    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment, output toOutput: @escaping (Child.Output) -> Output) -> RouteConnection {
         route.setStore(store.scope(state: .initial(route.state), environment: environment, route: route.route, output: .output(toOutput)))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment) -> Connection where Child.Output == Never {
+    public func connect<Child>(_ route: ComponentRoute<Child>, environment: Child.Environment) -> RouteConnection where Child.Output == Never {
         route.setStore(store.scope(state: .initial(route.state), environment: environment, route: route.route))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>, environment: Child.Environment) -> Connection {
+    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>, environment: Child.Environment) -> RouteConnection {
         let routeViewModel = scope.convert(store.viewModel())
         route.setStore(routeViewModel.store)
-        return Connection()
+        return RouteConnection()
     }
 
     // MARK: same environment
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, output toInput: @escaping (Child.Output) -> Input) -> Connection where Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>, output toInput: @escaping (Child.Output) -> Input) -> RouteConnection where Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .input(toInput)))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>, output toOutput: @escaping (Child.Output) -> Output) -> Connection where Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>, output toOutput: @escaping (Child.Output) -> Output) -> RouteConnection where Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route, output: .output(toOutput)))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child>(_ route: ComponentRoute<Child>) -> Connection where Child.Output == Never, Environment == Child.Environment {
+    public func connect<Child>(_ route: ComponentRoute<Child>) -> RouteConnection where Child.Output == Never, Environment == Child.Environment {
         route.setStore(store.scope(state: .initial(route.state), route: route.route))
-        return Connection()
+        return RouteConnection()
     }
 
-    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>) -> Connection where Environment == Child.Environment {
+    public func connect<Child: ComponentModel>(_ route: ComponentRoute<Child>, scope: Scope<Child>) -> RouteConnection where Environment == Child.Environment {
         let routeViewModel = scope.convert(store.viewModel())
         route.setStore(routeViewModel.store)
-        return Connection()
+        return RouteConnection()
     }
 }
 
 
-public struct Connection {
+public struct RouteConnection {
 
     internal init() {
         
