@@ -35,7 +35,7 @@ struct ExampleModel {
         }
     }
 
-    func connect(route: Route) -> Connection {
+    func connect(route: Route) -> RouteConnection {
         switch route {
         case .open(let route):
             connect(route, output: Input.child)
