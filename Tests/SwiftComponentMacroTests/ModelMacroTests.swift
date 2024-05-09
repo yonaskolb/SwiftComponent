@@ -6,12 +6,12 @@ import SwiftComponentMacros
 
 final class ModelMacroTests: XCTestCase {
     override func invokeTest() {
-        withMacroTesting(isRecording: false, macros: [ComponentModelMacro.self]) {
+        withMacroTesting(isRecording: true, macros: [ComponentModelMacro.self]) {
             super.invokeTest()
         }
     }
 
-    func testModel() {
+    func testEmpyModel() {
         assertMacro {
             """
             @ComponentModel struct Model {
@@ -41,6 +41,8 @@ final class ModelMacroTests: XCTestCase {
             """
             @ComponentModel struct Model {
 
+                let child = Connection<ExampleChildModel>(output: .input(Input.child))
+                
                 var getter: String {
                   dependencies.something
                 }
@@ -58,6 +60,9 @@ final class ModelMacroTests: XCTestCase {
             struct Model {
                 @MainActor
 
+                let child = Connection<ExampleChildModel>(output: .input(Input.child))
+                @MainActor
+                
                 var getter: String {
                   dependencies.something
                 }

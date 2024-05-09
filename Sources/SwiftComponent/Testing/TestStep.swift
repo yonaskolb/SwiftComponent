@@ -68,8 +68,13 @@ extension TestStep {
 // https://forums.swift.org/t/result-builder-expressiveness-and-type-inference/56417
 @resultBuilder
 public struct TestStepBuilder<Model: ComponentModel> {
-    public static func buildBlock() -> [TestStep<Model>] { [] }
-    public static func buildBlock(_ tests: TestStep<Model>...) -> [TestStep<Model>] { tests }
-    public static func buildBlock(_ tests: [TestStep<Model>]) -> [TestStep<Model>] { tests }
-    public static func buildExpression(_ test: TestStep<Model>) -> TestStep<Model> { test }
+    public static func buildExpression(_ steps: TestStep<Model>) -> TestStep<Model> { steps }
+    public static func buildExpression(_ steps: [TestStep<Model>]) -> [TestStep<Model>] { steps }
+
+    public static func buildPartialBlock(first: TestStep<Model>) -> [TestStep<Model>] { [first] }
+    public static func buildPartialBlock(first: [TestStep<Model>]) -> [TestStep<Model>] { first }
+    public static func buildPartialBlock(first: [[TestStep<Model>]]) -> [TestStep<Model>] { first.flatMap { $0 } }
+    public static func buildPartialBlock(accumulated: [TestStep<Model>], next: TestStep<Model>) -> [TestStep<Model>] { accumulated + [next] }
+    public static func buildPartialBlock(accumulated: [TestStep<Model>], next: [TestStep<Model>]) -> [TestStep<Model>] { accumulated + next }
+    public static func buildPartialBlock(accumulated: [TestStep<Model>], next: [[TestStep<Model>]]) -> [TestStep<Model>] { accumulated + next.flatMap { $0 } }
 }

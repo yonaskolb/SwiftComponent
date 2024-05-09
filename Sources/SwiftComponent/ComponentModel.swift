@@ -23,6 +23,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     var context: Context { get }
 
     typealias Context = ModelContext<Self>
+    typealias Connection<Model: ComponentModel> = ModelConnection<Self, Model>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 
@@ -148,6 +149,16 @@ extension ComponentModel {
             .map { $0[keyPath: keypath] }
             .removeDuplicates()
             .eraseToAnyPublisher()
+    }
+}
+
+extension ComponentModel {
+    
+    /// can be used from environment closures
+    public func action(_ action: Action) {
+        self.store.addTask {
+            await self.handle(action: action)
+        }
     }
 }
 

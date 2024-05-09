@@ -48,6 +48,7 @@ extension ComponentModelMacro: ExtensionMacro {
     }
 }
 
+// TODO: replace this when a macro can add @MainActor to the whole type
 extension ComponentModelMacro: MemberAttributeMacro {
 
     public static func expansion(
