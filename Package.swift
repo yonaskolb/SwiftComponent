@@ -15,12 +15,13 @@ var package = Package(
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/yonaskolb/swift-dependencies", branch: "merging"),
-        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.1.0"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.3.2"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.2.1"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.6"),
         .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/DavidBrunow/AccessibilitySnapshot", branch: "bugfix/navigationStackSortOrder"),
 		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
+        .package(url: "https://github.com/pointfreeco/swiftui-navigation", from: "1.3.0"),
     ],
     targets: [
         .executableTarget(name: "SwiftComponentCLI", dependencies: [
@@ -34,6 +35,7 @@ var package = Package(
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
                 .product(name: "CasePaths", package: "swift-case-paths"),
+                .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
                 "SwiftGUI",
                 "SwiftPreview",
                 "Runtime",

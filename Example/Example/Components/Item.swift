@@ -4,22 +4,30 @@ import SwiftComponent
 @ComponentModel
 struct ItemModel  {
 
+    let detail = Connection<ItemDetailModel>(output: .input(Input.detail))
+
     struct State {
         var name: String
         var text: String = "text"
         var data: Resource<Int>
         var presentDetail: ItemDetailModel.State?
         var detail: ItemDetailModel.State = .init(id: "0", name: "0")
+        var destination: Destination?
     }
 
     enum Route {
         case detail(ComponentRoute<ItemDetailModel>)
     }
 
+    @CasePathable
+    enum Destination {
+        case detail(ItemDetailModel.State)
+    }
+
     enum Action {
         case calculate
-        case openDetail
-        case pushItem
+        case present
+        case push
         case updateDetail
     }
 
@@ -27,7 +35,7 @@ struct ItemModel  {
         case detail(ItemDetailModel.Output)
     }
 
-    func connect(route: Route) -> Connection {
+    func connect(route: Route) -> RouteConnection {
         switch route {
         case .detail(let route):
             return connect(route, output: Input.detail)
@@ -46,10 +54,11 @@ struct ItemModel  {
         case .calculate:
             try? await dependencies.continuousClock.sleep(for: .seconds(1))
             state.name = String(UUID().uuidString.prefix(6))
-        case .openDetail:
+        case .present:
             state.presentDetail = state.detail
-        case .pushItem:
-            route(to: Route.detail, state: state.detail)
+        case .push:
+//            route(to: Route.detail, state: state.detail)
+            state.destination = .init(.detail(state.detail))
         case .updateDetail:
             state.detail.name = Int.random(in: 0...1000).description
         }
@@ -96,21 +105,30 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 button(.updateDetail, "Update")
             }
-            ItemDetailView(model: model.scope(state: \.detail, output: Model.Input.detail))
+            ItemDetailView(model: model.connect(to: \.detail, state: .keyPath(\.detail)))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
 
             button(.calculate, "Calculate")
-            button(.openDetail, "Item")
-            button(.pushItem, "Push Item")
+            button(.present, "Item")
+            button(.push, "Push Item")
             Spacer()
         }
         .padding()
-        .sheet(item: model.binding(\.presentDetail)) { state in
+        .sheet(unwrapping: model.binding(\.presentDetail)) { state in
             NavigationView {
-                ItemDetailView(model: model.scope(state: \.presentDetail, value: state, output: Model.Input.detail))
+                ItemDetailView(model: model.connect(to: \.detail, state: state))
             }
+        }
+        .navigationDestination(unwrapping: model.binding(\.destination).detail) { state in
+            let model = model.connect(to: \.detail, state: state)
+            ItemDetailView(model: model)
+                .toolbar {
+                    model.button(.save) {
+                        Text("Save")
+                    }
+                }
         }
     }
 }
@@ -124,7 +142,7 @@ struct ItemDetailModel {
     }
 
     enum Action {
-        case close
+        case save
         case updateName
     }
 
@@ -142,8 +160,9 @@ struct ItemDetailModel {
 
     func handle(action: Action) async {
         switch action {
-        case .close:
+        case .save:
             output(.finished(state.name))
+            dismiss()
         case .updateName:
             state.name = Int.random(in: 0...100).description
         }
@@ -159,12 +178,7 @@ struct ItemDetailView: ComponentView {
             Text("Item Detail \(model.state.name)")
                 .bold()
             button(.updateName) {
-                Text("Update")
-            }
-        }
-        .toolbar {
-            button(.close) {
-                Text("Close")
+                Text("Update name")
             }
         }
     }

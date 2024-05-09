@@ -3,11 +3,11 @@ import XCTest
 @testable import SwiftComponent
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
-@MainActor
 final class MemoryTests: XCTestCase {
 
+    @MainActor
     func testMemoryLeak() async {
-        let viewModel = ViewModel<TestModel>(state: .init())
+        let viewModel = ViewModel<TestModel>(state: .init(child: .init(count: 2)))
             .dependency(\.continuousClock, ImmediateClock())
         await viewModel.appearAsync(first: true)
         await viewModel.sendAsync(.start)
@@ -16,6 +16,18 @@ final class MemoryTests: XCTestCase {
         viewModel.send(.start)
         viewModel.binding(\.count).wrappedValue = 2
         _ = viewModel.count
+
+        let connectedChild = viewModel.connect(to: \.child, state: .keyPath(\.child))
+        await connectedChild.appearAsync(first: true)
+
+        let connectedOptionalChild = viewModel.connect(to: \.child, state: .optionalKeyPath(\.optionalChild, fallback: .init()))
+        await connectedOptionalChild.appearAsync(first: true)
+
+        let connectedChildInput = viewModel.connect(to: \.childInput, state: .keyPath(\.child))
+        await connectedChildInput.appearAsync(first: true)
+
+        let connectedOptionalChildInput = viewModel.connect(to: \.childInput, state: .optionalKeyPath(\.optionalChild, fallback: .init()))
+        await connectedOptionalChildInput.appearAsync(first: true)
 
         let child = viewModel.scope(state: \.self) as ViewModel<TestModel>
         await child.appearAsync(first: true)
@@ -37,14 +49,26 @@ final class MemoryTests: XCTestCase {
     }
 
     @ComponentModel
-    struct TestModel {
+    fileprivate struct TestModel {
+
+        let child = Connection<TestModelChild> {
+            $0.model.state.count = 3
+        }
+
+        let childInput = Connection<TestModelChild>(output: .input(Input.child))
 
         struct State {
             var count = 0
+            var optionalChild: TestModelChild.State?
+            var child: TestModelChild.State
         }
 
         enum Action {
             case start
+        }
+
+        enum Input {
+            case child(TestModelChild.Output)
         }
 
         func appear() async {
@@ -67,6 +91,29 @@ final class MemoryTests: XCTestCase {
                 await self.task("task") {
                     state.count = 2
                 }
+            }
+        }
+
+        func handle(input: Input) async {
+            switch input {
+            case .child(.done): break
+            }
+        }
+    }
+
+    @ComponentModel
+    fileprivate struct TestModelChild {
+        struct State {
+            var count: Int = 2
+        }
+
+        enum Output {
+            case done
+        }
+
+        func appear() async {
+            await self.task("task") {
+                state.count = 2
             }
         }
     }

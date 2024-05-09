@@ -44,7 +44,7 @@ class ComponentGraph {
     }
 }
 
-private final class WeakRef {
+final class WeakRef {
     weak var value: AnyObject?
 
     init(_ value: AnyObject) {

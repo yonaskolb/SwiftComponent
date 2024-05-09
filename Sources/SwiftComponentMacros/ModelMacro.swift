@@ -48,6 +48,7 @@ extension ComponentModelMacro: ExtensionMacro {
     }
 }
 
+// TODO: replace this when a macro can add @MainActor to the whole type
 extension ComponentModelMacro: MemberAttributeMacro {
 
     public static func expansion(
@@ -65,7 +66,9 @@ extension ComponentModelMacro: MemberAttributeMacro {
         if let syntax = member.as(FunctionDeclSyntax.self), !hasMainActor(syntax.attributes) {
             return ["@MainActor"]
         }
-        if let syntax = member.as(VariableDeclSyntax.self), !hasMainActor(syntax.attributes) {
+        if let syntax = member.as(VariableDeclSyntax.self),
+           syntax.bindingSpecifier.tokenKind == .keyword(.var),
+            !hasMainActor(syntax.attributes) {
             return ["@MainActor"]
         }
         return []

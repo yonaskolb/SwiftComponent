@@ -23,6 +23,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     var context: Context { get }
 
     typealias Context = ModelContext<Self>
+    typealias Connection<Model: ComponentModel> = ModelConnection<Self, Model>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 

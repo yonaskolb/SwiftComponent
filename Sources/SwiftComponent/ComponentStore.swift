@@ -27,7 +27,7 @@ class ComponentStore<Model: ComponentModel> {
             }
         }
     }
-
+    var children: [ConnectionID: AnyObject] = [:]
     private var stateStorage: StateStorage
     var path: ComponentPath
     let graph: ComponentGraph
@@ -193,11 +193,19 @@ class ComponentStore<Model: ComponentModel> {
         }
     }
 
+    func onAction(_ handle: @MainActor @escaping (Model.Action, Event) -> Void) -> Self {
+        self.onEvent { event in
+            if case let .action(action) = event.type, let action = action as? Model.Action {
+                handle(action, event)
+            }
+        }
+    }
+
     @discardableResult
     func onEvent(_ handle: @MainActor @escaping (Event) -> Void) -> Self {
         self.events
         .sink { event in
-                Task { @MainActor in handle(event) }
+            Task { @MainActor in handle(event) }
         }
         .store(in: &cancellables)
         return self
@@ -433,16 +441,11 @@ protocol CancellableTask {
 
 extension Task: CancellableTask {}
 
-enum ScopedState<Parent, Child> {
-    case initial(Child)
+public enum ScopedState<Parent, Child> {
+    case value(Child)
     case binding(Binding<Child>)
     case keyPath(WritableKeyPath<Parent, Child>)
     case optionalKeyPath(WritableKeyPath<Parent, Child?>, fallback: Child)
-}
-
-enum ScopedOutput<Parent: ComponentModel, Child: ComponentModel> {
-    case output((Child.Output) -> Parent.Output)
-    case input((Child.Output) -> Parent.Input)
 }
 
 // MARK: Scoping
@@ -450,8 +453,12 @@ extension ComponentStore {
 
     private func keyPathBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
         Binding(
-            get: { self.state[keyPath: keyPath] },
-            set: { self.state[keyPath: keyPath] = $0 }
+            get: {
+                self.state[keyPath: keyPath]
+            },
+            set: {
+                self.state[keyPath: keyPath] = $0
+            }
         )
     }
 
@@ -495,7 +502,7 @@ extension ComponentStore {
     func scopedStore<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route?) -> ComponentStore<Child> {
         let stateStorage: ComponentStore<Child>.StateStorage
         switch state {
-        case .initial(let child):
+        case .value(let child):
             stateStorage = .root(child)
         case .binding(let binding):
             stateStorage = .binding(binding)
@@ -514,22 +521,13 @@ extension ComponentStore {
         return store
     }
 
-    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> where Model.Environment == Child.Environment {
-        connectTo(scopedStore(state: state, environment: self.environment, route: route)) { [weak self] output, event in
-            guard let self else { return }
-            switch scopedOutput{
-            case .input(let toInput):
-                let input = toInput(output)
-                self.processInput(input, source: event.source)
-            case .output(let toOutput):
-                let output = toOutput(output)
-                self.output(output, source: event.source)
-            }
-        }
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil, output scopedOutput: OutputHandler<Model, Child>) -> ComponentStore<Child> where Model.Environment == Child.Environment {
+        scope(state: state, environment: self.environment, route: route, output: scopedOutput)
     }
 
-    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil, output scopedOutput: ScopedOutput<Model, Child>) -> ComponentStore<Child> {
-        connectTo(scopedStore(state: state, environment: environment, route: route)) { @MainActor [weak self] output, event in
+    func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil, output scopedOutput: OutputHandler<Model, Child>) -> ComponentStore<Child> {
+        let childStore: ComponentStore<Child> = scopedStore(state: state, environment: environment, route: route)
+        return connectTo(childStore) { @MainActor [weak self] output, event in
             guard let self else { return }
             switch scopedOutput{
             case .input(let toInput):
@@ -538,6 +536,12 @@ extension ComponentStore {
             case .output(let toOutput):
                 let output = toOutput(output)
                 self.output(output, source: event.source)
+            case .handle(let handle):
+                addTask {
+                    await handle((output: output, model: self.model))
+                }
+            case .ignore:
+                break
             }
         }
     }

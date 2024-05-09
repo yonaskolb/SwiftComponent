@@ -16,9 +16,12 @@ final class ModelMacroTests: XCTestCase {
             """
             @ComponentModel struct Model {
 
+                let child = Connection<ExampleChildModel>(output: .input(Input.child))
+
                 var getter: String {
                   dependencies.something
                 }
+
                 enum Action {
                     case select
                 }
@@ -35,11 +38,14 @@ final class ModelMacroTests: XCTestCase {
         } expansion: {
             """
             struct Model {
+
+                let child = Connection<ExampleChildModel>(output: .input(Input.child))
                 @MainActor
 
                 var getter: String {
                   dependencies.something
                 }
+
                 enum Action {
                     case select
                 }
