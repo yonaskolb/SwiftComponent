@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Yonas Kolb on 15/4/2023.
-//
-
 import Foundation
 import Dependencies
 

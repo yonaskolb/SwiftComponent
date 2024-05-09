@@ -75,6 +75,8 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         withAnimation {
             model.state = snapshot.state
             model.store.environment = snapshot.environment
+            model.store.dependencies.apply(snapshot.dependencies)
+            model.store.model.updateView() // in case state hasn't changed but dependencies uses in rendering have
             if let route = snapshot.route {
                 model.store.present(route, source: .capture())
             } else {

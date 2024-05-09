@@ -11,12 +11,39 @@ public struct ComponentSnapshot<Model: ComponentModel> {
 }
 
 extension ComponentSnapshot {
-    public init(state: Model.State, environment: Model.Environment, route: Model.Route? = nil, tags: Set<String> = [], file: StaticString = #file, line: UInt = #line) {
-        self.init(state: state, environment: environment, route: route, tags: tags, source: .capture(file: file, line: line))
+    public init(
+        state: Model.State,
+        environment: Model.Environment,
+        route: Model.Route? = nil,
+        tags: Set<String> = [],
+        file: StaticString = #file,
+        line: UInt = #line
+    ) {
+        self.init(
+            state: state,
+            environment: environment,
+            route: route,
+            tags: tags,
+            source: .capture(file: file, line: line)
+        )
     }
 
-    public init(state: Model.State, environment: Model.Environment? = nil, route: Model.Route? = nil, tags: Set<String> = [], file: StaticString = #file, line: UInt = #line) where Model.Environment: ComponentEnvironment {
-        self.init(state: state, environment: environment ?? Model.Environment.preview, route: route, tags: tags, source: .capture(file: file, line: line))
+    public init(
+        state: Model.State, 
+        environment: Model.Environment? = nil,
+        route: Model.Route? = nil,
+        tags: Set<String> = [],
+        file: StaticString = #file,
+        line: UInt = #line
+    ) where Model.Environment: ComponentEnvironment {
+        self.init(
+            state: state,
+            environment:
+                environment ?? Model.Environment.preview,
+            route: route,
+            tags: tags,
+            source: .capture(file: file, line: line)
+        )
     }
 }
 
@@ -36,6 +63,7 @@ extension TestStep {
                 tags: tags,
                 source: .capture(file: file, line: line)
             )
+            snapshot.dependencies.apply(context.model.dependencies)
             snapshot.name = name
             context.snapshots.append(snapshot)
         }
