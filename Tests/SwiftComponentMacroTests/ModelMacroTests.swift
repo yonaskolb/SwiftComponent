@@ -11,7 +11,7 @@ final class ModelMacroTests: XCTestCase {
         }
     }
 
-    func testModel() {
+    func testEmpyModel() {
         assertMacro {
             """
             @ComponentModel struct Model {
@@ -41,6 +41,8 @@ final class ModelMacroTests: XCTestCase {
             """
             @ComponentModel struct Model {
 
+                let child = Connection<ExampleChildModel>(output: .input(Input.child))
+                
                 var getter: String {
                   dependencies.something
                 }

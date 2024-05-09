@@ -199,17 +199,17 @@ extension ViewModel {
 
     // state and output -> Never
     public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(state: .initial(state), environment: environment).viewModel()
+        store.scope(state: .value(state), environment: environment).viewModel()
     }
 
     // state and output -> input
     public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: .initial(state), environment: environment, output: .input(output)).viewModel()
+        store.scope(state: .value(state), environment: environment, output: .input(output)).viewModel()
     }
 
     // state and output -> output
     public func scope<Child: ComponentModel>(state: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(state: .initial(state), environment: environment, output: .output(output)).viewModel()
+        store.scope(state: .value(state), environment: environment, output: .output(output)).viewModel()
     }
 
     // MARK: same environment
@@ -276,17 +276,17 @@ extension ViewModel {
 
     // state and output -> Never
     public func scope<Child: ComponentModel>(state: Child.State) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
-        store.scope(state: .initial(state)).viewModel()
+        store.scope(state: .value(state)).viewModel()
     }
 
     // state and output -> input
     public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
-        store.scope(state: .initial(state), output: .input(output)).viewModel()
+        store.scope(state: .value(state), output: .input(output)).viewModel()
     }
 
     // state and output -> output
     public func scope<Child: ComponentModel>(state: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
-        store.scope(state: .initial(state), output: .output(output)).viewModel()
+        store.scope(state: .value(state), output: .output(output)).viewModel()
     }
 
     public func scope<Child: ComponentModel>(_ connection: ComponentConnection<Model, Child>) -> ViewModel<Child> {
