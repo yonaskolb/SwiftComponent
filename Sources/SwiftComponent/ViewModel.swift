@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import OSLog
 
 @dynamicMemberLookup
 public class ViewModel<Model: ComponentModel>: ObservableObject {
@@ -69,8 +70,15 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         return self
     }
 
-    public func logEvents(_ events: Set<EventSimpleType> = Set(EventSimpleType.allCases), childEvents: Bool = true) -> Self {
-        store.logEvents.formUnion(events)
+    public func logEvents(_ events: Set<EventSimpleType> = Set(EventSimpleType.allCases).subtracting([.view]), logType: OSLogType, childEvents: Bool = true) -> Self {
+        logEvents(events, logType: { _ in logType}, childEvents: childEvents)
+    }
+
+    public func logEvents(_ events: Set<EventSimpleType> = Set(EventSimpleType.allCases).subtracting([.view]), logType: ((Event) -> OSLogType?)? = nil, childEvents: Bool = true) -> Self {
+        store.logEvents = events
+        if let logType {
+            store.logType = logType
+        }
         store.logChildEvents = childEvents
         return self
     }

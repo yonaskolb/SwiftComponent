@@ -47,7 +47,8 @@ class ComponentStore<Model: ComponentModel> {
         }
     }
     let logger: Logger
-    var logEvents: Set<EventSimpleType> = []
+    var logEvents: Set<EventSimpleType> = Set(EventSimpleType.allCases)
+    var logType: (Event) -> OSLogType? = { _ in .error }
     var logChildEvents: Bool = true
     var modelCancellables: Set<AnyCancellable> = []
 
@@ -143,12 +144,12 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     func log(_ event: Event) {
-        if logEvents.contains(event.type.type) {
+        if logEvents.contains(event.type.type), let logType = self.logType(event) {
             let details = event.type.details
             let eventString = "\(event.type.title.lowercased())\(details.isEmpty ? "" : ": ")\(details)"
-//            let relativePath = event.path.relative(to: self.path).string
-//            logger.info("\(relativePath)\(relativePath.isEmpty ? "" : ": ")\(eventString)")
-            print("Component \(event.path.string).\(eventString)")
+            let logger = Logger(subsystem: "SwiftComponent", category: event.path.pathString)
+            logger.log(level: logType, "\(eventString)")
+            print(eventString)
         }
     }
 
@@ -197,7 +198,7 @@ class ComponentStore<Model: ComponentModel> {
     func onEvent(_ handle: @MainActor @escaping (Event) -> Void) -> Self {
         self.events
         .sink { event in
-                Task { @MainActor in handle(event) }
+            Task { @MainActor in handle(event) }
         }
         .store(in: &cancellables)
         return self

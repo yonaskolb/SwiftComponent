@@ -8,7 +8,7 @@ public struct ComponentPath: CustomStringConvertible, Equatable, Hashable {
     public let path: [any ComponentModel.Type]
 
     var pathString: String {
-        path.map { $0.baseName }.joined(separator: "/")
+        path.map { $0.baseName }.joined(separator: ".")
     }
 
     public var string: String {
