@@ -737,6 +737,6 @@ struct ComponentTests_Previews: PreviewProvider {
 #if os(iOS)
         .navigationViewStyle(.stack)
 #endif
-        .previewDevice(.largestDevice)
+        .largePreview()
     }
 }

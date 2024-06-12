@@ -387,6 +387,6 @@ struct ViewPreviewer_Previews: PreviewProvider {
             }
 //        }
         .preview()
-        .previewDevice(.largestDevice)
+        .largePreview()
     }
 }

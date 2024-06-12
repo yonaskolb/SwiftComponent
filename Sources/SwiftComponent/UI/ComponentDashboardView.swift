@@ -321,6 +321,6 @@ struct ComponentDashboard_Previews: PreviewProvider {
 #if os(iOS)
         .navigationViewStyle(.stack)
 #endif
-        .previewDevice(.largestDevice)
+        .largePreview()
     }
 }

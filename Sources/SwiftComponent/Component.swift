@@ -65,7 +65,7 @@ extension Component {
 #if os(iOS)
         .navigationViewStyle(.stack)
 #endif
-        .previewDevice(.largestDevice)
+        .largePreview()
     }
 
     public static func state(for test: Test<Model>) -> Model.State {

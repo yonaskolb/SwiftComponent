@@ -171,6 +171,6 @@ struct Device_Previews: PreviewProvider {
         .navigationViewStyle(.stack)
 #endif
         .previewLayout(.sizeThatFits)
-        .previewDevice(.largestDevice)
+        .previewDevice(.iPad)
     }
 }

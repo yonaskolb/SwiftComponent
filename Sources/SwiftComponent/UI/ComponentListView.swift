@@ -162,7 +162,7 @@ public struct ComponentListView: View {
 #if os(iOS)
         .navigationViewStyle(.stack)
 #endif
-        .previewDevice(.largestDevice)
+        .largePreview()
         .task { runTests() }
     }
 

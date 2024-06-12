@@ -124,6 +124,6 @@ struct ComponentEditorView<ComponentType: Component>: View {
 struct ComponentEditorView_Previews: PreviewProvider {
     static var previews: some View {
         ComponentEditorView<ExampleComponent>()
-            .previewDevice(.largestDevice)
+            .largePreview()
     }
 }

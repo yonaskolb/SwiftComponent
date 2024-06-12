@@ -50,7 +50,7 @@ struct ComponentPreview<ComponentType: Component>: View {
             .navigationViewStyle(.stack)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .previewDevice(.largestDevice)
+            .largePreview()
         }
 //        .edgesIgnoringSafeArea(.all)
     }
@@ -65,6 +65,6 @@ struct ComponentPreviewView_Previews: PreviewProvider {
         #if os(iOS)
         .navigationViewStyle(.stack)
         #endif
-        .previewDevice(.largestDevice)
+        .largePreview()
     }
 }
