@@ -30,6 +30,7 @@ extension Component {
     public static var testAssertions: [TestAssertion] { .standard }
     public static var snapshots: Snapshots { [] }
     public static var environmentName: String { String(describing: Model.Environment.self) }
+    public static var name: String { String(describing: Self.self).replacingOccurrences(of: "Component", with: "") }
 }
 
 extension Component {
