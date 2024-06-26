@@ -1,6 +1,21 @@
 import Foundation
 import SwiftUI
 
+public struct SnapshotModifier {
+    
+    var apply: (AnyView) -> AnyView
+    
+    public static func environment<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, _ value: V) -> Self {
+        SnapshotModifier {
+            AnyView($0.environment(keyPath, value))
+        }
+    }
+    
+    func render(_ view: some View) -> AnyView {
+        apply(AnyView(view))
+    }
+}
+
 extension ComponentSnapshot {
 
     @MainActor
@@ -9,9 +24,11 @@ extension ComponentSnapshot {
         size: CGSize,
         with view: V,
         snapshotDirectory: String? = nil,
-        file: StaticString = #file
-    ) async throws -> URL {
+        file: StaticString = #file,
+        variants: [String: [SnapshotModifier]] = [:]
+    ) async throws -> [URL] {
 
+        var writtenFiles: [URL] = []
         let fileUrl = URL(fileURLWithPath: "\(file)", isDirectory: false)
 
         let snapshotsPath = snapshotDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) } ??
@@ -20,25 +37,43 @@ extension ComponentSnapshot {
             .appendingPathComponent("Snapshots")
 
         try FileManager.default.createDirectory(at: snapshotsPath, withIntermediateDirectories: true)
-        let filePath = snapshotsPath.appendingPathComponent("\(Model.baseName) \(name)")
+        let filePath = snapshotsPath.appendingPathComponent("\(Model.baseName).\(name)")
 
         let view = view.previewReference()
 
 #if canImport(UIKit)
         // accessibility markdown
+        let accessibilityFilePath = filePath.appendingPathExtension("md")
         let accessibilitySnapshot = view.accessibilityHierarchy().markdown()
-        try accessibilitySnapshot.data(using: .utf8)?.write(to: filePath.appendingPathExtension("md"))
-
+        try accessibilitySnapshot.data(using: .utf8)?.write(to: accessibilityFilePath)
+        writtenFiles.append(accessibilityFilePath)
 
         // image
-        let imageSnapshot = view.snapshot(size: size)
-        try imageSnapshot.pngData()?.write(to: filePath.appendingPathExtension("png"))
+        if variants.isEmpty {
+            let imageFilePath = filePath.appendingPathExtension("png")
+            let imageSnapshot = view.snapshot(size: size)
+            try imageSnapshot.pngData()?.write(to: imageFilePath)
+            writtenFiles.append(imageFilePath)
+        } else {
+            for (variant, environments) in variants {
+                var modifiedView = AnyView(view)
+                for environment in environments {
+                    modifiedView = environment.render(modifiedView)
+                }
+                let imageSnapshot = modifiedView.snapshot(size: size)
+                let imageFilePath = snapshotsPath.appendingPathComponent("\(Model.baseName).\(name).\(variant)").appendingPathExtension("png")
+                try imageSnapshot.pngData()?.write(to: imageFilePath)
+                writtenFiles.append(imageFilePath)
+            }
+        }
 #endif
         // state
+        let stateFilePath = filePath.appendingPathExtension("swift")
         let state = dumpToString(self.state)
-        try state.data(using: .utf8)?.write(to: filePath.appendingPathExtension("swift"))
-
-        return filePath
+        try state.data(using: .utf8)?.write(to: stateFilePath)
+        writtenFiles.append(stateFilePath)
+        
+        return writtenFiles
     }
 }
 
