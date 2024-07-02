@@ -8,13 +8,13 @@ class ComponentStore<Model: ComponentModel> {
 
     enum StateStorage {
         case root(Model.State)
-        case binding(Binding<Model.State>)
+        case binding(StateBinding<Model.State>)
 
         var state: Model.State {
             get {
                 switch self {
                 case .root(let state): return state
-                case .binding(let binding): return binding.wrappedValue
+                case .binding(let binding): return binding.state
                 }
             }
             set {
@@ -22,7 +22,7 @@ class ComponentStore<Model: ComponentModel> {
                 case .root:
                     self = .root(newValue)
                 case .binding(let binding):
-                    binding.wrappedValue = newValue
+                    binding.state = newValue
                 }
             }
         }
@@ -212,12 +212,12 @@ extension ComponentStore {
         Binding(
             get: { self.state[keyPath: keyPath] },
             set: { value in
-                guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
-
-                self.addTask { @MainActor in
-                    await self.model.binding(keyPath: keyPath)
+                    guard self.setBindingValue(keyPath, value, file: file, line: line) else { return }
+                    
+                    self.addTask { @MainActor in
+                        await self.model.binding(keyPath: keyPath)
+                    }
                 }
-            }
         )
     }
 
@@ -448,19 +448,19 @@ enum ScopedOutput<Parent: ComponentModel, Child: ComponentModel> {
 // MARK: Scoping
 extension ComponentStore {
 
-    private func keyPathBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> Binding<Value> {
-        Binding(
+    private func keyPathBinding<Value>(_ keyPath: WritableKeyPath<Model.State, Value>) -> StateBinding<Value> {
+        StateBinding(
             get: { self.state[keyPath: keyPath] },
             set: { self.state[keyPath: keyPath] = $0 }
         )
     }
 
-    private func optionalBinding<ChildState>(state stateKeyPath: WritableKeyPath<Model.State, ChildState?>, value: ChildState) -> Binding<ChildState> {
+    private func optionalBinding<ChildState>(state stateKeyPath: WritableKeyPath<Model.State, ChildState?>, value: ChildState) -> StateBinding<ChildState> {
         let optionalBinding = keyPathBinding(stateKeyPath)
-        return Binding<ChildState> {
-            optionalBinding.wrappedValue ?? value
+        return StateBinding<ChildState> {
+            optionalBinding.state ?? value
         } set: {
-            optionalBinding.wrappedValue = $0
+            optionalBinding.state = $0
         }
     }
 
@@ -498,7 +498,7 @@ extension ComponentStore {
         case .initial(let child):
             stateStorage = .root(child)
         case .binding(let binding):
-            stateStorage = .binding(binding)
+            stateStorage = .binding(.init(binding : binding))
         case .keyPath(let keyPath):
             stateStorage = .binding(keyPathBinding(keyPath))
         case .optionalKeyPath(let keyPath, let fallback):
@@ -548,5 +548,22 @@ extension ComponentStore {
 
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never {
         connectTo(scopedStore(state: state, environment: environment, route: route))
+    }
+}
+
+// Similar to SwiftUI.Binding but simpler and seems to fix issues with scope bindings and presentations
+public struct StateBinding<State> {
+    let get: () -> State
+    let set: (State) -> Void
+    
+    var state: State {
+        get { get() }
+        nonmutating set { set(newValue) }
+    }
+}
+
+extension StateBinding {
+    init(binding: Binding<State>) {
+        self.init(get: { binding.wrappedValue }, set: { binding.wrappedValue = $0 })
     }
 }

@@ -29,7 +29,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public convenience init(state: Binding<Model.State>, route: Model.Route? = nil) where Model.Environment == EmptyEnvironment {
-        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), environment: EmptyEnvironment(), route: route))
+        self.init(store: .init(state: .binding(.init(binding: state)), path: nil, graph: .init(), environment: EmptyEnvironment(), route: route))
     }
 
     public convenience init(state: Model.State, environment: Model.Environment, route: Model.Route? = nil) {
@@ -37,7 +37,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public convenience init(state: Binding<Model.State>, environment: Model.Environment, route: Model.Route? = nil) {
-        self.init(store: .init(state: .binding(state), path: nil, graph: .init(), environment: environment, route: route))
+        self.init(store: .init(state: .binding(.init(binding: state)), path: nil, graph: .init(), environment: environment, route: route))
     }
 
     init(store: ComponentStore<Model>) {
