@@ -114,6 +114,7 @@ class ComponentStore<Model: ComponentModel> {
 
     deinit {
         modelCancellables = []
+        children = [:]
         cancelTasks()
     }
 
@@ -446,6 +447,19 @@ public enum ScopedState<Parent, Child> {
     case binding(Binding<Child>)
     case keyPath(WritableKeyPath<Parent, Child>)
     case optionalKeyPath(WritableKeyPath<Parent, Child?>, fallback: Child)
+
+    var id: AnyHashable? {
+        switch self {
+        case .value:
+            nil
+        case .binding:
+            nil
+        case .keyPath(let keyPath):
+            keyPath.propertyName
+        case .optionalKeyPath(let keyPath, _):
+            keyPath.propertyName
+        }
+    }
 }
 
 // MARK: Scoping
