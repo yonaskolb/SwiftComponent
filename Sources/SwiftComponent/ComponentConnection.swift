@@ -30,8 +30,13 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     @MainActor
-    func connectedStore(from: ComponentStore<From>, state: ScopedState<From.State, To.State>, id stateID: AnyHashable? = nil) -> ComponentStore<To> {
-        let connectionID = ConnectionID(connectionID: self.id, stateID: stateID)
+    func connectedStore(from: ComponentStore<From>, state: ScopedState<From.State, To.State>, id: AnyHashable? = nil) -> ComponentStore<To> {
+        let connectionID = ConnectionID(
+            connectionID: self.id,
+            storeID: from.id,
+            stateID: state.id,
+            customID: id
+        )
         if let existingStore = from.children[connectionID] as? ComponentStore<To> {
             return existingStore
         }
@@ -76,10 +81,52 @@ public typealias ConnectionActionContext<Parent: ComponentModel, Child: Componen
 
 struct ConnectionID: Hashable {
     let connectionID: UUID
+    let storeID: UUID
     let stateID: AnyHashable?
+    let customID: AnyHashable?
 }
 
+//public protocol ConnectedContainer {
+//
+//    associatedtype Model: ComponentModel
+//}
+//
+//extension ViewModel: ConnectedContainer {
+//
+//}
+//
+//extension ObservedObject.Wrapper where ObjectType: ConnectedContainer {
+//
+//    @MainActor
+//    public subscript<Child: ComponentModel>(dynamicMember keyPath: KeyPath<ObjectType, EmbeddedComponentConnection<ObjectType.Model, Child>>) -> ViewModel<Child> {
+//        let connection = self.store.model![keyPath: keyPath]
+//        return connectedModel(connection)
+//    }
+//}
+
 extension ViewModel {
+
+    @dynamicMemberLookup
+    public struct Connections {
+
+        let model: ViewModel<Model>
+
+        @MainActor
+        public subscript<Child: ComponentModel>(dynamicMember keyPath: KeyPath<Model, EmbeddedComponentConnection<Model, Child>>) -> ViewModel<Child> {
+            let connection = model.store.model![keyPath: keyPath]
+            return model.connectedModel(connection)
+        }
+    }
+
+    public var connections: Connections { Connections(model: self) }
+}
+
+extension ComponentView {
+
+    public var connections: ViewModel<Model>.Connections { model.connections }
+}
+
+extension ViewModel { 
 
     @MainActor
     func connect<Child: ComponentModel>(to connection: ModelConnection<Model, Child>, state: ScopedState<Model.State, Child.State>) -> ViewModel<Child> {
@@ -150,6 +197,11 @@ extension ComponentModel {
     public func connection<To: ComponentModel>(_ connection: PresentedComponentConnection<Self, To>) -> To? {
         guard let state = self.store.state[keyPath: connection.state] else { return nil }
         return self.connection(connection.connection, state: .optionalKeyPath(connection.state, fallback: state))
+    }
+
+    public func connection<To: ComponentModel>(_ connection: ModelConnection<Self, To>, state: WritableKeyPath<Self.State, To.State?>) -> To? {
+        guard let childState = store.state[keyPath: state] else { return nil }
+        return self.connection(connection, state: .optionalKeyPath(state, fallback: childState))
     }
 }
 

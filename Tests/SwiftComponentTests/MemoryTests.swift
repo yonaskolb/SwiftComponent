@@ -17,16 +17,10 @@ final class MemoryTests: XCTestCase {
         viewModel.binding(\.count).wrappedValue = 2
         _ = viewModel.count
 
-        let connectedChild = viewModel.connect(to: \.child, state: .keyPath(\.child))
+        let connectedChild = viewModel.connectedModel(TestModel.child)
         await connectedChild.appearAsync(first: true)
 
-        let connectedOptionalChild = viewModel.connect(to: \.child, state: .optionalKeyPath(\.optionalChild, fallback: .init()))
-        await connectedOptionalChild.appearAsync(first: true)
-
-        let connectedChildInput = viewModel.connect(to: \.childInput, state: .keyPath(\.child))
-        await connectedChildInput.appearAsync(first: true)
-
-        let connectedOptionalChildInput = viewModel.connect(to: \.childInput, state: .optionalKeyPath(\.optionalChild, fallback: .init()))
+        let connectedOptionalChildInput = viewModel.connectedModel(TestModel.childInput, state: .init())
         await connectedOptionalChildInput.appearAsync(first: true)
 
         let child = viewModel.scope(state: \.self) as ViewModel<TestModel>
@@ -51,11 +45,11 @@ final class MemoryTests: XCTestCase {
     @ComponentModel
     fileprivate struct TestModel {
 
-        let child = Connection<TestModelChild> {
+        static let child = Connection<TestModelChild> {
             $0.model.state.count = 3
-        }
+        }.connect(to: \.child)
 
-        let childInput = Connection<TestModelChild>(output: .input(Input.child))
+        static let childInput = Connection<TestModelChild>(output: .input(Input.child))
 
         struct State {
             var count = 0
