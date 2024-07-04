@@ -91,9 +91,9 @@ final class ConnectionTests: XCTestCase {
 
         struct State {
             var value = ""
-//            @PresentedState(\.child)
+//            @Presented(\.child)
             var optionalChild: TestModelChild.State?
-//            @ConnectedState(\.child)
+//            @Connected(\.child)
             var child: TestModelChild.State = .init()
         }
 

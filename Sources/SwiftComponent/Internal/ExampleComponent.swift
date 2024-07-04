@@ -4,7 +4,7 @@ import SwiftUI
 @ComponentModel
 struct ExampleModel {
 
-    let child = Connection<ExampleChildModel>(output: .input(Input.child))
+    static let child = Connection<ExampleChildModel>(output: .input(Input.child)).connect(to: \.child)
 
     struct State: Equatable {
         var name: String
@@ -90,8 +90,8 @@ struct ExampleView: ComponentView {
                     button(.tap(1), "Tap")
                     button(.open, "Open")
                 }
-                .navigationDestination(unwrapping: model.binding(\.child)) { child in
-                    ExampleChildView(model: model.connect(to: \.child, state: .binding(child)))
+                .navigationDestination(unwrapping: model.presentedModel(Model.child)) { $model in
+                    ExampleChildView(model: model)
                 }
             }
         }
@@ -192,7 +192,7 @@ struct ExampleComponent: Component, PreviewProvider {
         Test("Open child", state: .init(name: "Main")) {
             Step.action(.open)
                 .expectRoute(/Model.Route.open, state: .init(name: "Main"))
-            Step.connection(\.child, state: \.child) {
+            Step.connection(Model.child) {
                 Step.action(.tap(4))
             }
             Step.route(/Model.Route.open) {

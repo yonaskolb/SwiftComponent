@@ -24,8 +24,6 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
 
     typealias Context = ModelContext<Self>
     typealias Connection<Model: ComponentModel> = ModelConnection<Self, Model>
-    typealias ConnectedState<Model: ComponentModel> = ConnectedComponentState<Self, Model>
-    typealias PresentedState<Model: ComponentModel> = PresentedComponentState<Self, Model>
     typealias Scope<Model: ComponentModel> = ComponentConnection<Self, Model>
 }
 
