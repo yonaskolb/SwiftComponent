@@ -15,8 +15,10 @@ var package = Package(
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/yonaskolb/swift-dependencies", branch: "merging"),
-        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.1.0"),
+        .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.2.1"),
+        .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.2.4"),
+        .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.0.0"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.6"),
         .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/DavidBrunow/AccessibilitySnapshot", branch: "bugfix/navigationStackSortOrder"),
@@ -34,6 +36,8 @@ var package = Package(
                 .product(name: "Dependencies", package: "swift-dependencies"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
                 .product(name: "CasePaths", package: "swift-case-paths"),
+                .product(name: "Perception", package: "swift-perception"),
+                .product(name: "IdentifiedCollections", package: "swift-identified-collections"),
                 "SwiftGUI",
                 "SwiftPreview",
                 "Runtime",
@@ -48,6 +52,11 @@ var package = Package(
             name: "SwiftComponentTests",
             dependencies: [
                 "SwiftComponent",
+            ]),
+        .testTarget(
+            name: "SwiftComponentMacroTests",
+            dependencies: [
+                "SwiftComponentMacros",
                 .product(name: "MacroTesting", package: "swift-macro-testing"),
             ]),
         .plugin(name: "SwiftComponentBuildPlugin", capability: .buildTool(), dependencies: ["SwiftComponentCLI"]),

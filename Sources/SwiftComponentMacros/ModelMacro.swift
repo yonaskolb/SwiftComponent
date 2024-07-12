@@ -56,19 +56,30 @@ extension ComponentModelMacro: MemberAttributeMacro {
         providingAttributesFor member: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [AttributeSyntax] {
-        func hasMainActor(_ attributes: AttributeListSyntax) -> Bool {
-            attributes.compactMap { $0.as(AttributeSyntax.self) }.contains { 
-                print($0.attributeName.description)
-                return $0.attributeName.description == "MainActor"
-            }
-        }
-        if let syntax = member.as(FunctionDeclSyntax.self), !hasMainActor(syntax.attributes) {
+        if let syntax = member.as(FunctionDeclSyntax.self),
+            !syntax.attributes.hasAttribute("MainActor") {
             return ["@MainActor"]
         }
-        if let syntax = member.as(VariableDeclSyntax.self), !hasMainActor(syntax.attributes) {
+        if let syntax = member.as(VariableDeclSyntax.self),
+            !syntax.attributes.hasAttribute("MainActor") {
             return ["@MainActor"]
         }
+        if let syntax = member.as(StructDeclSyntax.self), 
+            syntax.name.text == "State",
+           !syntax.attributes.hasAttribute("ObservableState"){
+            return ["@ObservableState"]
+        }
+
         return []
+    }
+}
+
+extension AttributeListSyntax {
+
+    func hasAttribute(_ attribute: String) -> Bool {
+        self.compactMap { $0.as(AttributeSyntax.self) }.contains {
+            return $0.attributeName.description == attribute
+        }
     }
 }
 

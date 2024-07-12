@@ -73,7 +73,7 @@ extension TestStep {
     }
 
     //TODO: also clear mutation assertions
-    public func expectResourceTask<R>(_ keyPath: WritableKeyPath<Model.State, Resource<R>>, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func expectResourceTask<R>(_ keyPath: KeyPath<Model.State, ResourceState<R>>, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         expectTask(name: getResourceTaskName(keyPath), successful: successful, file: file, line: line)
             .expectState(keyPath.appending(path: \.isLoading), false, file: file, line: line)
     }

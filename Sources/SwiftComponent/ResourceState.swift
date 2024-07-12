@@ -1,8 +1,9 @@
 import Foundation
 import SwiftUI
+import Perception
 
 @propertyWrapper
-public struct Resource<Value> {
+public struct ResourceState<Value> {
     public var wrappedValue: Value? {
         get { content }
         set { content = newValue }
@@ -21,7 +22,7 @@ public struct Resource<Value> {
         self.isLoading = isLoading
     }
 
-    public enum ResourceState {
+    public enum State {
         case unloaded
         case loading
         case loaded(Value)
@@ -35,7 +36,7 @@ public struct Resource<Value> {
     }
 
     /// order is the order that state type will be returned if it's not nil. States that are left out will be returned in the order content, loading, error
-    public func state(order: [ResourceState.ResourceStateType] = [.content, .loading, .error]) -> ResourceState {
+    public func state(order: [State.ResourceStateType] = [.content, .loading, .error]) -> State {
         for state in order {
             switch state {
                 case .content:
@@ -65,27 +66,31 @@ public struct Resource<Value> {
         }
 
     }
-
-    public var projectedValue: Self {
-        get { self }
-        set { self = newValue }
+    
+    public var projectedValue: ResourceState { 
+        get {
+            return self
+        }
+        set {
+            self = newValue
+        }
     }
 }
 
-public extension Resource {
-    static var unloaded: Self { Resource(content: nil, error: nil, isLoading: false) }
-    static var loading: Self { Resource(content: nil, error: nil, isLoading: true) }
-    static func content<C>(_ content: C) -> Resource<C> { Resource<C>(content: content, error: nil, isLoading: false) }
-    static func error(_ error: Error) -> Resource { Resource(content: nil, error: error, isLoading: false) }
+public extension ResourceState {
+    static var unloaded: ResourceState { ResourceState(content: nil, error: nil, isLoading: false) }
+    static var loading: ResourceState { ResourceState(content: nil, error: nil, isLoading: true) }
+    static func content<C>(_ content: C) -> ResourceState<C> { ResourceState<C>(content: content, error: nil, isLoading: false) }
+    static func error(_ error: Error) -> ResourceState { ResourceState(content: nil, error: error, isLoading: false) }
 }
 
-extension Resource: Equatable where Value: Equatable {
-    public static func == (lhs: Resource<Value>, rhs: Resource<Value>) -> Bool {
+extension ResourceState: Equatable where Value: Equatable {
+    public static func == (lhs: ResourceState<Value>, rhs: ResourceState<Value>) -> Bool {
         lhs.content == rhs.content && lhs.isLoading == rhs.isLoading && lhs.error?.localizedDescription == rhs.error?.localizedDescription
     }
 }
 
-extension Resource where Value: Collection, Value: ExpressibleByArrayLiteral {
+extension ResourceState where Value: Collection, Value: ExpressibleByArrayLiteral {
 
     public var list: Value {
         get {
@@ -100,26 +105,26 @@ extension Resource where Value: Collection, Value: ExpressibleByArrayLiteral {
         }
     }
 
-    public static var empty: Self {
+    public static var empty: ResourceState {
         self.content([])
     }
 }
 
-extension Resource {
+extension ResourceState {
 
-    public func map<T>(_ map: (Value) -> T) -> Resource<T> {
-        Resource<T>(content: content.map(map), error: error, isLoading: isLoading)
+    public func map<T>(_ map: (Value) -> T) -> ResourceState<T> {
+        ResourceState<T>(content: content.map(map), error: error, isLoading: isLoading)
     }
 }
 
-func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, Resource<R>>) -> String {
+func getResourceTaskName<State, R>(_ keyPath: KeyPath<State, ResourceState<R>>) -> String {
     "load \(keyPath.propertyName ?? "resource")"
 }
 
 extension ComponentModel {
 
     @MainActor
-    public func loadResource<ResourceState>(_ keyPath: WritableKeyPath<State, Resource<ResourceState>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> ResourceState) async {
+    public func loadResource<S>(_ keyPath: WritableKeyPath<State, ResourceState<S>>, animation: Animation? = nil, overwriteContent: Bool = true, file: StaticString = #filePath, line: UInt = #line, load: @MainActor @escaping () async throws -> S) async {
         mutate(keyPath.appending(path: \.isLoading), true, animation: animation)
         let name = getResourceTaskName(keyPath)
         await store.task(name, cancellable: true, source: .capture(file: file, line: line)) { @MainActor in
@@ -142,11 +147,11 @@ extension ComponentModel {
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
 public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: View {
 
-    let resource: Resource<Value>
+    let resource: ResourceState<Value>
     let content: (Value) -> Content
     let error: (Error) -> ErrorView
 
-    public init(_ resource: Resource<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
+    public init(_ resource: ResourceState<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
         self.resource = resource
         self.content = content
         self.error = error

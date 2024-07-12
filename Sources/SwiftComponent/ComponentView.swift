@@ -2,7 +2,9 @@ import Foundation
 import SwiftUI
 import SwiftGUI
 import SwiftPreview
+import Perception
 
+@MainActor
 public protocol ComponentView: View, DependencyContainer {
 
     associatedtype Model: ComponentModel
@@ -69,7 +71,9 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
     }
 
     var body: some View {
-        getView()
+        WithPerceptionTracking {
+            getView()
+        }
         .environment(\.viewAppearanceTask, true)
         .task {
             // even though we can manage an appearanceTask in the store, use task instead of onAppear here as there can be race conditions in SwiftUI related to FocusState which means ComponentStore can be deinitialised (as a parent recreated a ViewModel) before the task actually starts.

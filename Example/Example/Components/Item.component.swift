@@ -7,7 +7,8 @@ struct ItemModel  {
     struct State {
         var name: String
         var text: String = "text"
-        var data: Resource<Int>
+        var unreadProperty = 0
+        var data: ResourceState<Int>
         var presentDetail: ItemDetailModel.State?
         var detail: ItemDetailModel.State = .init(id: "0", name: "0")
     }
@@ -21,6 +22,7 @@ struct ItemModel  {
         case openDetail
         case pushItem
         case updateDetail
+        case updateUnread
     }
 
     enum Input {
@@ -52,6 +54,8 @@ struct ItemModel  {
             route(to: Route.detail, state: state.detail)
         case .updateDetail:
             state.detail.name = Int.random(in: 0...1000).description
+        case .updateUnread:
+            state.unreadProperty += 1
         }
     }
 
@@ -67,7 +71,7 @@ struct ItemModel  {
 
 struct ItemView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ItemModel>
+    var model: ViewModel<ItemModel>
 
     func presentation(for route: ItemModel.Route) -> Presentation {
         switch route {
@@ -94,7 +98,7 @@ struct ItemView: ComponentView {
             .frame(height: 30)
             HStack {
                 Text("Detail name: \(model.state.detail.name)")
-                button(.updateDetail, "Update")
+                button(.updateDetail, "Update Detail")
             }
             ItemDetailView(model: model.scope(state: \.detail, output: Model.Input.detail))
                 .fixedSize()
@@ -104,6 +108,7 @@ struct ItemView: ComponentView {
             button(.calculate, "Calculate")
             button(.openDetail, "Item")
             button(.pushItem, "Push Item")
+            button(.updateUnread, "Update unread")
             Spacer()
         }
         .padding()
@@ -137,7 +142,7 @@ struct ItemDetailModel {
     }
 
     func binding(keyPath: PartialKeyPath<State>) async {
-
+        
     }
 
     func handle(action: Action) async {
@@ -152,7 +157,7 @@ struct ItemDetailModel {
 
 struct ItemDetailView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ItemDetailModel>
+    var model: ViewModel<ItemDetailModel>
 
     var view: some View {
         VStack {
@@ -174,7 +179,7 @@ struct ItemComponent: Component, PreviewProvider {
     typealias Model = ItemModel
 
     static func view(model: ViewModel<ItemModel>) -> some View {
-        ItemView(model: model)
+        ItemView(model: model.sendViewBodyEvents())
     }
 
     static var preview = PreviewModel(state: .init(name: "start", data: .loading))

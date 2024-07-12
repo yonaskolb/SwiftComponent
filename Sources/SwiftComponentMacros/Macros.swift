@@ -6,5 +6,9 @@ import SwiftSyntaxMacros
 struct MyMacroPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         ComponentModelMacro.self,
+        ObservableStateMacro.self,
+        ObservationStateTrackedMacro.self,
+        ObservationStateIgnoredMacro.self,
+        ResourceMacro.self
     ]
 }

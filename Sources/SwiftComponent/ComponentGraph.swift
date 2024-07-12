@@ -2,6 +2,8 @@ import Foundation
 
 class ComponentGraph {
 
+    var sendViewBodyEvents = false
+    
     private var models: [ComponentPath: WeakRef] = [:]
     private var routes: [ComponentPath: Any] = [:]
     let id = UUID()

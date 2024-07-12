@@ -12,11 +12,15 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     public var dependencies: ComponentDependencies { store.dependencies }
     public var environment: Model.Environment { store.environment }
-    var sendViewBodyEvents = false
 
     public internal(set) var state: Model.State {
         get { store.state }
-        set { store.state = newValue }
+        set { 
+            // update listeners in internal tools that can set the state directly
+            store._$observationRegistrar.withMutation(of: store, keyPath: \.state) {
+                store.state = newValue
+            }
+        }
     }
 
     public var route: Model.Route? {
@@ -76,7 +80,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     }
 
     public func sendViewBodyEvents(_ send: Bool = true) -> Self {
-        self.sendViewBodyEvents = send
+        self.store.graph.sendViewBodyEvents = send
         return self
     }
 
@@ -124,9 +128,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     @MainActor
     func bodyAccessed(start: Date, file: StaticString = #filePath, line: UInt = #line) {
-        if sendViewBodyEvents {
-            store.bodyAccessed(start: start, file: file, line: line)
-        }
+        store.bodyAccessed(start: start, file: file, line: line)
     }
 }
 
@@ -165,14 +167,29 @@ extension ViewModel {
         store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment, output: .input(output)).viewModel()
     }
 
+    // optional statePath, case and output -> input
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value)), environment: environment, output: .input(output)).viewModel()
+    }
+
     // optional statePath and output -> output
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
         store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment, output: .output(output)).viewModel()
     }
 
+    // optional statePath, case and output -> output
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value)), environment: environment, output: .output(output)).viewModel()
+    }
+
     // optional statePath and output -> Never
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
         store.scope(state: .optionalKeyPath(state, fallback: value), environment: environment).viewModel()
+    }
+
+    // optional statePath, case and output -> Never
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value)), environment: environment).viewModel()
     }
 
     // statePath and output -> Never
@@ -227,14 +244,29 @@ extension ViewModel {
         store.scope(state: .optionalKeyPath(state, fallback: value), output: .input(output)).viewModel()
     }
 
+    // optional statePath, case and output -> input
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value)), output: .input(output)).viewModel()
+    }
+
     // optional statePath and output -> output
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
         store.scope(state: .optionalKeyPath(state, fallback: value), output: .output(output)).viewModel()
     }
 
+    // optional statePath, case and output -> output
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value)), output: .output(output)).viewModel()
+    }
+
     // optional statePath and output -> Never
     public func scope<Child: ComponentModel>(state: WritableKeyPath<Model.State, Child.State?>, value: Child.State) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
         store.scope(state: .optionalKeyPath(state, fallback: value)).viewModel()
+    }
+
+    // optional statePath, case and output -> Never
+    public func scope<Child: ComponentModel, Destination: CasePathable>(state: WritableKeyPath<Model.State, Destination?>, case: CaseKeyPath<Destination, Child.State>, value: Child.State) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
+        store.scope(state: .stateBinding(store.optionalCaseBinding(state: state, case: `case`, value: value))).viewModel()
     }
 
     // statePath and output -> Never

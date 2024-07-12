@@ -3,9 +3,10 @@ import SwiftUI
 import SwiftPreview
 import SwiftGUI
 
+@MainActor
 struct ComponentDashboardView<ComponentType: Component>: View {
 
-    @ObservedObject var model: ViewModel<ComponentType.Model>
+    var model: ViewModel<ComponentType.Model>
 
     @AppStorage("componentPreview.showView") var showView = true
     @AppStorage("componentPreview.showComponent") var showComponent = true
@@ -27,6 +28,17 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         ComponentType.snapshots +
         ComponentType.testSnapshots.compactMap { testRun.snapshots[$0.name] }
     }
+    
+    func stateBinding() -> Binding<ComponentType.Model.State> {
+        Binding(
+            get: {
+                model.state
+            },
+            set: { state in
+                model.state = state
+            }
+        )
+    }
 
     func clearEvents() {
         EventStore.shared.clear()
@@ -39,7 +51,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         }
     }
 
-    @MainActor
     func runAllTestsOnMain(delay: TimeInterval) async {
         testRun.reset(ComponentType.tests)
         for test in ComponentType.tests {
@@ -47,7 +58,6 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         }
     }
 
-    @MainActor
     func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval) async {
         runningTests = true
         testRun.startTest(test)
@@ -178,7 +188,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var stateSection: some View {
         Section(header: Text("State")) {
-            SwiftView(value: model.binding(\.self), config: Config(editing: true))
+            SwiftView(value: stateBinding(), config: Config(editing: true))
                 .showRootNavTitle(false)
         }
     }

@@ -8,6 +8,7 @@ struct ExampleModel {
         var name: String
         var loading: Bool = false
         var date = Date()
+        @Resource var resource: String?
     }
 
     enum Action: Equatable {
@@ -61,7 +62,7 @@ struct ExampleModel {
 
 struct ExampleView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ExampleModel>
+    var model: ViewModel<ExampleModel>
 
     func view(route: ExampleModel.Route) -> some View {
         switch route {
@@ -120,7 +121,7 @@ struct ExampleChildModel {
 
 struct ExampleChildView: ComponentView {
 
-    @ObservedObject var model: ViewModel<ExampleChildModel>
+    var model: ViewModel<ExampleChildModel>
 
     var view: some View {
         VStack {
