@@ -138,18 +138,18 @@ extension ViewModel {
     // MARK: Different environment
 
     // state binding and output -> input
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
-        store.scope(state: .binding(state), environment: environment, output: .input(output)).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> {
+        store.scope(state: .binding(stateBinding), environment: environment, output: .input(output)).viewModel()
     }
 
     // state binding and output -> output
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
-        store.scope(state: .binding(state), environment: environment, output: .output(output)).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>, environment: Child.Environment, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> {
+        store.scope(state: .binding(stateBinding), environment: environment, output: .output(output)).viewModel()
     }
 
     // state binding and output -> Never
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
-        store.scope(state: .binding(state), environment: environment).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>, environment: Child.Environment) -> ViewModel<Child> where Child.Output == Never {
+        store.scope(state: .binding(stateBinding), environment: environment).viewModel()
     }
 
     // statePath and output -> input
@@ -215,18 +215,18 @@ extension ViewModel {
     // MARK: same environment
 
     // state binding and output -> input
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
-        store.scope(state: .binding(state), output: .input(output)).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Input) -> ViewModel<Child> where Model.Environment == Child.Environment {
+        store.scope(state: .binding(stateBinding), output: .input(output)).viewModel()
     }
 
     // state binding and output -> output
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
-        store.scope(state: .binding(state), output: .output(output)).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>, output: @escaping (Child.Output) -> Model.Output) -> ViewModel<Child> where Model.Environment == Child.Environment {
+        store.scope(state: .binding(stateBinding), output: .output(output)).viewModel()
     }
 
     // state binding and output -> Never
-    public func scope<Child: ComponentModel>(state: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
-        store.scope(state: .binding(state)).viewModel()
+    public func scope<Child: ComponentModel>(stateBinding: Binding<Child.State>) -> ViewModel<Child> where Child.Output == Never, Model.Environment == Child.Environment {
+        store.scope(state: .binding(stateBinding)).viewModel()
     }
 
     // statePath and output -> input
