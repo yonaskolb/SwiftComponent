@@ -4,23 +4,23 @@ import SwiftComponent
 @ComponentModel
 struct ItemModel  {
 
-    static let detail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(to: \.detail)
+    static let detail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(state: \.detail)
+    static let presentedDetail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(state: \.destination, case: \.detail)
     
     struct State {
         var name: String
         var text: String = "text"
         var unreadProperty = 0
         var data: ResourceState<Int>
-        var presentDetail: ItemDetailModel.State?
+        var presentedDetail: ItemDetailModel.State?
         var detail: ItemDetailModel.State = .init(id: "0", name: "0")
         var destination: Destination?
     }
-
+    
     enum Route {
         case detail(ComponentRoute<ItemDetailModel>)
     }
 
-    @CasePathable
     enum Destination {
         case detail(ItemDetailModel.State)
     }
@@ -57,7 +57,7 @@ struct ItemModel  {
             try? await dependencies.continuousClock.sleep(for: .seconds(1))
             state.name = String(UUID().uuidString.prefix(6))
         case .present:
-            state.presentDetail = state.detail
+            state.presentedDetail = state.detail
         case .push:
 //            route(to: Route.detail, state: state.detail)
             state.destination = .init(.detail(state.detail))
@@ -73,7 +73,7 @@ struct ItemModel  {
         case .detail(.finished(let name)):
             state.detail.name = name
             state.name = name
-            state.presentDetail = nil
+            state.presentedDetail = nil
         }
     }
 }
@@ -121,13 +121,7 @@ struct ItemView: ComponentView {
             Spacer()
         }
         .padding()
-        .sheet(unwrapping: model.binding(\.presentDetail)) { state in
-            NavigationView {
-                ItemDetailView(model: model.connect(to: \.detail, state: state))
-            }
-        }
-        .navigationDestination(unwrapping: model.binding(\.destination).detail) { state in
-            let model = model.connect(to: \.detail, state: state)
+        .navigationDestination(item: model.presentedModel(Model.presentedDetail)) { model in
             ItemDetailView(model: model)
                 .toolbar {
                     model.button(.save) {
