@@ -11,7 +11,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     associatedtype Output = Never
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
-    associatedtype Environment = EmptyEnvironment
+    associatedtype Environment: ComponentEnvironment = EmptyEnvironment
     @MainActor func appear() async
     @MainActor func disappear() async
     @MainActor func binding(keyPath: PartialKeyPath<State>) async

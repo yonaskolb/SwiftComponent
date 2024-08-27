@@ -15,7 +15,11 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     public init() where To.Output == Never, From.Environment == To.Environment {
-        self.init(output: .ignore, environment: { $0.environment })
+        self.init(output: .ignore, environment: \.environment)
+    }
+    
+    public init() where To.Output == Never, From.Environment.Parent == To.Environment {
+        self.init(output: .ignore, environment: \.environment.parent)
     }
 
     public init(environment: @escaping (From) -> To.Environment) where To.Output == Never {
@@ -23,11 +27,19 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     public init(output: OutputHandler<From, To>) where From.Environment == To.Environment {
-        self.init(output: output, environment: { $0.environment })
+        self.init(output: output, environment: \.environment)
+    }
+    
+    public init(output: OutputHandler<From, To>) where From.Environment.Parent == To.Environment {
+        self.init(output: output, environment: \.environment.parent)
     }
     
     public init(output: @escaping (To.Output) -> From.Input) where From.Environment == To.Environment {
-        self.init(output: .input(output), environment: { $0.environment })
+        self.init(output: .input(output), environment: \.environment)
+    }
+    
+    public init(output: @escaping (To.Output) -> From.Input) where From.Environment.Parent == To.Environment {
+        self.init(output: .input(output), environment: \.environment.parent)
     }
     
     public init(output: @escaping (To.Output) -> From.Input, environment: @MainActor @escaping (From) -> To.Environment) {
@@ -35,7 +47,11 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void) where From.Environment == To.Environment {
-        self.init(output: .handle(output), environment: { $0.environment })
+        self.init(output: .handle(output), environment: \.environment)
+    }
+    
+    public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void) where From.Environment.Parent == To.Environment {
+        self.init(output: .handle(output), environment: \.environment.parent)
     }
 
     @MainActor
