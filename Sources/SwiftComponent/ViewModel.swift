@@ -126,6 +126,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
         store.disappear(file: file, line: line)
     }
+    
+    @MainActor
+    func disappearAsync(file: StaticString = #filePath, line: UInt = #line) async {
+        await store.disappear(file: file, line: line)
+    }
 
     @MainActor
     func bodyAccessed(start: Date, file: StaticString = #filePath, line: UInt = #line) {

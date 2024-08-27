@@ -16,23 +16,21 @@ final class MemoryTests: XCTestCase {
         viewModel.send(.start)
         viewModel.binding(\.count).wrappedValue = 2
         _ = viewModel.count
-
-        let connectedChild = viewModel.connectedModel(TestModel.child)
-        await connectedChild.appearAsync(first: true)
-
-        let connectedOptionalChildInput = viewModel.connectedModel(TestModel.childInput, state: .init(), id: "constant")
-        await connectedOptionalChildInput.appearAsync(first: true)
-
-        let child = viewModel.scope(state: \.self) as ViewModel<TestModel>
+        
+        let child = viewModel.connectedModel(TestModel.child)
         await child.appearAsync(first: true)
         await child.sendAsync(.start)
-        child.disappear()
-        child.appear(first: true)
         child.send(.start)
         child.binding(\.count).wrappedValue = 3
         _ = child.count
+        
+        let childStateIDAndInput = viewModel.connectedModel(TestModel.childInput, state: .init(), id: "constant")
+        
+        childStateIDAndInput.disappear()
+        child.disappear()
+        viewModel.disappear()
 
-        try? await Task.sleep(for: .seconds(0.5))
+        try? await Task.sleep(for: .seconds(0.2))
 
         checkForMemoryLeak(viewModel)
         checkForMemoryLeak(viewModel.store)
@@ -40,6 +38,9 @@ final class MemoryTests: XCTestCase {
         checkForMemoryLeak(child)
         checkForMemoryLeak(child.store)
         checkForMemoryLeak(child.store.graph)
+        checkForMemoryLeak(childStateIDAndInput)
+        checkForMemoryLeak(childStateIDAndInput.store)
+        checkForMemoryLeak(childStateIDAndInput.store.graph)
     }
 
     @ComponentModel
@@ -100,6 +101,10 @@ final class MemoryTests: XCTestCase {
         struct State {
             var count: Int = 2
         }
+        
+        enum Action {
+            case start
+        }
 
         enum Output {
             case done
@@ -108,6 +113,13 @@ final class MemoryTests: XCTestCase {
         func appear() async {
             await self.task("task") {
                 state.count = 2
+            }
+        }
+        
+        func handle(action: Action) async {
+            switch action {
+            case .start:
+                try? await dependencies.continuousClock.sleep(for: .seconds(0.1))
             }
         }
     }

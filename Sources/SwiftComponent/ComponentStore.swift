@@ -288,6 +288,13 @@ extension ComponentStore {
     }
     
     @MainActor
+    func disappear(file: StaticString = #filePath, line: UInt = #line) async {
+        addTask {  @MainActor in
+            await self.disappear(file: file, line: line)
+        }
+    }
+    
+    @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
         addTask { @MainActor in
             let start = Date()

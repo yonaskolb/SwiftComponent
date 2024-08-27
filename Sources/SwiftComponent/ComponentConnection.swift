@@ -55,8 +55,19 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
             environment: self.environment(from.model),
             output: self.output
         )
-
+        
         from.children[connectionID] = childStore
+        
+        // Remove from cache when dissapeared so memory is released, and add back if appeared again
+        // Is there a better hook to do this?
+        childStore = childStore.onEvent { [weak childStore] event in
+            guard let childStore else { return }
+            if case .view(.disappear) = event.type {
+                from.children[connectionID] = nil
+            } else if case .view(.appear) = event.type {
+                from.children[connectionID] = childStore
+            }
+        }
 
         if let actionHandler = self.action {
             childStore = childStore
@@ -96,24 +107,6 @@ struct ConnectionID: Hashable {
     let stateID: AnyHashable?
     let customID: AnyHashable?
 }
-
-//public protocol ConnectedContainer {
-//
-//    associatedtype Model: ComponentModel
-//}
-//
-//extension ViewModel: ConnectedContainer {
-//
-//}
-//
-//extension ObservedObject.Wrapper where ObjectType: ConnectedContainer {
-//
-//    @MainActor
-//    public subscript<Child: ComponentModel>(dynamicMember keyPath: KeyPath<ObjectType, EmbeddedComponentConnection<ObjectType.Model, Child>>) -> ViewModel<Child> {
-//        let connection = self.store.model![keyPath: keyPath]
-//        return connectedModel(connection)
-//    }
-//}
 
 extension ViewModel {
 
