@@ -65,12 +65,26 @@ extension ComponentModelMacro: MemberAttributeMacro {
             !syntax.attributes.hasAttribute("MainActor") {
             return ["@MainActor"]
         }
-        if let syntax = member.as(StructDeclSyntax.self), 
+        
+        // add ObservableState to State
+        if let syntax = member.as(StructDeclSyntax.self),
             syntax.name.text == "State",
            !syntax.attributes.hasAttribute("ObservableState"){
             return ["@ObservableState"]
         }
-
+        
+        // add ObservableState and CasePathable to Destination
+        if let syntax = member.as(EnumDeclSyntax.self),
+           syntax.name.text == "Destination" {
+            var attributes: [AttributeSyntax] = []
+            if !syntax.attributes.hasAttribute("ObservableState") {
+                attributes.append("@ObservableState")
+          	}
+            if !syntax.attributes.hasAttribute("CasePathable") {
+                attributes.append("@CasePathable")
+              }
+            return attributes
+        }
         return []
     }
 }

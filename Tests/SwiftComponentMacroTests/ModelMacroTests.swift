@@ -6,7 +6,7 @@ import SwiftComponentMacros
 
 final class ModelMacroTests: XCTestCase {
     override func invokeTest() {
-        withMacroTesting(isRecording: true, macros: [ComponentModelMacro.self]) {
+        withMacroTesting(isRecording: false, macros: [ComponentModelMacro.self]) {
             super.invokeTest()
         }
     }
@@ -28,6 +28,36 @@ final class ModelMacroTests: XCTestCase {
                     self.context = context
                 }
 
+            }
+
+            extension Model: ComponentModel {
+            }
+            """
+        }
+    }
+    
+    func testDestination() {
+        assertMacro {
+            """
+            @ComponentModel struct Model {
+            	enum Destination {
+            		case item(ItemModel.State)
+            	}
+            }
+            """
+        } expansion: {
+            """
+            struct Model {
+            	@ObservableState @CasePathable
+            	enum Destination {
+            		case item(ItemModel.State)
+            	}
+
+            	public var context: Context
+
+            	public init(context: Context) {
+            	    self.context = context
+            	}
             }
 
             extension Model: ComponentModel {
