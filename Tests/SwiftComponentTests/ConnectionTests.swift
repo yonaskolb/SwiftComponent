@@ -6,7 +6,7 @@ import XCTest
 final class ConnectionTests: XCTestCase {
 
     @MainActor
-    func testConnectionInlineOutput() async {
+    func testInlineOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
         let child = parent.connectedModel(TestModel.child, state: .init(), id: "constant")
 
@@ -16,7 +16,7 @@ final class ConnectionTests: XCTestCase {
     }
 
     @MainActor
-    func testConnectedConnectionOutput() async {
+    func testConnectedOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
         let child = parent.connectedModel(TestModel.childConnected)
 
@@ -24,66 +24,81 @@ final class ConnectionTests: XCTestCase {
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
         XCTAssertEqual(parent.state.value, "handled")
     }
+    
+    @MainActor
+    func testConnectedCaching() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        
+        let child1 = parent.connectedModel(TestModel.childConnected)
+        let child2 = parent.connectedModel(TestModel.childConnected)
+        XCTAssertEqual(child1.id, child2.id)
+    }
+    
+    @MainActor
+    func testConnectedCachingResetOnAppearance() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        
+        let child1 = parent.connectedModel(TestModel.childConnected)
+        child1.disappear()
+        try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
+        let child2 = parent.connectedModel(TestModel.childConnected)
+        XCTAssertNotEqual(child1.id, child2.id)
+        await child1.appearAsync(first: false)
+        try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
+        let child3 = parent.connectedModel(TestModel.childConnected)
+        XCTAssertEqual(child1.id, child3.id)
+    }
+    
+    @MainActor
+    func testStateCaching() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        
+        let child1 = parent.connectedModel(TestModel.child, state: .init(), id: "1")
+        let child2 = parent.connectedModel(TestModel.child, state: .init(), id: "1")
+        let child3 = parent.connectedModel(TestModel.child, state: .init(), id: "2")
+        XCTAssertEqual(child1.id, child2.id)
+        XCTAssertNotEqual(child2.id, child3.id)
+    }
 
-//    @MainActor
-//    func testInputOutput() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.childToInput, state: .keyPath(\.child))
-//
-//        await child.sendAsync(.sendOutput)
-//        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
-//        XCTAssertEqual(parent.state.value, "handled")
-//    }
-//
-//    @MainActor
-//    func testActionHandler() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.childAction, state: .keyPath(\.child))
-//
-//        await child.sendAsync(.sendOutput)
-//        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
-//        XCTAssertEqual(parent.state.value, "action handled")
-//    }
-//
-//    @MainActor
-//    func testBinding() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.child, state: .keyPath(\.child))
-//
-//        await child.sendAsync(.mutateState)
-//        XCTAssertEqual(child.state.value, "mutated")
-//        XCTAssertEqual(parent.state.child.value, "mutated")
-//    }
-//
-//    @MainActor
-//    func testOptionalBinding() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.child, state: .optionalKeyPath(\.optionalChild, fallback: .init(value: "parent")))
-//
-//        await child.sendAsync(.mutateState)
-//        XCTAssertEqual(child.state.value, "mutated")
-//        XCTAssertEqual(parent.state.optionalChild?.value, "mutated")
-//    }
-//
-//    @MainActor
-//    func testChildAction() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.child, state: .keyPath(\.child))
-//
-//        await parent.sendAsync(.actionToChild)
-//        XCTAssertEqual(child.state.value, "from parent")
-//        XCTAssertEqual(parent.state.child.value, "from parent")
-//    }
-//
-//    @MainActor
-//    func testOptionalChildAction() async {
-//        let parent = ViewModel<TestModel>(state: .init())
-//        let child = parent.connectedModel(TestModel.child, state: .optionalKeyPath(\.optionalChild, fallback: .init(value: "parent")))
-//
-//        await parent.sendAsync(.actionToOptionalChild)
-//        XCTAssertEqual(child.state.value, "from parent")
-//        XCTAssertEqual(parent.state.optionalChild?.value, "from parent")
-//    }
+    @MainActor
+    func testInputOutput() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connectedModel(TestModel.childToInput)
+
+        await child.sendAsync(.sendOutput)
+        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
+        XCTAssertEqual(parent.state.value, "handled")
+    }
+
+    @MainActor
+    func testActionHandler() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connectedModel(TestModel.childAction)
+
+        await child.sendAsync(.sendOutput)
+        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
+        XCTAssertEqual(parent.state.value, "action handled")
+    }
+
+    @MainActor
+    func testStateBinding() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connectedModel(TestModel.childConnected)
+
+        await child.sendAsync(.mutateState)
+        XCTAssertEqual(child.state.value, "mutated")
+        XCTAssertEqual(parent.state.child.value, "mutated")
+    }
+
+    @MainActor
+    func testChildAction() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connectedModel(TestModel.childConnected)
+
+        await parent.sendAsync(.actionToChild)
+        XCTAssertEqual(child.state.value, "from parent")
+        XCTAssertEqual(parent.state.child.value, "from parent")
+    }
 
     @ComponentModel
     fileprivate struct TestModel {
@@ -96,12 +111,13 @@ final class ConnectionTests: XCTestCase {
             $0.model.state.value = "handled"
         }.connect(state: \.child)
 
-        static let childToInput = Connection<TestModelChild>(output: .input(Input.child))
+        static let childToInput = Connection<TestModelChild>(output: .input(Input.child)).connect(state: \.child)
 
         static let childAction = Connection<TestModelChild>(output: .ignore)
             .onAction {
                 $0.model.state.value = "action handled"
             }
+            .connect(state: \.child)
 
         struct State {
             var value = ""
