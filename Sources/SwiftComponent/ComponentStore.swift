@@ -460,22 +460,22 @@ extension Task: CancellableTask {}
 public enum ScopedState<Parent, Child> {
     case value(Child)
     case binding(Binding<Child>)
-    case stateBinding(StateBinding<Child>)
+    case stateBinding(StateBinding<Child>, id: AnyHashable?)
     case keyPath(WritableKeyPath<Parent, Child>)
     case optionalKeyPath(WritableKeyPath<Parent, Child?>, fallback: Child)
-
+    
     var id: AnyHashable? {
         switch self {
         case .value:
             nil
         case .binding:
             nil
-        case .stateBinding:
-            nil
+        case .stateBinding(_, let id):
+            id
         case .keyPath(let keyPath):
-            keyPath.propertyName
+            keyPath
         case .optionalKeyPath(let keyPath, _):
-            keyPath.propertyName
+            keyPath
         }
     }
 }
@@ -504,6 +504,13 @@ extension ComponentStore {
             get: { self.stateStorage.state[keyPath: stateKeyPath]?[case: `case`] ?? value },
             set: { self.stateStorage.state[keyPath: stateKeyPath]?[case: `case`] = $0 }
         )
+    }
+    
+    func caseScopedState<ChildState, Enum: CasePathable>(state statePath: WritableKeyPath<Model.State, Enum?>, case casePath: CaseKeyPath<Enum, ChildState>, value: ChildState) -> ScopedState<Model.State, ChildState> {
+        var hasher = Hasher()
+        hasher.combine(statePath)
+        hasher.combine(casePath)
+        return .stateBinding(optionalCaseBinding(state: statePath, case: casePath, value: value), id: hasher.finalize())
     }
     
     func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @MainActor @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
@@ -545,7 +552,7 @@ extension ComponentStore {
             stateStorage = .binding(keyPathBinding(keyPath))
         case .optionalKeyPath(let keyPath, let fallback):
             stateStorage = .binding(optionalBinding(state: keyPath, value: fallback))
-        case .stateBinding(let binding):
+        case .stateBinding(let binding, _):
             stateStorage = .binding(binding)
         }
         let store = ComponentStore<Child>(state: stateStorage, path: self.path, graph: graph, environment: environment, route: route)

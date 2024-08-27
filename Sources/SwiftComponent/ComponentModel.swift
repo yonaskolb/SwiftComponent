@@ -152,6 +152,16 @@ extension ComponentModel {
     }
 }
 
+extension ComponentModel {
+    
+    /// can be used from environment closures
+    public func action(_ action: Action) {
+        self.store.addTask {
+            await self.handle(action: action)
+        }
+    }
+}
+
 public struct ComponentConnection<From: ComponentModel, To: ComponentModel> {
 
     private let scope: (ViewModel<From>) -> ViewModel<To>

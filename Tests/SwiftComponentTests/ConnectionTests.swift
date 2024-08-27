@@ -8,7 +8,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testConnectionInlineOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.child, state: .init())
+        let child = parent.connectedModel(TestModel.child, state: .init(), id: "constant")
 
         await child.sendAsync(.sendOutput)
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
@@ -94,7 +94,7 @@ final class ConnectionTests: XCTestCase {
 
         static let childConnected = Connection<TestModelChild> {
             $0.model.state.value = "handled"
-        }.connect(to: \.child)
+        }.connect(state: \.child)
 
         static let childToInput = Connection<TestModelChild>(output: .input(Input.child))
 

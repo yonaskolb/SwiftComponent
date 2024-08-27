@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CasePaths
 
 public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
 
@@ -24,6 +25,14 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     public init(output: OutputHandler<From, To>) where From.Environment == To.Environment {
         self.init(output: output, environment: { $0.environment })
     }
+    
+    public init(output: @escaping (To.Output) -> From.Input) where From.Environment == To.Environment {
+        self.init(output: .input(output), environment: { $0.environment })
+    }
+    
+    public init(output: @escaping (To.Output) -> From.Input, environment: @MainActor @escaping (From) -> To.Environment) {
+        self.init(output: .input(output), environment: environment)
+    }
 
     public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void) where From.Environment == To.Environment {
         self.init(output: .handle(output), environment: { $0.environment })
@@ -34,6 +43,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         let connectionID = ConnectionID(
             connectionID: self.id,
             storeID: from.id,
+            childTypeName: String(describing: To.self),
             stateID: state.id,
             customID: id
         )
@@ -82,6 +92,7 @@ public typealias ConnectionActionContext<Parent: ComponentModel, Child: Componen
 struct ConnectionID: Hashable {
     let connectionID: UUID
     let storeID: UUID
+    let childTypeName: String
     let stateID: AnyHashable?
     let customID: AnyHashable?
 }
@@ -129,18 +140,30 @@ extension ComponentView {
 extension ViewModel { 
 
     @MainActor
-    func connect<Child: ComponentModel>(to connection: ModelConnection<Model, Child>, state: ScopedState<Model.State, Child.State>) -> ViewModel<Child> {
-        let store = connection.connectedStore(from: store, state: state)
-        let viewModel = store.viewModel()
-        return viewModel
+    func connect<Child: ComponentModel>(to connection: ModelConnection<Model, Child>, state: ScopedState<Model.State, Child.State>, id: AnyHashable? = nil) -> ViewModel<Child> {
+        let store = connection.connectedStore(from: store, state: state, id: id)
+        return store.viewModel()
+        // cache view models?
+//        if let model = children[store.id] as? ViewModel<Child> {
+//            return model
+//        } else {
+//            let model = store.viewModel()
+//            children[store.id] = model
+//            return model
+//        }
     }
 }
 
 extension ViewModel {
 
     @MainActor
-    public func connectedModel<Child: ComponentModel>(_ connection: ModelConnection<Model, Child>, state: Child.State) -> ViewModel<Child> {
-        connect(to: connection, state: .value(state))
+    public func connectedModel<Child: ComponentModel>(_ connection: ModelConnection<Model, Child>, state: Child.State, id: AnyHashable) -> ViewModel<Child> {
+        connect(to: connection, state: .value(state), id: id)
+    }
+    
+    @MainActor
+    public func connectedModel<Child: ComponentModel>(_ connection: ModelConnection<Model, Child>, state: Child.State) -> ViewModel<Child> where Child.State: Hashable {
+        connect(to: connection, state: .value(state), id: state)
     }
 
     @MainActor
@@ -164,22 +187,49 @@ extension ViewModel {
 
     @MainActor
     public func presentedModel<Child: ComponentModel>(_ connection: PresentedComponentConnection<Model, Child>) -> Binding<ViewModel<Child>?> {
+        presentedModel(connection.connection, state: connection.state)
+    }
+    
+    @MainActor
+    public func presentedModel<Child: ComponentModel, Case: CasePathable>(_ connection: PresentedCaseComponentConnection<Model, Child, Case>) -> Binding<ViewModel<Child>?> {
+        presentedModel(connection.connection, state: connection.state, case: connection.casePath)
+    }
+    
+    @MainActor
+    public func presentedModel<Child: ComponentModel>(_ connection: ModelConnection<Model, Child>, state: WritableKeyPath<Model.State, Child.State?>) -> Binding<ViewModel<Child>?> {
         Binding(
             get: {
-                let presentedState = self.state[keyPath: connection.state]
-                if let presentedState {
-                    return self.connect(to: connection.connection, state: .optionalKeyPath(connection.state, fallback: presentedState))
+                if let presentedState = self.store.state[keyPath: state] {
+                    return self.connect(to: connection, state: .optionalKeyPath(state, fallback: presentedState))
                 } else {
                     return nil
                 }
             },
             set: { model in
-                if model == nil, self.state[keyPath: connection.state] != nil {
-                    self.state[keyPath: connection.state] = nil
+                if model == nil, self.state[keyPath: state] != nil {
+                    self.state[keyPath: state] = nil
                 }
             }
         )
-
+    }
+    
+    @MainActor
+    public func presentedModel<Child: ComponentModel, StateEnum: CasePathable>(_ connection: ModelConnection<Model, Child>, state statePath: WritableKeyPath<Model.State, StateEnum?>, case casePath: CaseKeyPath<StateEnum, Child.State>) -> Binding<ViewModel<Child>?> {
+        Binding<ViewModel<Child>?>(
+            get: {
+                if let enumCase = self.store.state[keyPath: statePath],
+                   let presentedState = enumCase[case: casePath] {
+                    return self.connect(to: connection, state: self.store.caseScopedState(state: statePath, case: casePath, value: presentedState))
+                } else {
+                    return nil
+                }
+            },
+            set: { model in
+                if model == nil, self.state[keyPath: statePath] != nil {
+                    self.state[keyPath: statePath] = nil
+                }
+            }
+        )
     }
 }
 
@@ -305,6 +355,66 @@ extension TestStep {
             await Task.yield()
         }
     }
+    
+    @MainActor
+    public static func connection<Child: ComponentModel, Case: CasePathable>(
+        _ connection: ModelConnection<Model, Child>,
+        state keyPath: WritableKeyPath<Model.State, Case?>,
+        case casePath: CaseKeyPath<Case, Child.State>,
+        output: Child.Output,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Self {
+        .init(
+            title: "Connection Output",
+            details: "\(Child.baseName).\(getEnumCase(output).name)",
+            file: file,
+            line: line
+        ) { context in
+            guard let `case` = context.model.state[keyPath: keyPath], let state = `case`[case: casePath] else {
+                context.stepErrors.append(.init(error: "\(keyPath.propertyName ?? Child.baseName) not connected", source: .init(file: file, line: line)))
+                return
+            }
+            let model = context.model.connect(to: connection, state: context.model.store.caseScopedState(state: keyPath, case: casePath, value: state))
+            model.store.output(output, source: .capture(file: file, line: line))
+            await Task.yield()
+        }
+    }
+    
+    @MainActor
+    public static func connection<Child: ComponentModel, Case: CasePathable>(
+        _ connection: ModelConnection<Model, Child>,
+        state keyPath: WritableKeyPath<Model.State, Case?>,
+        case casePath: CaseKeyPath<Case, Child.State>,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]
+    ) -> Self {
+        .init(
+            title: "Connection",
+            details: "\(Child.baseName)",
+            file: file,
+            line: line
+        ) { context in
+            guard let `case` = context.model.state[keyPath: keyPath], let state = `case`[case: casePath] else {
+                context.stepErrors.append(.init(error: "\(keyPath.propertyName ?? Child.baseName) not connected", source: .init(file: file, line: line)))
+                return
+            }
+
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
+            }
+
+            let steps = steps()
+            let model = context.model.connect(to: connection, state: context.model.store.caseScopedState(state: keyPath, case: casePath, value: state))
+            var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
+            for step in steps {
+                let results = await step.runTest(context: &childContext)
+                context.childStepResults.append(results)
+            }
+        }
+    }
 
     @MainActor
     public static func connection<Child: ComponentModel>(
@@ -383,6 +493,26 @@ extension TestStep {
     ) -> Self {
         self.connection(connection.connection, state: connection.state, output: output, file: file, line: line)
     }
+    
+    @MainActor
+    public static func connection<Child: ComponentModel, Case: CasePathable>(
+        _ connection: PresentedCaseComponentConnection<Model, Child, Case>,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        @TestStepBuilder<Child> steps: @escaping () -> [TestStep<Child>]
+    ) -> Self {
+        self.connection(connection.connection, state: connection.state, case: connection.casePath, file: file, line: line, steps: steps)
+    }
+    
+    @MainActor
+    public static func connection<Child: ComponentModel, Case: CasePathable>(
+        _ connection: PresentedCaseComponentConnection<Model, Child, Case>,
+        output: Child.Output,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Self {
+        self.connection(connection.connection, state: connection.state, case: connection.casePath, output: output, file: file, line: line)
+    }
 }
 
 public struct EmbeddedComponentConnection<From: ComponentModel, To: ComponentModel> {
@@ -397,13 +527,24 @@ public struct PresentedComponentConnection<From: ComponentModel, To: ComponentMo
     public let state: WritableKeyPath<From.State, To.State?>
 }
 
+public struct PresentedCaseComponentConnection<From: ComponentModel, To: ComponentModel, Case: CasePathable> {
+
+    public let connection: ModelConnection<From, To>
+    public let state: WritableKeyPath<From.State, Case?>
+    public let casePath: CaseKeyPath<Case, To.State>
+}
+
 extension ModelConnection {
 
-    public func connect(to state: WritableKeyPath<From.State, To.State>) -> EmbeddedComponentConnection<From, To> {
+    public func connect(state: WritableKeyPath<From.State, To.State>) -> EmbeddedComponentConnection<From, To> {
         EmbeddedComponentConnection(connection: self, state: state)
     }
 
-    public func connect(to state: WritableKeyPath<From.State, To.State?>) -> PresentedComponentConnection<From, To> {
+    public func connect(state: WritableKeyPath<From.State, To.State?>) -> PresentedComponentConnection<From, To> {
         PresentedComponentConnection(connection: self, state: state)
+    }
+    
+    public func connect<Case: CasePathable>(state: WritableKeyPath<From.State, Case?>, case casePath: CaseKeyPath<Case, To.State>) -> PresentedCaseComponentConnection<From, To, Case> {
+        PresentedCaseComponentConnection(connection: self, state: state, casePath: casePath)
     }
 }

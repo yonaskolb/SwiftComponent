@@ -4,7 +4,7 @@ import SwiftUI
 @ComponentModel
 struct ExampleModel {
 
-    static let child = Connection<ExampleChildModel>(output: .input(Input.child)).connect(to: \.child)
+    static let child = Connection<ExampleChildModel>(output: .input(Input.child)).connect(state: \.child)
 
     struct State: Equatable {
         var name: String
@@ -28,20 +28,9 @@ struct ExampleModel {
         case child(ExampleChildModel.Output)
     }
 
-    enum Route {
-        case open(ComponentRoute<ExampleChildModel>)
-    }
-
     func appear() async {
         await task("get thing") {
             state.loading = false
-        }
-    }
-
-    func connect(route: Route) -> RouteConnection {
-        switch route {
-        case .open(let route):
-            connect(route, output: Input.child)
         }
     }
 
@@ -73,13 +62,6 @@ struct ExampleView: ComponentView {
 
     var model: ViewModel<ExampleModel>
 
-    func view(route: ExampleModel.Route) -> some View {
-        switch route {
-        case .open(let route):
-            ExampleChildView(model: route.model)
-        }
-    }
-
     var view: some View {
         if #available(iOS 16, macOS 13, *) {
             NavigationStack {
@@ -90,9 +72,7 @@ struct ExampleView: ComponentView {
                     button(.tap(1), "Tap")
                     button(.open, "Open")
                 }
-                .navigationDestination(unwrapping: model.presentedModel(Model.child)) { $model in
-                    ExampleChildView(model: model)
-                }
+                navigationDestination(item: model.presentedModel(Model.child), destination: ExampleChildView.init)
             }
         }
     }
@@ -166,10 +146,6 @@ struct ExampleComponent: Component, PreviewProvider {
 
     static var preview = Snapshot(state: .init(name: "Main"))
 
-    static var routes: Routes {
-        Route("thing", .open(.init(state: .init(name: "routeds"))))
-    }
-
     static var tests: Tests {
         Test("Set date", state: .init(name: "Main")) {
             let date = Date().addingTimeInterval(10000)
@@ -191,12 +167,8 @@ struct ExampleComponent: Component, PreviewProvider {
 
         Test("Open child", state: .init(name: "Main")) {
             Step.action(.open)
-                .expectRoute(/Model.Route.open, state: .init(name: "Main"))
             Step.connection(Model.child) {
                 Step.action(.tap(4))
-            }
-            Step.route(/Model.Route.open) {
-                Step.action(.tap(2))
             }
         }
     }

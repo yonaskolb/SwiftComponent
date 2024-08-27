@@ -20,7 +20,7 @@ final class MemoryTests: XCTestCase {
         let connectedChild = viewModel.connectedModel(TestModel.child)
         await connectedChild.appearAsync(first: true)
 
-        let connectedOptionalChildInput = viewModel.connectedModel(TestModel.childInput, state: .init())
+        let connectedOptionalChildInput = viewModel.connectedModel(TestModel.childInput, state: .init(), id: "constant")
         await connectedOptionalChildInput.appearAsync(first: true)
 
         let child = viewModel.scope(state: \.self) as ViewModel<TestModel>
@@ -47,7 +47,7 @@ final class MemoryTests: XCTestCase {
 
         static let child = Connection<TestModelChild> {
             $0.model.state.count = 3
-        }.connect(to: \.child)
+        }.connect(state: \.child)
 
         static let childInput = Connection<TestModelChild>(output: .input(Input.child))
 

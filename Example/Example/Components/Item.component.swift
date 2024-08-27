@@ -4,8 +4,8 @@ import SwiftComponent
 @ComponentModel
 struct ItemModel  {
 
-    let detail = Connection<ItemDetailModel>(output: .input(Input.detail))
-
+    static let detail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(to: \.detail)
+    
     struct State {
         var name: String
         var text: String = "text"
@@ -109,7 +109,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 button(.updateDetail, "Update Detail")
             }
-            ItemDetailView(model: model.connect(to: \.detail, state: .keyPath(\.detail)))
+            ItemDetailView(model: model.connectedModel(Model.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
