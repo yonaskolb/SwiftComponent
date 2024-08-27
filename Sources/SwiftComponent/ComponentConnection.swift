@@ -189,6 +189,11 @@ extension ViewModel {
     public func connectedModel<Child: ComponentModel>(_ connection: PresentedComponentConnection<Model, Child>, state: Child.State) -> ViewModel<Child> {
         connect(to: connection.connection, state: .optionalKeyPath(connection.state, fallback: state))
     }
+    
+    @MainActor
+    public func connectedModel<Child: ComponentModel, Case: CasePathable>(_ connection: PresentedCaseComponentConnection<Model, Child, Case>, state: Child.State) -> ViewModel<Child> {
+        connect(to: connection.connection, state: store.caseScopedState(state: connection.state, case: connection.casePath, value: state))
+    }
 }
 
 // presentation binding
