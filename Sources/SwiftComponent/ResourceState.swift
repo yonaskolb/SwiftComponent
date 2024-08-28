@@ -145,16 +145,27 @@ extension ComponentModel {
 }
 
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
-public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: View {
+public struct ResourceView<Value: Equatable, Content: View, ErrorView: View, LoadingView: View>: View {
 
     let resource: ResourceState<Value>
     let content: (Value) -> Content
+    let loading: () -> LoadingView
     let error: (Error) -> ErrorView
 
-    public init(_ resource: ResourceState<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
+    public init(_ resource: ResourceState<Value>, @ViewBuilder loading:@escaping () -> LoadingView, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
         self.resource = resource
+        self.loading = loading
         self.content = content
         self.error = error
+    }
+    
+    public init(_ resource: ResourceState<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) where LoadingView == ResourceLoadingView {
+        self.init(
+            resource,
+            loading: { ResourceLoadingView() },
+            content: content,
+            error: error
+        )
     }
 
     public var body: some View {
@@ -164,11 +175,18 @@ public struct ResourceView<Value: Equatable, Content: View, ErrorView: View>: Vi
         case .error(let error):
             self.error(error)
         case .loading:
-            Spacer()
-            ProgressView()
-            Spacer()
+            loading()
         case .unloaded:
             Spacer()
         }
+    }
+}
+
+public struct ResourceLoadingView: View {
+    
+    public var body: some View {
+        Spacer()
+        ProgressView()
+        Spacer()
     }
 }
