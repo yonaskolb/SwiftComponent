@@ -341,8 +341,7 @@ extension TestStep {
             line: line
         ) { context in
             let model = context.model.connect(to: connection, state: state)
-            model.store.output(output, source: .capture(file: file, line: line))
-            await Task.yield()
+            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
         }
     }
 
@@ -365,8 +364,7 @@ extension TestStep {
                 return
             }
             let model = context.model.connect(to: connection, state: .optionalKeyPath(keyPath, fallback: state))
-            model.store.output(output, source: .capture(file: file, line: line))
-            await Task.yield()
+            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
         }
     }
     
@@ -390,8 +388,7 @@ extension TestStep {
                 return
             }
             let model = context.model.connect(to: connection, state: context.model.store.caseScopedState(state: keyPath, case: casePath, value: state))
-            model.store.output(output, source: .capture(file: file, line: line))
-            await Task.yield()
+            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
         }
     }
     

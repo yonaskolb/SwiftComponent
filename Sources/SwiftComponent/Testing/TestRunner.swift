@@ -25,6 +25,7 @@ extension ViewModel {
         self.store.dependencies.reset()
         self.store.dependencies.apply(test.dependencies)
         self.store.dependencies.dependencyValues.context = .preview
+        self.store.children = [:]
 
         let sendEventsValue = store.sendGlobalEvents
         store.sendGlobalEvents = sendEvents
@@ -175,5 +176,20 @@ extension Component {
             let model = ViewModel<Model>(state: state, environment: test.environment)
             return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
         }
+    }
+}
+
+extension ComponentStore {
+    
+    // wait for events to fire from the publisher
+    // TODO: replace this with something that doesn't wait for time
+    func waitForEvents() async {
+        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.2))
+    }
+    
+    @MainActor
+    func outputAndWait(_ event: Model.Output, source: Source) async {
+        self.output(event, source: source)
+        await waitForEvents()
     }
 }
