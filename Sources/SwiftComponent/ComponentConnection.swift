@@ -77,7 +77,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         // Remove from cache when dissapeared so memory is released, and add back if appeared again
         // Is there a better hook to do this?
         childStore = childStore.onEvent { [weak childStore] event in
-            guard let childStore else { return }
+            guard let childStore, event.storeID == childStore.id else { return }
             if case .view(.disappear) = event.type {
                 from.children[connectionID] = nil
             } else if case .view(.appear) = event.type {
