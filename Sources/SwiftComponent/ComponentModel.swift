@@ -18,11 +18,11 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     @MainActor func binding(keyPath: PartialKeyPath<State>) async
     @MainActor func handle(action: Action) async
     @MainActor func handle(input: Input) async
-    var connections: Connections { get }
+    var _$connections: Connections { get }
     nonisolated func handle(event: Event)
     @discardableResult nonisolated func connect(route: Route) -> RouteConnection
     nonisolated init(context: Context)
-    var context: Context { get }
+    var _$context: Context { get }
 
     typealias Context = ModelContext<Self>
     typealias Connection<Model: ComponentModel> = ModelConnection<Self, Model>
@@ -41,8 +41,10 @@ extension RawRepresentable where RawValue == String {
 }
 
 extension ComponentModel {
-
-    public var state: Context { context }
+    
+    public var state: Context { _$context }
+    
+    var connections: Connections { _$connections}
 
     nonisolated
     public static var baseName: String {
@@ -88,7 +90,7 @@ public extension ComponentModel {
 // functions for model to call
 extension ComponentModel {
 
-    @MainActor var store: ComponentStore<Self>! { context.store }
+    @MainActor var store: ComponentStore<Self>! { _$context.store }
     @MainActor public var environment: Environment { store.environment }
     @MainActor public var dependencies: ComponentDependencies { store.dependencies }
 
@@ -139,7 +141,7 @@ extension ComponentModel {
 
     @MainActor
     public func updateView() {
-        store.stateChanged.send(context.state)
+        store.stateChanged.send(_$context.state)
     }
 
     @MainActor

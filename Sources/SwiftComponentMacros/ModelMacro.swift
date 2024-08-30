@@ -15,11 +15,11 @@ extension ComponentModelMacro: MemberMacro {
         }
         // TODO: only make public if type is public
         return [
-            "public var context: Context",
-            "public let connections: Connections = Self.Connections()",
+            "public let _$context: Context",
+            "public let _$connections: Connections = Self.Connections()",
             """
             public init(context: Context) {
-                self.context = context
+                self._$context = context
             }
             """,
         ]
