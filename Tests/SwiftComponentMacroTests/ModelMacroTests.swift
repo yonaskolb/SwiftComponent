@@ -22,12 +22,12 @@ final class ModelMacroTests: XCTestCase {
             """
             struct Model {
 
-                public var context: Context
+                public let _$context: Context
 
-                public let connections: Connections = Self.Connections()
+                public let _$connections: Connections = Self.Connections()
 
                 public init(context: Context) {
-                    self.context = context
+                    self._$context = context
                 }
 
             }
@@ -55,12 +55,12 @@ final class ModelMacroTests: XCTestCase {
             		case item(ItemModel.State)
             	}
 
-            	public var context: Context
+            	public let _$context: Context
 
-            	public let connections: Connections = Self.Connections()
+            	public let _$connections: Connections = Self.Connections()
 
             	public init(context: Context) {
-            	    self.context = context
+            	    self._$context = context
             	}
             }
 
@@ -109,12 +109,12 @@ final class ModelMacroTests: XCTestCase {
                 func customFunction() {
                 }
 
-                public var context: Context
+                public let _$context: Context
 
-                public let connections: Connections = Self.Connections()
+                public let _$connections: Connections = Self.Connections()
 
                 public init(context: Context) {
-                    self.context = context
+                    self._$context = context
                 }
             }
 
@@ -143,12 +143,12 @@ final class ModelMacroTests: XCTestCase {
 
                 }
 
-                public var context: Context
+                public let _$context: Context
 
-                public let connections: Connections = Self.Connections()
+                public let _$connections: Connections = Self.Connections()
 
                 public init(context: Context) {
-                    self.context = context
+                    self._$context = context
                 }
             }
 
@@ -178,12 +178,12 @@ final class ModelMacroTests: XCTestCase {
 
                 }
 
-                public var context: Context
+                public let _$context: Context
 
-                public let connections: Connections = Self.Connections()
+                public let _$connections: Connections = Self.Connections()
 
                 public init(context: Context) {
-                    self.context = context
+                    self._$context = context
                 }
             }
 
@@ -207,12 +207,12 @@ final class ModelMacroTests: XCTestCase {
 
                 typealias State = OtherState
 
-                public var context: Context
+                public let _$context: Context
 
-                public let connections: Connections = Self.Connections()
+                public let _$connections: Connections = Self.Connections()
 
                 public init(context: Context) {
-                    self.context = context
+                    self._$context = context
                 }
             }
 
