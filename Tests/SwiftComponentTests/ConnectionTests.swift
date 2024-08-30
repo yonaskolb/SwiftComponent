@@ -8,7 +8,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testInlineOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.child, state: .init(), id: "constant")
+        let child = parent.connectedModel(\.child, state: .init(), id: "constant")
 
         await child.sendAsync(.sendOutput)
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
@@ -18,7 +18,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testConnectedOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.childConnected)
+        let child = parent.connectedModel(\.childConnected)
 
         await child.sendAsync(.sendOutput)
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
@@ -29,8 +29,8 @@ final class ConnectionTests: XCTestCase {
     func testConnectedCaching() async {
         let parent = ViewModel<TestModel>(state: .init())
         
-        let child1 = parent.connectedModel(TestModel.childConnected)
-        let child2 = parent.connectedModel(TestModel.childConnected)
+        let child1 = parent.connectedModel(\.childConnected)
+        let child2 = parent.connectedModel(\.childConnected)
         XCTAssertEqual(child1.id, child2.id)
     }
     
@@ -38,14 +38,14 @@ final class ConnectionTests: XCTestCase {
     func testConnectedCachingResetOnAppearance() async {
         let parent = ViewModel<TestModel>(state: .init())
         
-        let child1 = parent.connectedModel(TestModel.childConnected)
+        let child1 = parent.connectedModel(\.childConnected)
         child1.disappear()
         try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
-        let child2 = parent.connectedModel(TestModel.childConnected)
+        let child2 = parent.connectedModel(\.childConnected)
         XCTAssertNotEqual(child1.id, child2.id)
         await child1.appearAsync(first: false)
         try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
-        let child3 = parent.connectedModel(TestModel.childConnected)
+        let child3 = parent.connectedModel(\.childConnected)
         XCTAssertEqual(child1.id, child3.id)
     }
     
@@ -53,9 +53,9 @@ final class ConnectionTests: XCTestCase {
     func testStateCaching() async {
         let parent = ViewModel<TestModel>(state: .init())
         
-        let child1 = parent.connectedModel(TestModel.child, state: .init(), id: "1")
-        let child2 = parent.connectedModel(TestModel.child, state: .init(), id: "1")
-        let child3 = parent.connectedModel(TestModel.child, state: .init(), id: "2")
+        let child1 = parent.connectedModel(\.child, state: .init(), id: "1")
+        let child2 = parent.connectedModel(\.child, state: .init(), id: "1")
+        let child3 = parent.connectedModel(\.child, state: .init(), id: "2")
         XCTAssertEqual(child1.id, child2.id)
         XCTAssertNotEqual(child2.id, child3.id)
     }
@@ -63,7 +63,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testInputOutput() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.childToInput)
+        let child = parent.connectedModel(\.childToInput)
 
         await child.sendAsync(.sendOutput)
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
@@ -73,7 +73,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testActionHandler() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.childAction)
+        let child = parent.connectedModel(\.childAction)
 
         await child.sendAsync(.sendOutput)
         try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
@@ -83,7 +83,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testStateBinding() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.childConnected)
+        let child = parent.connectedModel(\.childConnected)
 
         await child.sendAsync(.mutateState)
         XCTAssertEqual(child.state.value, "mutated")
@@ -93,7 +93,7 @@ final class ConnectionTests: XCTestCase {
     @MainActor
     func testChildAction() async {
         let parent = ViewModel<TestModel>(state: .init())
-        let child = parent.connectedModel(TestModel.childConnected)
+        let child = parent.connectedModel(\.childConnected)
 
         await parent.sendAsync(.actionToChild)
         XCTAssertEqual(child.state.value, "from parent")
@@ -103,21 +103,25 @@ final class ConnectionTests: XCTestCase {
     @ComponentModel
     fileprivate struct TestModel {
 
-        static let child = Connection<TestModelChild> {
-            $0.model.state.value = "handled"
-        }
-
-        static let childConnected = Connection<TestModelChild> {
-            $0.model.state.value = "handled"
-        }.connect(state: \.child)
-
-        static let childToInput = Connection<TestModelChild>(output: .input(Input.child)).connect(state: \.child)
-
-        static let childAction = Connection<TestModelChild>(output: .ignore)
-            .onAction {
-                $0.model.state.value = "action handled"
+        struct Connections {
+            let child = Connection<TestModelChild> {
+                $0.model.state.value = "handled"
+            }
+            
+            let childConnected = Connection<TestModelChild> {
+                $0.model.state.value = "handled"
             }
             .connect(state: \.child)
+            
+            let childToInput = Connection<TestModelChild>(output: .input(Input.child)).connect(state: \.child)
+            
+            let childAction = Connection<TestModelChild>(output: .ignore)
+                .onAction {
+                    $0.model.state.value = "action handled"
+                }
+                .connect(state: \.child)
+
+        }
 
         struct State {
             var value = ""
@@ -137,11 +141,11 @@ final class ConnectionTests: XCTestCase {
         func handle(action: Action) async {
             switch action {
             case .actionToChild:
-                await self.connection(Self.childConnected).handle(action: .fromParent)
+                await self.connection(\.childConnected).handle(action: .fromParent)
             case .actionToOptionalChild:
                 state.optionalChild = .init()
 
-                if let child = self.connection(Self.child, state: \.optionalChild) {
+                if let child = self.connection(\.child, state: \.optionalChild) {
                     await child.handle(action: .fromParent)
                 }
             }

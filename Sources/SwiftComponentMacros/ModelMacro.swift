@@ -16,6 +16,7 @@ extension ComponentModelMacro: MemberMacro {
         // TODO: only make public if type is public
         return [
             "public var context: Context",
+            "public let connections: Connections = Self.Connections()",
             """
             public init(context: Context) {
                 self.context = context
@@ -65,6 +66,12 @@ extension ComponentModelMacro: MemberAttributeMacro {
             !syntax.attributes.hasAttribute("MainActor") {
             return ["@MainActor"]
         }
+        
+//        if let syntax = member.as(StructDeclSyntax.self),
+//            syntax.name.text == "Connections",
+//           !syntax.attributes.hasAttribute("MainActor"){
+//            return ["@MainActor"]
+//        }
         
         // add ObservableState to State
         if let syntax = member.as(StructDeclSyntax.self),

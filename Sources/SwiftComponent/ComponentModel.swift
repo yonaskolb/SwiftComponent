@@ -12,11 +12,13 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     associatedtype Route = Never
     associatedtype Task: ModelTask = String
     associatedtype Environment: ComponentEnvironment = EmptyEnvironment
+    associatedtype Connections = Void
     @MainActor func appear() async
     @MainActor func disappear() async
     @MainActor func binding(keyPath: PartialKeyPath<State>) async
     @MainActor func handle(action: Action) async
     @MainActor func handle(input: Input) async
+    var connections: Connections { get }
     nonisolated func handle(event: Event)
     @discardableResult nonisolated func connect(route: Route) -> RouteConnection
     nonisolated init(context: Context)
@@ -57,6 +59,10 @@ extension ComponentModel {
         }
         return name
     }
+}
+
+public extension ComponentModel where Connections == Void {
+    var connections: Connections { () }
 }
 
 public extension ComponentModel where Action == Void {

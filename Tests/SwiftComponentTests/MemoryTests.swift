@@ -17,14 +17,14 @@ final class MemoryTests: XCTestCase {
         viewModel.binding(\.count).wrappedValue = 2
         _ = viewModel.count
         
-        let child = viewModel.connectedModel(TestModel.child)
+        let child = viewModel.connectedModel(\.child)
         await child.appearAsync(first: true)
         await child.sendAsync(.start)
         child.send(.start)
         child.binding(\.count).wrappedValue = 3
         _ = child.count
         
-        let childStateIDAndInput = viewModel.connectedModel(TestModel.childInput, state: .init(), id: "constant")
+        let childStateIDAndInput = viewModel.connectedModel(\.childInput, state: .init(), id: "constant")
         
         childStateIDAndInput.disappear()
         child.disappear()
@@ -46,11 +46,13 @@ final class MemoryTests: XCTestCase {
     @ComponentModel
     fileprivate struct TestModel {
 
-        static let child = Connection<TestModelChild> {
-            $0.model.state.count = 3
-        }.connect(state: \.child)
-
-        static let childInput = Connection<TestModelChild>(output: .input(Input.child))
+        struct Connections {
+            let child = Connection<TestModelChild> {
+                $0.model.state.count = 3
+            }.connect(state: \.child)
+            
+            let childInput = Connection<TestModelChild>(output: .input(Input.child))
+        }
 
         struct State {
             var count = 0
