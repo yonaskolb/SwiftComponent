@@ -2,15 +2,23 @@ import Foundation
 import SwiftUI
 
 @ComponentModel
+@MainActor
 struct ExampleModel {
-
-    static let child = Connection<ExampleChildModel>(output: .input(Input.child)).connect(state: \.child)
+    
+    struct Connections {
+        let child = Connection<ExampleChildModel>(output: Input.child)
+            .connect(state: \.child)
+        
+        let presentedChild = Connection<ExampleChildModel>(output: Input.child)
+            .connect(state: \.presentedChild)
+    }
 
     struct State: Equatable {
         var name: String
         var loading: Bool = false
         var date = Date()
-        var child: ExampleChildModel.State?
+        var presentedChild: ExampleChildModel.State?
+        var child: ExampleChildModel.State = .init(name: "child")
         @Resource var resource: String?
     }
 
@@ -43,7 +51,7 @@ struct ExampleModel {
             }
             output(.finished)
         case .open:
-            state.child = .init(name: state.name)
+            state.presentedChild = .init(name: state.name)
             //            route(to: Route.open, state: .init(name: state.name))
             //                 .dependency(\.uuid, .constant(.init(1)))
         }
@@ -52,7 +60,7 @@ struct ExampleModel {
     func handle(input: Input) async {
         switch input {
         case .child(.finished):
-            state.child = nil
+            state.presentedChild = nil
             print("Child finished")
         }
     }
@@ -71,8 +79,9 @@ struct ExampleView: ComponentView {
                     Text(model.date.formatted())
                     button(.tap(1), "Tap")
                     button(.open, "Open")
+                    ExampleChildView(model: model.connections.child)
                 }
-                navigationDestination(item: model.presentedModel(Model.child), destination: ExampleChildView.init)
+                .navigationDestination(item: model.presentedModel(\.presentedChild), destination: ExampleChildView.init)
             }
         }
     }
@@ -80,7 +89,8 @@ struct ExampleView: ComponentView {
 
 @ComponentModel
 struct ExampleChildModel {
-
+    
+    
     struct State: Equatable {
         var name: String
     }
@@ -147,7 +157,7 @@ struct ExampleComponent: Component, PreviewProvider {
     static var preview = Snapshot(state: .init(name: "Main"))
 
     static var tests: Tests {
-        Test("Set date", state: .init(name: "Main")) {
+        Test("Set date") {
             let date = Date().addingTimeInterval(10000)
             Step.action(.tap(2))
                 .expectState { $0.date = date }
@@ -155,7 +165,7 @@ struct ExampleComponent: Component, PreviewProvider {
             Step.snapshot("tapped")
         }
 
-        Test("Fill out", state: .init(name: "Main")) {
+        Test("Fill out") {
             Step.snapshot("empty", tags: ["empty"])
             Step.appear()
             Step.binding(\.name, "test")
@@ -165,9 +175,9 @@ struct ExampleComponent: Component, PreviewProvider {
             Step.snapshot("filled", tags: ["featured"])
         }
 
-        Test("Open child", state: .init(name: "Main")) {
+        Test("Open child") {
             Step.action(.open)
-            Step.connection(Model.child) {
+            Step.connection(\.child) {
                 Step.action(.tap(4))
             }
         }

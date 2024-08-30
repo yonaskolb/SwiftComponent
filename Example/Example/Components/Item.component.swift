@@ -4,8 +4,13 @@ import SwiftComponent
 @ComponentModel
 struct ItemModel  {
 
-    static let detail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(state: \.detail)
-    static let presentedDetail = Connection<ItemDetailModel>(output: .input(Input.detail)).connect(state: \.destination, case: \.detail)
+    struct Connections {
+        let detail = Connection<ItemDetailModel>(output: .input(Input.detail))
+            .connect(state: \.detail)
+        
+        let presentedDetail = Connection<ItemDetailModel>(output: .input(Input.detail))
+            .connect(state: \.destination, case: \.detail)
+    }
     
     struct State {
         var name: String
@@ -109,7 +114,7 @@ struct ItemView: ComponentView {
                 Text("Detail name: \(model.state.detail.name)")
                 button(.updateDetail, "Update Detail")
             }
-            ItemDetailView(model: model.connectedModel(Model.detail))
+            ItemDetailView(model: model.connectedModel(\.detail))
                 .fixedSize()
             TextField("Field", text: model.binding(\.text))
                 .textFieldStyle(.roundedBorder)
@@ -121,7 +126,7 @@ struct ItemView: ComponentView {
             Spacer()
         }
         .padding()
-        .navigationDestination(item: model.presentedModel(Model.presentedDetail)) { model in
+        .navigationDestination(item: model.presentedModel(\.presentedDetail)) { model in
             ItemDetailView(model: model)
                 .toolbar {
                     model.button(.save) {

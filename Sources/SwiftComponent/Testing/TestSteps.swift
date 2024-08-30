@@ -90,21 +90,15 @@ extension TestStep {
     }
 
     public static func route<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Child> _ steps: @escaping () -> [TestStep<Child>]) -> Self {
-        .init(title: "Route", details: "\(Child.baseName)", file: file, line: line) { context in
-            guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
+        .steps(title: "Route", details: "\(Child.baseName)", file: file, line: line, steps: steps) { context in
+            guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return nil }
 
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)
                 try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
             }
 
-            let steps = steps()
-            let model = componentRoute.model
-            var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
-            for step in steps {
-                let results = await step.runTest(context: &childContext)
-                context.childStepResults.append(results)
-            }
+            return componentRoute.model
         }
     }
 
@@ -179,6 +173,40 @@ extension TestStep {
         }
         step.snapshots = snapshots
         return step
+    }
+}
+
+// MARK: Helpers
+extension TestStep {
+    
+    static func steps<Child: ComponentModel>(
+        title: String,
+        details: String?,
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        steps: @escaping () -> [TestStep<Child>],
+        createModel: @escaping (inout TestContext<Model>) async -> ViewModel<Child>?
+    ) -> Self {
+        .init(
+            title: title,
+            details: details,
+            file: file,
+            line: line
+        ) { context in
+            guard let model = await createModel(&context) else { return }
+            
+            if context.delay > 0 {
+                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
+                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
+            }
+
+            let steps = steps()
+            var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
+            for step in steps {
+                let results = await step.runTest(context: &childContext)
+                context.childStepResults.append(results)
+            }
+        }
     }
 }
 
