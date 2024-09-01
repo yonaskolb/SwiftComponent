@@ -195,11 +195,6 @@ extension TestStep {
         ) { context in
             guard let model = await createModel(&context) else { return }
             
-            if context.delay > 0 {
-                try? await Task.sleep(nanoseconds: context.delayNanoseconds)
-                try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.35)) // wait for typical presentation animation duration
-            }
-
             let steps = steps()
             var childContext = TestContext<Child>(model: model, delay: context.delay, assertions: context.assertions, state: model.state)
             for step in steps {
