@@ -106,9 +106,13 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         return childStore
     }
 
-    func onAction(_ handle: @MainActor @escaping (ConnectionActionContext<From, To>) -> Void) -> Self {
+    public func onAction(_ handle: @MainActor @escaping (ConnectionActionContext<From, To>) -> Void) -> Self {
+        self.onAction(.handle(handle))
+    }
+    
+    public func onAction(_ action: ActionHandler<From, To>) -> Self {
         var copy = self
-        copy.action = .handle(handle)
+        copy.action = action
         return copy
     }
 }
