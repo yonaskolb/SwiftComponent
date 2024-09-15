@@ -19,6 +19,7 @@ var package = Package(
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.2.4"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.7"),
         .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/yonaskolb/AccessibilitySnapshot", revision: "1b5b7c0b0ffe5f8a3450c84751cd1260903d5e92"),
@@ -54,6 +55,8 @@ var package = Package(
             name: "SwiftComponentTests",
             dependencies: [
                 "SwiftComponent",
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
             ]),
         .testTarget(
             name: "SwiftComponentMacroTests",

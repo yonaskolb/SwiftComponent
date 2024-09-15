@@ -7,6 +7,8 @@ struct ExampleModel {
     
     struct Connections {
         let child = Connection<ExampleChildModel>(output: Input.child)
+        
+        let connectedChild = Connection<ExampleChildModel>(output: Input.child)
             .connect(state: \.child)
         
         let presentedChild = Connection<ExampleChildModel>(output: Input.child)
@@ -79,7 +81,7 @@ struct ExampleView: ComponentView {
                     Text(model.date.formatted())
                     button(.tap(1), "Tap")
                     button(.open, "Open")
-                    ExampleChildView(model: model.connections.child)
+                    ExampleChildView(model: model.connections.connectedChild)
                 }
                 .navigationDestination(item: model.presentedModel(\.presentedChild), destination: ExampleChildView.init)
             }
@@ -177,7 +179,7 @@ struct ExampleComponent: Component, PreviewProvider {
 
         Test("Open child") {
             Step.action(.open)
-            Step.connection(\.child) {
+            Step.connection(\.connectedChild) {
                 Step.action(.tap(4))
             }
         }
