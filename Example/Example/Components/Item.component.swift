@@ -129,7 +129,7 @@ struct ItemView: ComponentView {
         .navigationDestination(item: model.presentedModel(\.presentedDetail)) { model in
             ItemDetailView(model: model)
                 .toolbar {
-                    model.button(.save) {
+                    button(.save) {
                         Text("Save")
                     }
                 }
