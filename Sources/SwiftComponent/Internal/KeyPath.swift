@@ -16,6 +16,7 @@ extension KeyPath {
                 .filter { !($0.hasPrefix("<computed") && $0.hasSuffix(">")) }
                 .dropFirst() // drop State
                 .joined(separator: ".")
+                .replacingOccurrences(of: ".subscript(_: Int)", with: "")
                 .replacingOccurrences(of: "<Unknown>", with: "_")
                 .replacingOccurrences(of: #"^\$"#, with: "", options: .regularExpression) // drop leading $
                 .replacingOccurrences(of: #"\?$"#, with: "", options: .regularExpression) // drop trailing ?
