@@ -86,9 +86,16 @@ struct ComponentDescriptionView<ComponentType: Component>: View {
                     }
                     return .enumType(cases)
                 case .struct:
-                    let properties: [TypeDescription.Property] = info.properties.map {
-                        .init(name: $0.name, type: String(describing: $0.type).sanitizedType)
+                    let properties: [TypeDescription.Property] = info.properties
+                    .map {
+                        var name = $0.name
+                        // remove underscores added by property wrappers and macros
+                        if name.hasPrefix("_") {
+                            name = String(name.dropFirst())
+                        }
+                        return TypeDescription.Property(name: name, type: String(describing: $0.type).sanitizedType)
                     }
+                    .filter { !$0.name.hasPrefix("$") } // remove $ prefixes like registrationRegistrar
                     return .structType(properties)
                 case .never:
                     return .never
