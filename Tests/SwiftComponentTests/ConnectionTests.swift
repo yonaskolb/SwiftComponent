@@ -26,6 +26,15 @@ final class ConnectionTests: XCTestCase {
     }
     
     @MainActor
+    func testDependencies() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connectedModel(\.childConnected)
+
+        await child.sendAsync(.useDependency)
+        XCTAssertEqual(child.state.number, 2)
+    }
+    
+    @MainActor
     func testConnectedCaching() async {
         let parent = ViewModel<TestModel>(state: .init())
         
@@ -111,6 +120,7 @@ final class ConnectionTests: XCTestCase {
             let childConnected = Connection<TestModelChild> {
                 $0.model.state.value = "handled"
             }
+            .dependency(\.number, value: 2)
             .connect(state: \.child)
             
             let childToInput = Connection<TestModelChild>(output: .input(Input.child)).connect(state: \.child)
@@ -164,12 +174,14 @@ final class ConnectionTests: XCTestCase {
 
         struct State {
             var value: String = ""
+            var number = 0
         }
 
         enum Action {
             case sendOutput
             case mutateState
             case fromParent
+            case useDependency
         }
 
         enum Output {
@@ -184,6 +196,8 @@ final class ConnectionTests: XCTestCase {
                 state.value  = "mutated"
             case .fromParent:
                 state.value = "from parent"
+            case .useDependency:
+                state.number = dependencies.number()
             }
         }
     }

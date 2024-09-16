@@ -9,6 +9,7 @@ struct ExampleModel {
         let child = Connection<ExampleChildModel>(output: Input.child)
         
         let connectedChild = Connection<ExampleChildModel>(output: Input.child)
+            .dependency(\.uuid, value: .incrementing)
             .connect(state: \.child)
         
         let presentedChild = Connection<ExampleChildModel>(output: Input.child)

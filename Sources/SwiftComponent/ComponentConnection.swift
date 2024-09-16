@@ -8,6 +8,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     var output: OutputHandler<From, To>
     var environment: @MainActor (From) -> To.Environment
     var action: ActionHandler<From, To>?
+    var setDependencies: (From, inout DependencyValues) -> Void = { _, _ in }
 
     public init(output: OutputHandler<From, To>, environment: @MainActor @escaping (From) -> To.Environment) {
         self.output = output
@@ -72,6 +73,9 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
             output: self.output
         )
         
+        // set dependencies
+        setDependencies(from.model, &childStore.dependencies.dependencyValues)
+        
         from.children[connectionID] = childStore
         
         // Remove from cache when dissapeared so memory is released, and add back if appeared again
@@ -113,6 +117,20 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     public func onAction(_ action: ActionHandler<From, To>) -> Self {
         var copy = self
         copy.action = action
+        return copy
+    }
+    
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, value: T) -> Self {
+        dependency(keyPath) { _ in value }
+    }
+    
+    public func dependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, getValue: @escaping (From) -> T) -> Self {
+        var copy = self
+        let originalSetDependencies = copy.setDependencies
+        copy.setDependencies = { model, dependencies in
+            originalSetDependencies(model, &dependencies)
+            dependencies[keyPath: keyPath] = getValue(model)
+        }
         return copy
     }
 }
