@@ -14,6 +14,9 @@ struct ExampleModel {
         
         let presentedChild = Connection<ExampleChildModel>(output: Input.child)
             .connect(state: \.presentedChild)
+        
+        let caseChild = Connection<ExampleChildModel>(output: Input.child)
+            .connect(state: \.destination, case: \.child)
     }
 
     struct State: Equatable {
@@ -22,12 +25,17 @@ struct ExampleModel {
         var date = Date()
         var presentedChild: ExampleChildModel.State?
         var child: ExampleChildModel.State = .init(name: "child")
+        var destination: Destination?
         @Resource var resource: String?
     }
 
     enum Action: Equatable {
         case tap(Int)
         case open
+    }
+    
+    enum Destination: Equatable {
+        case child(ExampleChildModel.State)
     }
 
     enum Output {

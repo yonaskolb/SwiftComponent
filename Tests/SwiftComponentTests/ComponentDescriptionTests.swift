@@ -56,6 +56,10 @@ final class ComponentDescriptionTests: XCTestCase {
                       {
                         "name" : "presentedChild",
                         "type" : "ExampleChildModel"
+                      },
+                      {
+                        "name" : "caseChild",
+                        "type" : "ExampleChildModel"
                       }
                     ]
                   }
@@ -120,6 +124,10 @@ final class ComponentDescriptionTests: XCTestCase {
                       {
                         "name" : "child",
                         "type" : "State"
+                      },
+                      {
+                        "name" : "destination",
+                        "type" : "Destination?"
                       },
                       {
                         "name" : "resource",

@@ -121,6 +121,7 @@ fileprivate extension String {
             .replaceType("ModelConnection", regex: "ModelConnection<(.*), (.*)>", replacement: "$2")
             .replaceType("EmbeddedComponentConnection", regex: "EmbeddedComponentConnection<(.*), (.*)>", replacement: "$2")
             .replaceType("PresentedComponentConnection", regex: "PresentedComponentConnection<(.*), (.*)>", replacement: "$2")
+            .replaceType("PresentedCaseComponentConnection", regex: "PresentedCaseComponentConnection<(.*), (.*), (.*)>", replacement: "$2")
             .replaceType("ComponentRoute", replacement: "$1")
             .replaceType("Resource", replacement: "$1")
             .replaceType("Array", replacement: "[$1]")
