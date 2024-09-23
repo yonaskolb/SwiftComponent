@@ -90,6 +90,14 @@ extension ResourceState: Equatable where Value: Equatable {
     }
 }
 
+extension ResourceState: Hashable where Value: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(content)
+        hasher.combine(isLoading)
+        hasher.combine(error?.localizedDescription)
+    }
+}
+
 extension ResourceState where Value: Collection, Value: ExpressibleByArrayLiteral {
 
     public var list: Value {
