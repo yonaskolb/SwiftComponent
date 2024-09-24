@@ -180,15 +180,15 @@ extension ViewModel {
     func connect<Child: ComponentModel>(to connectionPath: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: ScopedState<Model.State, Child.State>, id: AnyHashable? = nil) -> ViewModel<Child> {
         let connection = store.model.connections[keyPath: connectionPath]
         let store = connection.connectedStore(from: store, state: state, id: id)
-        return store.viewModel()
-        // cache view models?
-//        if let model = children[store.id] as? ViewModel<Child> {
-//            return model
-//        } else {
-//            let model = store.viewModel()
-//            children[store.id] = model
-//            return model
-//        }
+        
+        // cache view models
+        if let model = children[store.id]?.value as? ViewModel<Child> {
+            return model
+        } else {
+            let model = store.viewModel()
+            children[store.id] = .init(model)
+            return model
+        }
     }
 }
 

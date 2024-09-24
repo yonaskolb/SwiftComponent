@@ -12,7 +12,7 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     public var dependencies: ComponentDependencies { store.dependencies }
     public var environment: Model.Environment { store.environment }
-    public var children: [UUID: Any] = [:]
+    var children: [UUID: WeakRef] = [:]
 
     public internal(set) var state: Model.State {
         get { store.state }
