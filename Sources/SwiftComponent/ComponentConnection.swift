@@ -64,7 +64,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
             stateID: state.id,
             customID: id
         )
-        if let existingStore = from.children[connectionID] as? ComponentStore<To> {
+        if let existingStore = from.children[connectionID]?.value as? ComponentStore<To> {
             return existingStore
         }
         var childStore = from.scope(
@@ -76,18 +76,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         // set dependencies
         setDependencies(from.model, &childStore.dependencies.dependencyValues)
         
-        from.children[connectionID] = childStore
-        
-        // Remove from cache when dissapeared so memory is released, and add back if appeared again
-        // Is there a better hook to do this?
-        childStore = childStore.onEvent { [weak childStore] event in
-            guard let childStore, event.storeID == childStore.id else { return }
-            if case .view(.disappear) = event.type {
-                from.children[connectionID] = nil
-            } else if case .view(.appear) = event.type {
-                from.children[connectionID] = childStore
-            }
-        }
+        from.children[connectionID] = .init(childStore)
 
         if let actionHandler = self.action {
             childStore = childStore

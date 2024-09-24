@@ -27,7 +27,7 @@ class ComponentStore<Model: ComponentModel> {
             }
         }
     }
-    var children: [ConnectionID: AnyObject] = [:]
+    var children: [ConnectionID: WeakRef] = [:]
     private var stateStorage: StateStorage
     var path: ComponentPath
     let graph: ComponentGraph

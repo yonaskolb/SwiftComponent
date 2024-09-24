@@ -44,21 +44,6 @@ final class ConnectionTests: XCTestCase {
     }
     
     @MainActor
-    func testConnectedCachingResetOnAppearance() async {
-        let parent = ViewModel<TestModel>(state: .init())
-        
-        let child1 = parent.connectedModel(\.childConnected)
-        child1.disappear()
-        try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
-        let child2 = parent.connectedModel(\.childConnected)
-        XCTAssertNotEqual(child1.id, child2.id)
-        await child1.appearAsync(first: false)
-        try? await Task.sleep(for: .seconds(0.2)) // sending output happens via combine publisher right now so incurs a thread hop
-        let child3 = parent.connectedModel(\.childConnected)
-        XCTAssertEqual(child1.id, child3.id)
-    }
-    
-    @MainActor
     func testStateCaching() async {
         let parent = ViewModel<TestModel>(state: .init())
         
