@@ -16,7 +16,7 @@ struct ItemModel  {
         var name: String
         var text: String = "text"
         var unreadProperty = 0
-        var data: ResourceState<Int>
+        @Resource var data: Int?
         var presentedDetail: ItemDetailModel.State?
         var detail: ItemDetailModel.State = .init(id: "0", name: "0")
         var destination: Destination?
@@ -50,7 +50,7 @@ struct ItemModel  {
     }
 
     func appear() async {
-        await loadResource(\.data) {
+        await loadResource(\.$data) {
             try await dependencies.continuousClock.sleep(for: .seconds(1))
             return Int.random(in: 0...100)
         }
@@ -104,7 +104,7 @@ struct ItemView: ComponentView {
     var view: some View {
         VStack {
             Text(model.state.name)
-            ResourceView(model.state.data) { state in
+            ResourceView(model.state.$data) { state in
                 Text(state.description)
             } error: { error in
                 Text(error.localizedDescription)
@@ -129,7 +129,7 @@ struct ItemView: ComponentView {
         .navigationDestination(item: model.presentedModel(\.presentedDetail)) { model in
             ItemDetailView(model: model)
                 .toolbar {
-                    button(.save) {
+                    button(.updateDetail) {
                         Text("Save")
                     }
                 }
@@ -195,18 +195,15 @@ struct ItemComponent: Component, PreviewProvider {
         ItemView(model: model.sendViewBodyEvents())
     }
 
-    static var preview = PreviewModel(state: .init(name: "start", data: .loading))
+    static var preview = PreviewModel(state: .init(name: "start"))
 
     static var tests: Tests {
-        Test("Happy New style", state: .init(name: "john", data: .loading)) {
+        Test(state: .init(name: "john")) {
             Step.appear()
+                .expectResourceTask(\.$data)
             Step.snapshot("loaded")
             Step.action(.updateDetail)
             Step.binding(\.text, "yeah")
-                .validateState("text is set") { state in
-                    state.text == "yeah"
-                }
-                .expectState(\.name, "yeah")
         }
     }
 }

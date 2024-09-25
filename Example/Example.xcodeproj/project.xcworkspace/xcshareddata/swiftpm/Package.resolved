@@ -3,10 +3,9 @@
     {
       "identity" : "accessibilitysnapshot",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/DavidBrunow/AccessibilitySnapshot",
+      "location" : "https://github.com/yonaskolb/AccessibilitySnapshot",
       "state" : {
-        "branch" : "bugfix/navigationStackSortOrder",
-        "revision" : "4321111b9cd0175f41bceb828aa7744d1324afa1"
+        "revision" : "1b5b7c0b0ffe5f8a3450c84751cd1260903d5e92"
       }
     },
     {
@@ -113,8 +112,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-macro-testing",
       "state" : {
-        "revision" : "10dcef36314ddfea6f60442169b0b320204cbd35",
-        "version" : "0.2.2"
+        "revision" : "20c1a8f3b624fb5d1503eadcaa84743050c350f4",
+        "version" : "0.5.2"
       }
     },
     {
@@ -131,8 +130,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-snapshot-testing.git",
       "state" : {
-        "revision" : "59b663f68e69f27a87b45de48cb63264b8194605",
-        "version" : "1.15.1"
+        "revision" : "7b0bbbae90c41f848f90ac7b4df6c4f50068256d",
+        "version" : "1.17.5"
       }
     },
     {
