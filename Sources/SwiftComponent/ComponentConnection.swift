@@ -283,26 +283,32 @@ extension ViewModel {
 
 extension ComponentModel {
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: ScopedState<State, To.State>) -> To {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: ScopedState<State, To.State>, update: @MainActor (To) async -> Void) async {
         let connection = self.connections[keyPath: connectionPath]
         let store = connection.connectedStore(from: store, state: state)
-        return store.model
+        await update(store.model)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, EmbeddedComponentConnection<Self, To>>) -> To {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, EmbeddedComponentConnection<Self, To>>, _ update: @MainActor (To) async -> Void) async {
         let connection = store.model.connections[keyPath: connectionPath]
-        return self.connection(connectionPath.appending(path: \.connection), state: .keyPath(connection.state))
+        return await self.connection(connectionPath.appending(path: \.connection), state: .keyPath(connection.state), update: update)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, PresentedComponentConnection<Self, To>>) -> To? {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, PresentedComponentConnection<Self, To>>, _ update: @MainActor (To) async -> Void) async {
         let connection = store.model.connections[keyPath: connectionPath]
-        guard let state = self.store.state[keyPath: connection.state] else { return nil }
-        return self.connection(connectionPath.appending(path: \.connection), state: .optionalKeyPath(connection.state, fallback: state))
+        guard let state = self.store.state[keyPath: connection.state] else { return }
+        return await self.connection(connectionPath.appending(path: \.connection), state: .optionalKeyPath(connection.state, fallback: state), update: update)
+    }
+    
+    public func connection<To: ComponentModel, Case: CasePathable>(_ connectionPath: KeyPath<Connections, PresentedCaseComponentConnection<Self, To, Case>>, _ update: @MainActor (To) async -> Void) async {
+        let connection = store.model.connections[keyPath: connectionPath]
+        guard let `case` = self.store.state[keyPath: connection.state], let state = `case`[case: connection.casePath] else { return }
+        return await self.connection(connectionPath.appending(path: \.connection), state: self.store.caseScopedState(state: connection.state, case: connection.casePath, value: state), update: update)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: WritableKeyPath<Self.State, To.State?>) -> To? {
-        guard let childState = store.state[keyPath: state] else { return nil }
-        return self.connection(connectionPath, state: .optionalKeyPath(state, fallback: childState))
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: WritableKeyPath<Self.State, To.State?>, _ update: @MainActor (To) async -> Void) async {
+        guard let childState = store.state[keyPath: state] else { return }
+        return await self.connection(connectionPath, state: .optionalKeyPath(state, fallback: childState), update: update)
     }
 }
 

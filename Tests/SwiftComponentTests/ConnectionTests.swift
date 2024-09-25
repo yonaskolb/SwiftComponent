@@ -93,6 +93,17 @@ final class ConnectionTests: XCTestCase {
         XCTAssertEqual(child.state.value, "from parent")
         XCTAssertEqual(parent.state.child.value, "from parent")
     }
+    
+    @MainActor
+    func testPresentedChildAction() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        parent.state.optionalChild = .init()
+        let child = parent.presentedModel(\.childPresented)
+
+        await parent.sendAsync(.actionToOptionalChild)
+        XCTAssertEqual(child.wrappedValue?.state.value, "from parent")
+        XCTAssertEqual(parent.state.optionalChild?.value, "from parent")
+    }
 
     @ComponentModel
     fileprivate struct TestModel {
@@ -107,6 +118,11 @@ final class ConnectionTests: XCTestCase {
             }
             .dependency(\.number, value: 2)
             .connect(state: \.child)
+            
+            let childPresented = Connection<TestModelChild> {
+                $0.model.state.value = "handled"
+            }
+            .connect(state: \.optionalChild)
             
             let childToInput = Connection<TestModelChild>(output: .input(Input.child)).connect(state: \.child)
             
@@ -136,12 +152,12 @@ final class ConnectionTests: XCTestCase {
         func handle(action: Action) async {
             switch action {
             case .actionToChild:
-                await self.connection(\.childConnected).handle(action: .fromParent)
+                await self.connection(\.childConnected) { model in
+                    await model.handle(action: .fromParent)
+                }
             case .actionToOptionalChild:
-                state.optionalChild = .init()
-
-                if let child = self.connection(\.child, state: \.optionalChild) {
-                    await child.handle(action: .fromParent)
+                await self.connection(\.child, state: \.optionalChild) { model in
+                    await model.handle(action: .fromParent)
                 }
             }
         }
