@@ -14,6 +14,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     associatedtype Environment: ComponentEnvironment = EmptyEnvironment
     associatedtype Connections = Void
     @MainActor func appear() async
+    @MainActor func firstAppear() async
     @MainActor func disappear() async
     @MainActor func binding(keyPath: PartialKeyPath<State>) async
     @MainActor func handle(action: Action) async
@@ -82,8 +83,9 @@ public extension ComponentModel where Route == Never {
 // default handlers
 public extension ComponentModel {
     @MainActor func binding(keyPath: PartialKeyPath<State>) async { }
-    @MainActor func appear() async { store.handledAppear = false }
-    @MainActor func disappear() async { store.handledDisappear = false }
+    @MainActor func appear() async { }
+    @MainActor func firstAppear() async { }
+    @MainActor func disappear() async { }
     @MainActor func handle(event: Event) { }
 }
 
