@@ -21,7 +21,7 @@ public class ComponentDependencies {
 
     public func setDependency<T>(_ keyPath: WritableKeyPath<DependencyValues, T>, _ dependency: T) {
         withLock {
-            if let name = keyPath.propertyName {
+            if TestRunTask.running, let name = keyPath.propertyName {
                 setDependencies.insert(name)
             }
             dependencyValues[keyPath: keyPath] = dependency
@@ -30,7 +30,7 @@ public class ComponentDependencies {
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<DependencyValues, Value>) -> Value {
         withLock {
-            if let name = keyPath.propertyName {
+            if TestRunTask.running, let name = keyPath.propertyName {
                 accessedDependencies.insert(name)
             }
             return dependencyValues[keyPath: keyPath]

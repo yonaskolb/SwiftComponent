@@ -19,43 +19,45 @@ extension ViewModel {
 
     @MainActor
     public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: [TestAssertion], delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
-        let start = Date()
-        let assertions = test.assertions ?? assertions
-
-        self.store.dependencies.reset()
-        self.store.dependencies.apply(test.dependencies)
-        self.store.dependencies.dependencyValues.context = .preview
-        self.store.children = [:]
-
-        let sendEventsValue = store.sendGlobalEvents
-        store.sendGlobalEvents = sendEvents
-        defer {
-            store.sendGlobalEvents = sendEventsValue
-        }
-
-        if delay > 0 {
-            store.previewTaskDelay = delay
-        }
-        defer {
-            store.previewTaskDelay = 0
-        }
-
-        state = initialState
-        route = nil
-        store.graph.clearRoutes()
-
-        var stepResults: [TestStepResult] = []
-        var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
-        for step in test.steps {
-            context.stepErrors = []
-            var result = await TestStepID.$current.withValue(step.id) {
-                await step.runTest(context: &context)
+        await TestRunTask.$running.withValue(true) {
+            let start = Date()
+            let assertions = test.assertions ?? assertions
+            
+            self.store.dependencies.reset()
+            self.store.dependencies.apply(test.dependencies)
+            self.store.dependencies.dependencyValues.context = .preview
+            self.store.children = [:]
+            
+            let sendEventsValue = store.sendGlobalEvents
+            store.sendGlobalEvents = sendEvents
+            defer {
+                store.sendGlobalEvents = sendEventsValue
             }
-            result.stepErrors.append(contentsOf: context.stepErrors)
-            stepComplete?(result)
-            stepResults.append(result)
+            
+            if delay > 0 {
+                store.previewTaskDelay = delay
+            }
+            defer {
+                store.previewTaskDelay = 0
+            }
+            
+            state = initialState
+            route = nil
+            store.graph.clearRoutes()
+            
+            var stepResults: [TestStepResult] = []
+            var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
+            for step in test.steps {
+                context.stepErrors = []
+                var result = await TestStepID.$current.withValue(step.id) {
+                    await step.runTest(context: &context)
+                }
+                result.stepErrors.append(contentsOf: context.stepErrors)
+                stepComplete?(result)
+                stepResults.append(result)
+            }
+            return TestResult<Model>(start: start, end: Date(), steps: stepResults, snapshots: context.snapshots)
         }
-        return TestResult<Model>(start: start, end: Date(), steps: stepResults, snapshots: context.snapshots)
     }
 }
 
@@ -192,4 +194,8 @@ extension ComponentStore {
         self.output(event, source: source)
         await waitForEvents()
     }
+}
+
+public enum TestRunTask {
+    @TaskLocal public static var running = false
 }
