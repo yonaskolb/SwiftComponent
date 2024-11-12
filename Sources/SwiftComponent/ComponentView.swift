@@ -89,11 +89,13 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
             }
         }
 #if DEBUG
-        .contentShape(Rectangle())
-        .simultaneousGesture(TapGesture(count: 2).onEnded {
-            // we need to use a simultaneous gesture otherwise there will be a pause for any actual taps in the view
-            showDebug = !showDebug
-        })
+        .background {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) {
+                    showDebug = !showDebug
+                }
+        }
         .onPreferenceChange(ComponentShowDebugPreference.self) { childDebug in
             if childDebug {
                 // if a child component has already shown the debug due to the simultaneousGesture, don't show it again for a parent
