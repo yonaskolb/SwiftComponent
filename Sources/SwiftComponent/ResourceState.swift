@@ -155,21 +155,32 @@ extension ComponentModel {
 /// A simple view for visualizing a Resource. If you want custom UI for loading and unloaded states, use a custom view and switch over Resource.state or access it's other properties directly
 public struct ResourceView<Value: Equatable, Content: View, ErrorView: View, LoadingView: View>: View {
 
+    // the order of states if they are not nil. States that are left out will be returned in the order content, loading, error
+    let stateOrder: [ResourceState<Value>.State.ResourceStateType]
     let resource: ResourceState<Value>
     let content: (Value) -> Content
     let loading: () -> LoadingView
     let error: (Error) -> ErrorView
 
-    public init(_ resource: ResourceState<Value>, @ViewBuilder loading:@escaping () -> LoadingView, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) {
+    public init(_ resource: ResourceState<Value>,
+                stateOrder: [ResourceState<Value>.State.ResourceStateType] = [.content, .loading, .error],
+                @ViewBuilder loading:@escaping () -> LoadingView,
+                @ViewBuilder content: @escaping (Value) -> Content,
+                @ViewBuilder error: @escaping (Error) -> ErrorView) {
         self.resource = resource
+        self.stateOrder = stateOrder
         self.loading = loading
         self.content = content
         self.error = error
     }
     
-    public init(_ resource: ResourceState<Value>, @ViewBuilder content: @escaping (Value) -> Content, @ViewBuilder error: @escaping (Error) -> ErrorView) where LoadingView == ResourceLoadingView {
+    public init(_ resource: ResourceState<Value>,
+                stateOrder: [ResourceState<Value>.State.ResourceStateType] = [.content, .loading, .error],
+                @ViewBuilder content: @escaping (Value) -> Content,
+                @ViewBuilder error: @escaping (Error) -> ErrorView) where LoadingView == ResourceLoadingView {
         self.init(
             resource,
+            stateOrder: stateOrder,
             loading: { ResourceLoadingView() },
             content: content,
             error: error
@@ -178,7 +189,7 @@ public struct ResourceView<Value: Equatable, Content: View, ErrorView: View, Loa
 
     public var body: some View {
         ZStack {
-            switch resource.state() {
+            switch resource.state(order: stateOrder) {
             case .loaded(let value):
                 content(value)
             case .error(let error):
