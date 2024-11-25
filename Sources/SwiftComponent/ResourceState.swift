@@ -177,15 +177,17 @@ public struct ResourceView<Value: Equatable, Content: View, ErrorView: View, Loa
     }
 
     public var body: some View {
-        switch resource.state() {
-        case .loaded(let value):
-            content(value)
-        case .error(let error):
-            self.error(error)
-        case .loading:
-            loading()
-        case .unloaded:
-            Spacer()
+        ZStack {
+            switch resource.state() {
+            case .loaded(let value):
+                content(value)
+            case .error(let error):
+                self.error(error)
+            case .loading:
+                loading()
+            case .unloaded:
+                Spacer()
+            }
         }
     }
 }
