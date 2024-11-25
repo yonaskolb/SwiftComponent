@@ -188,7 +188,7 @@ public struct ResourceView<Value: Equatable, Content: View, ErrorView: View, Loa
     }
 
     public var body: some View {
-        ZStack {
+        VStack {
             switch resource.state(order: stateOrder) {
             case .loaded(let value):
                 content(value)
