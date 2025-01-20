@@ -126,6 +126,18 @@ final class ConnectionTests: XCTestCase {
         XCTAssertEqual(child1.state.value, "from parent")
         XCTAssertEqual(child2.wrappedValue?.state.value, "from parent")
     }
+    
+    @MainActor
+    func testSiblingModelAccess() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child1 = parent.connections.childConnected
+        parent.state.optionalChild = .init()
+        let child2 = parent.presentations.childPresented
+        
+        await child2.wrappedValue?.sendAsync(.actionToSibling)
+        
+        XCTAssertEqual(child1.state.value, "from sibling")
+    }
 
     @ComponentModel
     fileprivate struct TestModel {
@@ -209,6 +221,7 @@ final class ConnectionTests: XCTestCase {
             case fromParent
             case useDependency
             case actionToParent
+            case actionToSibling
         }
 
         enum Output {
@@ -227,6 +240,8 @@ final class ConnectionTests: XCTestCase {
                 state.number = dependencies.number()
             case .actionToParent:
                 await parentModel(TestModel.self) { $0.state.value = "from child" }
+            case .actionToSibling:
+                await otherModel(TestModelChild.self) { $0.state.value = "from sibling" }
             }
         }
     }

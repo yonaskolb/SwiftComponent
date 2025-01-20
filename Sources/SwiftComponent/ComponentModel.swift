@@ -183,6 +183,16 @@ extension ComponentModel {
             }
         }
     }
+    
+    /// Calls a closure with any other models of a certain type. Not this closure could be called multiple times, if there are multiple models of this type
+    public func otherModel<Model: ComponentModel>(_ modelType: Model.Type, _ model: (Model) async -> Void) async {
+        let graphStores = store.graph.getStores(for: Model.self)
+        for graphStore in graphStores {
+            if store.id != graphStore.id {
+                await model(graphStore.model)
+            }
+        }
+    }
 }
 
 extension ComponentModel {
