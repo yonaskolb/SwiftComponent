@@ -51,7 +51,7 @@ extension ComponentDescription {
             }
         }
         let model = ModelInfo(
-            name: String(describing: ComponentType.Model.self),
+            name: ComponentType.Model.name,
             connections: try getType(ComponentType.Model.Connections.self),
             state: try getType(ComponentType.Model.State.self),
             action: try getType(ComponentType.Model.Action.self),

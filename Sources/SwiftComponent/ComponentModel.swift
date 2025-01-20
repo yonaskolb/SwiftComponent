@@ -45,11 +45,14 @@ extension ComponentModel {
     
     public var state: Context { _$context }
     
-    var connections: Connections { _$connections}
+    var connections: Connections { _$connections }
+    
+    nonisolated static var name: String {
+        String(describing: Self.self)
+    }
 
-    nonisolated
-    public static var baseName: String {
-        var name = String(describing: Self.self)
+    nonisolated public static var baseName: String {
+        var name = self.name
         let suffixes: [String] = [
             "Component",
             "Model",
