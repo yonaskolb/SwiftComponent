@@ -4,7 +4,8 @@ class ComponentGraph {
 
     var sendViewBodyEvents = false
     
-    private var models: [ComponentPath: WeakRef] = [:]
+    private var storesByModelType: [String: [WeakRef]] = [:]
+    private var viewModelsByPath: [ComponentPath: WeakRef] = [:]
     private var routes: [ComponentPath: Any] = [:]
     let id = UUID()
 
@@ -13,12 +14,14 @@ class ComponentGraph {
     }
 
     func add<Model: ComponentModel>(_ model: ViewModel<Model>) {
-        models[model.store.path] = WeakRef(model)
+        viewModelsByPath[model.store.path] = WeakRef(model)
+        storesByModelType[Model.name, default: []].append(.init(model.store))
     }
 
     func remove<Model: ComponentModel>(_ model: ViewModel<Model>) {
-        models[model.store.path] = nil
+        viewModelsByPath[model.store.path] = nil
         routes[model.store.path] = nil
+        storesByModelType[Model.name]?.removeAll { ($0.value as? ComponentStore<Model>)?.id == model.store.id }
     }
 
     func getScopedModel<Model: ComponentModel, Child: ComponentModel>(model: ViewModel<Model>, child: Child.Type) -> ViewModel<Child>? {
@@ -26,7 +29,11 @@ class ComponentGraph {
     }
 
     func getModel<Model: ComponentModel>(_ path: ComponentPath) -> ViewModel<Model>? {
-        models[path]?.value as? ViewModel<Model>
+        viewModelsByPath[path]?.value as? ViewModel<Model>
+    }
+    
+    func getStores<Model: ComponentModel>(for model: Model.Type) -> [ComponentStore<Model>] {
+        storesByModelType[Model.name]?.compactMap { $0.value as? ComponentStore<Model> } ?? []
     }
 
     func addRoute<Model: ComponentModel>(store: ComponentStore<Model>, route: Model.Route) {

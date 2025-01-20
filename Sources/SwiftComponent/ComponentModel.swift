@@ -163,6 +163,26 @@ extension ComponentModel {
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
+    
+    /// Calls a closure with any models that are currently children of this model, of a certain type. Not this closure could be called multiple times, if there are multiple models of this type
+    public func childModel<Model: ComponentModel>(_ modelType: Model.Type, _ model: (Model) async -> Void) async {
+        let graphStores = store.graph.getStores(for: Model.self)
+        for graphStore in graphStores {
+            if graphStore.path.contains(store.path), store.id != graphStore.id {
+                await model(graphStore.model)
+            }
+        }
+    }
+    
+    /// Calls a closure with any models that are parents of this model, of a certain type. Not this closure could be called multiple times, if there are multiple models of this type
+    public func parentModel<Model: ComponentModel>(_ modelType: Model.Type, _ model: (Model) async -> Void) async {
+        let graphStores = store.graph.getStores(for: Model.self)
+        for graphStore in graphStores {
+            if store.path.contains(graphStore.path), store.id != graphStore.id {
+                await model(graphStore.model)
+            }
+        }
+    }
 }
 
 extension ComponentModel {

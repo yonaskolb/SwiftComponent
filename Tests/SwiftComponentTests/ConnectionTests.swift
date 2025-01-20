@@ -104,6 +104,28 @@ final class ConnectionTests: XCTestCase {
         XCTAssertEqual(child.wrappedValue?.state.value, "from parent")
         XCTAssertEqual(parent.state.optionalChild?.value, "from parent")
     }
+    
+    @MainActor
+    func testParentModelAccess() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child = parent.connections.childConnected
+        
+        await child.sendAsync(.actionToParent)
+        XCTAssertEqual(parent.state.value, "from child")
+    }
+    
+    @MainActor
+    func testChildModelAccess() async {
+        let parent = ViewModel<TestModel>(state: .init())
+        let child1 = parent.connections.childConnected
+        parent.state.optionalChild = .init()
+        let child2 = parent.presentations.childPresented
+        
+        await parent.sendAsync(.actionToChildren)
+        
+        XCTAssertEqual(child1.state.value, "from parent")
+        XCTAssertEqual(child2.wrappedValue?.state.value, "from parent")
+    }
 
     @ComponentModel
     fileprivate struct TestModel {
@@ -143,6 +165,7 @@ final class ConnectionTests: XCTestCase {
         enum Action {
             case actionToChild
             case actionToOptionalChild
+            case actionToChildren
         }
 
         enum Input {
@@ -159,6 +182,8 @@ final class ConnectionTests: XCTestCase {
                 await self.connection(\.child, state: \.optionalChild) { model in
                     await model.handle(action: .fromParent)
                 }
+            case .actionToChildren:
+                await childModel(TestModelChild.self) { $0.state.value = "from parent" }
             }
         }
 
@@ -183,6 +208,7 @@ final class ConnectionTests: XCTestCase {
             case mutateState
             case fromParent
             case useDependency
+            case actionToParent
         }
 
         enum Output {
@@ -199,6 +225,8 @@ final class ConnectionTests: XCTestCase {
                 state.value = "from parent"
             case .useDependency:
                 state.number = dependencies.number()
+            case .actionToParent:
+                await parentModel(TestModel.self) { $0.state.value = "from child" }
             }
         }
     }
