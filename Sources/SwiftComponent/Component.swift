@@ -81,6 +81,14 @@ extension Component {
     public static func previewModel() -> ViewModel<Model> {
         preview.viewModel().dependency(\.context, .preview)
     }
+    
+    /// Returns a view for a snapshot. Dependencies from the `preview` snapshot will be applied first
+    public static func view(snapshot: ComponentSnapshot<Model>) -> ViewType {
+        let viewModel = ViewModel<Model>(state: snapshot.state, environment: snapshot.environment, route: snapshot.route)
+            .apply(preview.dependencies)
+            .apply(snapshot.dependencies)
+        return view(model: viewModel)
+    }
 }
 
 extension Component {
