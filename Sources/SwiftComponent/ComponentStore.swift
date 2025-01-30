@@ -198,7 +198,7 @@ class ComponentStore<Model: ComponentModel> {
     }
     
     func onOutput(_ handle: @MainActor @escaping (Model.Output, Event) -> Void) -> Self {
-        self.onEvent { event in
+        self.onEvent(includeGrandchildren: false) { event in
             if case let .output(output) = event.type, let output = output as? Model.Output {
                 handle(output, event)
             }
@@ -206,7 +206,7 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     func onAction(_ handle: @MainActor @escaping (Model.Action, Event) -> Void) -> Self {
-        self.onEvent { event in
+        self.onEvent(includeGrandchildren: false) { event in
             if case let .action(action) = event.type, let action = action as? Model.Action {
                 handle(action, event)
             }
@@ -214,10 +214,14 @@ class ComponentStore<Model: ComponentModel> {
     }
 
     @discardableResult
-    func onEvent(_ handle: @MainActor @escaping (Event) -> Void) -> Self {
+    func onEvent(includeGrandchildren: Bool, _ handle: @MainActor @escaping (Event) -> Void) -> Self {
         self.events
             .sink { event in
-                Task { @MainActor in handle(event) }
+                Task { @MainActor in
+                    if includeGrandchildren || event.storeID == self.id {
+                        handle(event)
+                    }
+                }
             }
             .store(in: &cancellables)
         return self

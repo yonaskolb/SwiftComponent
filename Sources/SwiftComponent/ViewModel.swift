@@ -69,8 +69,8 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
         store.graph.remove(self)
     }
 
-    public func onEvent(_ event: @escaping (Event) -> Void) -> Self {
-        store.onEvent(event)
+    public func onEvent(includeGrandchildren: Bool = true, _ event: @escaping (Event) -> Void) -> Self {
+        store.onEvent(includeGrandchildren: includeGrandchildren, event)
         return self
     }
 

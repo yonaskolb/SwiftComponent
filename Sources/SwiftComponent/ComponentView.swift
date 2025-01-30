@@ -171,10 +171,8 @@ extension ComponentView {
     }
 
     public func onOutput(_ handle: @escaping (Model.Output) -> Void) -> Self {
-        _ = model.store.onEvent { event in
-            if case let .output(output) = event.type, let output = output as? Model.Output {
-                handle(output)
-            }
+        _ = model.store.onOutput { output, event in
+            handle(output)
         }
         return self
     }
