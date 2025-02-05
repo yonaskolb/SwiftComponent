@@ -183,10 +183,10 @@ extension Component {
 
 extension ComponentStore {
     
-    // wait for events to fire from the publisher
-    // TODO: replace this with something that doesn't wait for time
+    // wait for events to to be recieved by parent stores. This happens in a subscriber sink and a new Task in ComponentStore.onEvent
+    // TODO: replace this with something that doesn't wait for time, or replace the event Combine pipeline
     func waitForEvents() async {
-        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.2))
+        try? await Task.sleep(nanoseconds: UInt64(1_000_000_000.0 * 0.4))
     }
     
     @MainActor
