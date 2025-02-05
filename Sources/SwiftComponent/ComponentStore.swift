@@ -216,9 +216,9 @@ class ComponentStore<Model: ComponentModel> {
     @discardableResult
     func onEvent(includeGrandchildren: Bool, _ handle: @MainActor @escaping (Event) -> Void) -> Self {
         self.events
-            .sink { event in
+            .sink { [id] event in
                 Task { @MainActor in
-                    if includeGrandchildren || event.storeID == self.id {
+                    if includeGrandchildren || event.storeID == id {
                         handle(event)
                     }
                 }
