@@ -16,17 +16,65 @@ public struct SnapshotModifier {
     }
 }
 
-extension ComponentSnapshot {
-
+extension Component {
+    
     @MainActor
     /// must be called from a test target with an app host
-    public func write<V: View, C: Component>(
-        component: C.Type,
+    public static func generateSnapshots(
         size: CGSize,
-        with view: V,
         snapshotDirectory: String? = nil,
-        file: StaticString = #file,
-        variants: [String: [SnapshotModifier]] = [:]
+        variants: [String: [SnapshotModifier]] = [:],
+        file: StaticString = #file
+    ) async throws -> Set<URL> {
+        var snapshots = self.snapshots
+        for test in tests {
+            // TODO: run tests in a cut down mode that doesn't assert or expect anything, just generates snapshots
+            let testSnapshots = await run(test, assertions: []).snapshots
+            snapshots.append(contentsOf: testSnapshots)
+        }
+        var snapshotPaths: Set<URL> = []
+        for snapshot in snapshots {
+            let filePaths = try await write(
+                snapshot: snapshot,
+                size: size,
+                snapshotDirectory: snapshotDirectory,
+                variants: variants,
+                file: file
+            )
+            snapshotPaths = snapshotPaths.union(filePaths)
+        }
+        return snapshotPaths
+    }
+        
+    
+    @MainActor
+    public static func write(
+        snapshot: ComponentSnapshot<Model>,
+        size: CGSize,
+        snapshotDirectory: String? = nil,
+        variants: [String: [SnapshotModifier]] = [:],
+        file: StaticString = #file
+    ) async throws -> [URL] {
+        try await write(
+            view: view(snapshot: snapshot).previewReference(),
+            state: snapshot.state,
+            name: "\(name).\(snapshot.name)",
+            size: size,
+            snapshotDirectory: snapshotDirectory,
+            variants: variants,
+            file: file
+        )
+    }
+    
+    @MainActor
+    static func write<V: View>(
+        view: V,
+        state: Model.State,
+        name: String,
+        size: CGSize,
+        snapshotDirectory: String? = nil,
+        variants: [String: [SnapshotModifier]],
+        file: StaticString = #file
     ) async throws -> [URL] {
 
         var writtenFiles: [URL] = []
@@ -38,11 +86,9 @@ extension ComponentSnapshot {
             .appendingPathComponent("Snapshots")
 
         try FileManager.default.createDirectory(at: snapshotsPath, withIntermediateDirectories: true)
-        let filePath = snapshotsPath.appendingPathComponent("\(component.name).\(name)")
+        let filePath = snapshotsPath.appendingPathComponent(name)
 
-        let view = view.previewReference()
-
-#if canImport(UIKit)
+		#if canImport(UIKit)
         // accessibility markdown
         let accessibilityFilePath = filePath.appendingPathExtension("md")
         let accessibilitySnapshot = view.accessibilityHierarchy().markdown()
@@ -62,16 +108,16 @@ extension ComponentSnapshot {
                     modifiedView = environment.render(modifiedView)
                 }
                 let imageSnapshot = modifiedView.snapshot(size: size)
-                let imageFilePath = snapshotsPath.appendingPathComponent("\(component.name).\(name).\(variant)").appendingPathExtension("png")
+                let imageFilePath = snapshotsPath.appendingPathComponent("\(name).\(variant)").appendingPathExtension("png")
                 try imageSnapshot.pngData()?.write(to: imageFilePath)
                 writtenFiles.append(imageFilePath)
             }
         }
-#endif
+		#endif
         // state
         let stateFilePath = filePath.appendingPathExtension("swift")
-        let state = dumpToString(self.state)
-        try state.data(using: .utf8)?.write(to: stateFilePath)
+        let stateString = dumpToString(state)
+        try stateString.data(using: .utf8)?.write(to: stateFilePath)
         writtenFiles.append(stateFilePath)
         
         return writtenFiles
