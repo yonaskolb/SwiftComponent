@@ -20,7 +20,8 @@ extension ComponentSnapshot {
 
     @MainActor
     /// must be called from a test target with an app host
-    public func write<V: View>(
+    public func write<V: View, C: Component>(
+        component: C.Type,
         size: CGSize,
         with view: V,
         snapshotDirectory: String? = nil,
@@ -37,7 +38,7 @@ extension ComponentSnapshot {
             .appendingPathComponent("Snapshots")
 
         try FileManager.default.createDirectory(at: snapshotsPath, withIntermediateDirectories: true)
-        let filePath = snapshotsPath.appendingPathComponent("\(Model.baseName).\(name)")
+        let filePath = snapshotsPath.appendingPathComponent("\(component.name).\(name)")
 
         let view = view.previewReference()
 
@@ -61,7 +62,7 @@ extension ComponentSnapshot {
                     modifiedView = environment.render(modifiedView)
                 }
                 let imageSnapshot = modifiedView.snapshot(size: size)
-                let imageFilePath = snapshotsPath.appendingPathComponent("\(Model.baseName).\(name).\(variant)").appendingPathExtension("png")
+                let imageFilePath = snapshotsPath.appendingPathComponent("\(component.name).\(name).\(variant)").appendingPathExtension("png")
                 try imageSnapshot.pngData()?.write(to: imageFilePath)
                 writtenFiles.append(imageFilePath)
             }
