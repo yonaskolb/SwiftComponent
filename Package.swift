@@ -14,7 +14,7 @@ var package = Package(
     dependencies: [
         .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
-        .package(url: "https://github.com/yonaskolb/swift-dependencies", branch: "merging"),
+        .package(url: "https://github.com/yonaskolb/swift-dependencies", from: "1.7.1"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.0.0"),
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.2.4"),
@@ -22,7 +22,7 @@ var package = Package(
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.7"),
         .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
-        .package(url: "https://github.com/yonaskolb/AccessibilitySnapshot", revision: "1b5b7c0b0ffe5f8a3450c84751cd1260903d5e92"),
+        .package(url: "https://github.com/yonaskolb/AccessibilitySnapshot", from: "0.8.1"),
 		.package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
         .package(url: "https://github.com/pointfreeco/swiftui-navigation", from: "1.3.0"),
     ],
