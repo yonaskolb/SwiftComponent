@@ -74,7 +74,6 @@ struct ComponentViewContainer<Model: ComponentModel, Content: View>: View {
         WithPerceptionTracking {
             getView()
         }
-        .environment(\.viewAppearanceTask, true)
         .task {
             // even though we can manage an appearanceTask in the store, use task instead of onAppear here as there can be race conditions in SwiftUI related to FocusState which means ComponentStore can be deinitialised (as a parent recreated a ViewModel) before the task actually starts.
             if viewAppearanceTask {
