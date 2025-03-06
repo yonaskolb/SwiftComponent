@@ -6,6 +6,8 @@ public struct TestContext<Model: ComponentModel> {
     public var delay: TimeInterval
     public var assertions: [TestAssertion]
     public var runAssertions: Bool = true
+    public var runExpectations: Bool = true
+    public var collectTestCoverage: Bool = true
     public var childStepResults: [TestStepResult] = []
     public var stepErrors: [TestError] = []
     public var testCoverage: TestCoverage = .init()
@@ -18,7 +20,15 @@ public struct TestContext<Model: ComponentModel> {
 extension ViewModel {
 
     @MainActor
-    public func runTest(_ test: Test<Model>, initialState: Model.State, assertions: [TestAssertion], delay: TimeInterval = 0, sendEvents: Bool = false, stepComplete: ((TestStepResult) -> Void)? = nil) async -> TestResult<Model> {
+    public func runTest(
+        _ test: Test<Model>,
+        initialState: Model.State,
+        assertions: [TestAssertion],
+        delay: TimeInterval = 0,
+        onlyCollectSnapshots: Bool = false,
+        sendEvents: Bool = false,
+        stepComplete: ((TestStepResult) -> Void)? = nil
+    ) async -> TestResult<Model> {
         await TestRunTask.$running.withValue(true) {
             let start = Date()
             let assertions = test.assertions ?? assertions
@@ -47,6 +57,11 @@ extension ViewModel {
             
             var stepResults: [TestStepResult] = []
             var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
+            if onlyCollectSnapshots {
+                context.runExpectations = false
+                context.collectTestCoverage = false
+                context.runAssertions = false
+            }
             for step in test.steps {
                 context.stepErrors = []
                 var result = await TestStepID.$current.withValue(step.id) {
@@ -96,7 +111,7 @@ extension TestStep {
         }
 
         var testCoverage = TestCoverage()
-        do {
+        if context.collectTestCoverage {
             let checkActions = (try? typeInfo(of: Model.Action.self))?.kind == .enum
             let checkOutputs = (try? typeInfo(of: Model.Output.self))?.kind == .enum
             let checkRoutes = (try? typeInfo(of: Model.Route.self))?.kind == .enum
@@ -121,16 +136,18 @@ extension TestStep {
 
             testCoverage.dependencies = context.model.store.dependencies.accessedDependencies
             context.model.store.dependencies.accessedDependencies = startingAccessedDependencies.union(testCoverage.dependencies)
+            context.testCoverage.add(testCoverage)
         }
-        context.testCoverage.add(testCoverage)
 
         var expectationErrors: [TestError] = []
-        for expectation in expectations {
-            var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: unexpectedEvents)
-            expectation.run(&expectationContext)
-            unexpectedEvents = expectationContext.events
-            context.state = expectationContext.testContext.state
-            expectationErrors += expectationContext.errors
+        if context.runExpectations {
+            for expectation in expectations {
+                var expectationContext = TestExpectation<Model>.Context(testContext: context, source: expectation.source, events: unexpectedEvents)
+                expectation.run(&expectationContext)
+                unexpectedEvents = expectationContext.events
+                context.state = expectationContext.testContext.state
+                expectationErrors += expectationContext.errors
+            }
         }
 
         var assertionErrors: [TestError] = []
@@ -169,14 +186,14 @@ extension TestStep {
 extension Component {
 
     @MainActor
-    public static func run(_ test: Test<Model>, assertions: [TestAssertion]? = nil) async -> TestResult<Model> {
+    public static func run(_ test: Test<Model>, assertions: [TestAssertion]? = nil, onlyCollectSnapshots: Bool = false) async -> TestResult<Model> {
         return await withDependencies {
             // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
             $0.context = .preview
         } operation: {
             let state = Self.state(for: test)
             let model = ViewModel<Model>(state: state, environment: test.environment)
-            return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions)
+            return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions, onlyCollectSnapshots: onlyCollectSnapshots)
         }
     }
 }

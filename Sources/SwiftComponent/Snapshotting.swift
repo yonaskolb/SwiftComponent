@@ -28,9 +28,12 @@ extension Component {
     ) async throws -> Set<URL> {
         var snapshots = self.snapshots
         for test in tests {
-            // TODO: run tests in a cut down mode that doesn't assert or expect anything, just generates snapshots
-            let testSnapshots = await run(test, assertions: []).snapshots
-            snapshots.append(contentsOf: testSnapshots)
+            // only run tests if they contain snapshots steps, otherwise we can skip for performance
+            let testContainsSnapshots = test.steps.contains { !$0.snapshots.isEmpty }
+            if testContainsSnapshots {
+                let testSnapshots = await run(test, assertions: [], onlyCollectSnapshots: true).snapshots
+                snapshots.append(contentsOf: testSnapshots)
+            }
         }
         var snapshotPaths: Set<URL> = []
         for snapshot in snapshots {
