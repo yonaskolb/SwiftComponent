@@ -109,6 +109,11 @@ extension ComponentModel {
         store.output(event, source: .capture(file: file, line: line))
     }
 
+    @MainActor
+    public func outputAsync(_ event: Output, file: StaticString = #filePath, line: UInt = #line) async {
+       await store.output(event, source: .capture(file: file, line: line))
+    }
+
     @discardableResult
     @MainActor
     public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> R) async -> R {

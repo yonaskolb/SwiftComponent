@@ -18,6 +18,6 @@ public extension ActionOutput {
 
     @MainActor
     func handle(action: Action) async {
-        output(action)
+        await output(action)
     }
 }

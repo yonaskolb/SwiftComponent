@@ -96,7 +96,8 @@ class ComponentStore<Model: ComponentModel> {
     public var events = PassthroughSubject<Event, Never>()
     private var subscriptions: Set<AnyCancellable> = []
     var stateDump: String { dumpToString(state) }
-    
+    var outputHandler: ((Model.Output, Source) async -> Void)? = nil
+
     convenience init(state: StateStorage, path: ComponentPath?, graph: ComponentGraph, route: Model.Route? = nil) where Model.Environment == EmptyEnvironment {
         self.init(state: state, path: path, graph: graph, environment: EmptyEnvironment(), route: route)
     }
@@ -351,11 +352,19 @@ extension ComponentStore {
     }
     
     @MainActor
-    func output(_ event: Model.Output, source: Source) {
-        startEvent()
-        self.sendEvent(type: .output(event), start: Date(), mutations: [], source: source)
+    func output(_ output: Model.Output, source: Source) {
+        addTask {
+            await self.output(output, source: source)
+        }
     }
-    
+
+    @MainActor
+    func output(_ output: Model.Output, source: Source) async {
+        startEvent()
+        await self.outputHandler?(output, source)
+        self.sendEvent(type: .output(output), start: Date(), mutations: [], source: source)
+    }
+
     @MainActor
     func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @MainActor @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         do {
@@ -523,22 +532,7 @@ extension ComponentStore {
         return .stateBinding(optionalCaseBinding(state: statePath, case: casePath, value: value), id: hasher.finalize())
     }
     
-    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>, output handleOutput: @MainActor @escaping (Child.Output, Event) -> Void) -> ComponentStore<Child> {
-        store.events.sink { [weak self] event in
-            guard let self else { return }
-            self.events.send(event)
-            if self.logChildEvents {
-                log(event)
-            }
-        }
-        .store(in: &store.subscriptions)
-        
-        return store.onOutput { @MainActor output, event in
-            handleOutput(output, event)
-        }
-    }
-    
-    func connectTo<Child: ComponentModel>(_ store: ComponentStore<Child>) -> ComponentStore<Child> where Child.Output == Never {
+    func syncEvents<Child: ComponentModel>(_ store: ComponentStore<Child>) -> ComponentStore<Child> {
         store.events.sink { [weak self] event in
             guard let self else { return }
             self.events.send(event)
@@ -581,31 +575,30 @@ extension ComponentStore {
 
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil, output scopedOutput: OutputHandler<Model, Child>) -> ComponentStore<Child> {
         let childStore: ComponentStore<Child> = scopedStore(state: state, environment: environment, route: route)
-        return connectTo(childStore) { @MainActor [weak self] output, event in
+        childStore.outputHandler = { @MainActor [weak self] output, source in
             guard let self else { return }
             switch scopedOutput{
             case .input(let toInput):
                 let input = toInput(output)
-                self.processInput(input, source: event.source)
+                await self.processInput(input, source: source)
             case .output(let toOutput):
                 let output = toOutput(output)
-                self.output(output, source: event.source)
+                await self.output(output, source: source)
             case .handle(let handle):
-                addTask {
-                    await handle((output: output, model: self.model))
-                }
+                await handle((output: output, model: self.model))
             case .ignore:
                 break
             }
         }
+        return syncEvents(childStore)
     }
     
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never, Model.Environment == Child.Environment {
-        connectTo(scopedStore(state: state, environment: self.environment, route: route))
+        syncEvents(scopedStore(state: state, environment: self.environment, route: route))
     }
     
     func scope<Child: ComponentModel>(state: ScopedState<Model.State, Child.State>, environment: Child.Environment, route: Child.Route? = nil) -> ComponentStore<Child> where Child.Output == Never {
-        connectTo(scopedStore(state: state, environment: environment, route: route))
+        syncEvents(scopedStore(state: state, environment: environment, route: route))
     }
 }
 

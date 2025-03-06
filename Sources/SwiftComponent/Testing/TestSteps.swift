@@ -107,7 +107,7 @@ extension TestStep {
 
             guard let componentRoute = context.getRoute(path, source: .capture(file: file, line: line)) else { return }
 
-            componentRoute.model.store.output(output, source: .capture(file: file, line: line))
+            await componentRoute.model.store.output(output, source: .capture(file: file, line: line))
             await Task.yield()
             if context.delay > 0 {
                 try? await Task.sleep(nanoseconds: context.delayNanoseconds)

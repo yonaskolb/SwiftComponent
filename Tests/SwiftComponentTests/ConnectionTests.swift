@@ -11,7 +11,6 @@ final class ConnectionTests: XCTestCase {
         let child = parent.connectedModel(\.child, state: .init(), id: "constant")
 
         await child.sendAsync(.sendOutput)
-        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
         XCTAssertEqual(parent.state.value, "handled")
     }
 
@@ -21,7 +20,6 @@ final class ConnectionTests: XCTestCase {
         let child = parent.connectedModel(\.childConnected)
 
         await child.sendAsync(.sendOutput)
-        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
         XCTAssertEqual(parent.state.value, "handled")
     }
     
@@ -60,7 +58,6 @@ final class ConnectionTests: XCTestCase {
         let child = parent.connectedModel(\.childToInput)
 
         await child.sendAsync(.sendOutput)
-        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
         XCTAssertEqual(parent.state.value, "handled")
     }
 
@@ -70,7 +67,8 @@ final class ConnectionTests: XCTestCase {
         let child = parent.connectedModel(\.childAction)
 
         await child.sendAsync(.sendOutput)
-        try? await Task.sleep(for: .seconds(0.1)) // sending output happens via combine publisher right now so incurs a thread hop
+        // TODO: fix
+        try? await Task.sleep(for: .seconds(0.1)) // sending action evnent happens via combine publisher right now so incurs a thread hop
         XCTAssertEqual(parent.state.value, "action handled")
     }
 
@@ -231,7 +229,7 @@ final class ConnectionTests: XCTestCase {
         func handle(action: Action) async {
             switch action {
             case .sendOutput:
-                output(.done)
+                await outputAsync(.done)
             case .mutateState:
                 state.value  = "mutated"
             case .fromParent:

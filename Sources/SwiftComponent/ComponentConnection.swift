@@ -388,7 +388,7 @@ extension TestStep {
             line: line
         ) { context in
             let model = context.model.connect(to: connection, state: state)
-            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
+            await model.store.output(output, source: .capture(file: file, line: line))
         }
     }
 
@@ -411,7 +411,7 @@ extension TestStep {
                 return
             }
             let model = context.model.connect(to: connection, state: .optionalKeyPath(keyPath, fallback: state))
-            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
+            await model.store.output(output, source: .capture(file: file, line: line))
         }
     }
     
@@ -435,7 +435,7 @@ extension TestStep {
                 return
             }
             let model = context.model.connect(to: connection, state: context.model.store.caseScopedState(state: keyPath, case: casePath, value: state))
-            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
+            await model.store.output(output, source: .capture(file: file, line: line))
         }
     }
     
@@ -544,7 +544,7 @@ extension TestStep {
             line: line
         ) { context in
             guard let model = createModel(&context) else { return }
-            await model.store.outputAndWait(output, source: .capture(file: file, line: line))
+            await model.store.output(output, source: .capture(file: file, line: line))
         }
     }
 }
