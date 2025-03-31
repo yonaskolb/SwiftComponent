@@ -86,22 +86,22 @@ extension Component {
 }
 
 @resultBuilder
-public struct SnapshotBuilder{
-    public static func buildBlock<Model: ComponentModel>() -> [ComponentSnapshot<Model>] { [] }
+public struct SnapshotBuilder<Model: ComponentModel> {
+    public static func buildBlock() -> [ComponentSnapshot<Model>] { [] }
 
-    public static func buildExpression<Model: ComponentModel>(_ expression: ComponentSnapshot<Model>) -> [ComponentSnapshot<Model>] {
+    public static func buildExpression(_ expression: ComponentSnapshot<Model>) -> [ComponentSnapshot<Model>] {
         [expression]
     }
 
-    public static func buildExpression<Model: ComponentModel>(_ expression: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
+    public static func buildExpression(_ expression: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
         expression
     }
 
-    public static func buildPartialBlock<Model: ComponentModel>(first: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
+    public static func buildPartialBlock(first: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
         first
     }
 
-    public static func buildPartialBlock<Model: ComponentModel>(accumulated: [ComponentSnapshot<Model>], next: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
+    public static func buildPartialBlock(accumulated: [ComponentSnapshot<Model>], next: [ComponentSnapshot<Model>]) -> [ComponentSnapshot<Model>] {
         accumulated + next
     }
 }

@@ -14,7 +14,7 @@ public protocol Component: PreviewProvider {
     typealias Route = ComponentModelRoute<Model.Route>
     typealias Routes = [Route]
 
-    @SnapshotBuilder static var snapshots: Snapshots { get }
+    @SnapshotBuilder<Model> static var snapshots: Snapshots { get }
     @TestBuilder<Model> static var tests: Tests { get }
     @RouteBuilder static var routes: Routes { get }
     static var preview: PreviewModel { get }
