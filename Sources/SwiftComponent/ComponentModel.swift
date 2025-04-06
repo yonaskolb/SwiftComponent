@@ -116,10 +116,17 @@ extension ComponentModel {
 
     @discardableResult
     @MainActor
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
     public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> R) async -> R {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
     }
-
+    
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    ///   - catchError: This may throw a cancellation error
     @MainActor
     public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)

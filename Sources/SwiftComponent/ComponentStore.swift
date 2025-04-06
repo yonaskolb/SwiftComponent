@@ -424,7 +424,9 @@ extension ComponentStore {
             sendEvent(type: .task(TaskResult(name: name, result: .success(value))), start: start, mutations: mutations, source: source)
             return value
         } catch {
-            sendEvent(type: .task(TaskResult(name: name, result: .failure(error))), start: start, mutations: mutations, source: source)
+            if !(error is CancellationError) {
+                sendEvent(type: .task(TaskResult(name: name, result: .failure(error))), start: start, mutations: mutations, source: source)
+            }
             throw error
         }
     }
