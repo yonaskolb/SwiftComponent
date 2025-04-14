@@ -94,6 +94,6 @@ public struct Device: Equatable {
 extension PreviewDevice {
 
     public static var iPad: PreviewDevice {
-        PreviewDevice(rawValue: "iPad Air 11-inch (M3)")
+        PreviewDevice(rawValue: "iPad Pro 11-inch (M4)")
     }
 }
