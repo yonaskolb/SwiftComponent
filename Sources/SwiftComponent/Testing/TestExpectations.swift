@@ -61,6 +61,24 @@ extension TestStep {
         expectTask(name: taskID.taskName, successful: successful, file: file, line: line)
     }
 
+    public func expectTask(_ taskID: String, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        expectTask(name: taskID, successful: successful, file: file, line: line)
+    }
+
+    public func expectCancelledTask(_ taskID: String, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        addExpectation(title: "Expect task is not running", details: taskID.quoted, file: file, line: line) { context in
+            if context.model.store.tasksByID[taskID] != nil {
+                context.error("Task \(taskID.quoted) is unexpectedly running")
+            } else if !context.model.store.cancelledTasks.contains(taskID) {
+                context.error("Task \(taskID.quoted) was not cancelled")
+            }
+        }
+    }
+
+    public func expectCancelledTask(_ taskID: Model.Task, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        expectCancelledTask(taskID.taskName, file: file, line: line)
+    }
+
     public func expectDependency<Value>(_ keyPath: KeyPath<DependencyValues, Value>, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect dependency", details: keyPath.propertyName, file: file, line: line) { context in
             if let name = keyPath.propertyName {

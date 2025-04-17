@@ -35,7 +35,8 @@ class ComponentStore<Model: ComponentModel> {
     var componentName: String { Model.baseName }
     private var eventsInProgress = 0
     var previewTaskDelay: TimeInterval = 0
-    private var tasksByID: [String: CancellableTask] = [:]
+    private(set) var tasksByID: [String: CancellableTask] = [:]
+    var cancelledTasks: Set<String> = []
     private var tasks: [UUID: CancellableTask] = [:]
     private var appearanceTask: CancellableTask?
     let stateChanged = PassthroughSubject<Model.State, Never>()
@@ -451,6 +452,7 @@ extension ComponentStore {
     }
 
     func cancelTask(cancelID: String) {
+        cancelledTasks.insert(cancelID)
         if let previousTask = tasksByID[cancelID] {
             previousTask.cancel()
             tasksByID[cancelID] = nil
@@ -458,6 +460,7 @@ extension ComponentStore {
     }
     
     func addTask(_ task: CancellableTask, cancelID: String) {
+        cancelledTasks.remove(cancelID)
         tasksByID[cancelID] = task
     }
     
