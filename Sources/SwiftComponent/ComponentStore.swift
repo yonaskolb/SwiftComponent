@@ -431,6 +431,25 @@ extension ComponentStore {
         }
     }
     
+    @MainActor
+    func addTask(_ name: String, cancellable: Bool, source: Source,  _ task: @escaping () async -> Void) {
+        let cancelID = name
+
+        let start = Date()
+        startEvent()
+        mutations = []
+        if cancellable {
+            cancelTask(cancelID: cancelID)
+        }
+        let task = Task { @MainActor in
+            await task()
+            tasksByID[cancelID] = nil
+        }
+        addTask(task, cancelID: cancelID)
+        let result = TaskResult(name: name, result: .success(()))
+        sendEvent(type: .task(result), start: start, mutations: mutations, source: source)
+    }
+
     func cancelTask(cancelID: String) {
         if let previousTask = tasksByID[cancelID] {
             previousTask.cancel()

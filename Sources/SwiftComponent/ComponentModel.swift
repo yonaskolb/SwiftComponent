@@ -139,6 +139,16 @@ extension ComponentModel {
             try await task()
         }
     }
+    /// Adds a task that will be cancelled upon model deinit. In comparison to `task(_)` you don't have to wait for the result making it useful for never ending tasks like AsyncStreams,
+    /// and a task event will be sent as soon as the task is created
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    @MainActor
+    public func addTask(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {
+        store.addTask(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
+    }
+
 
     @MainActor
     public func cancelTask(_ taskID: Task) {
