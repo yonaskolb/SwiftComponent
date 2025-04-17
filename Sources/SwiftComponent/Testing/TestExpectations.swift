@@ -21,7 +21,7 @@ extension TestStep {
         }
     }
 
-    private func expectTask(name: String, successful: Bool?, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    private func expectTask(name: String, successful: Bool?, ongoing: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         let result: String
         switch successful {
         case .none:
@@ -54,15 +54,22 @@ extension TestStep {
             } else {
                 context.error("Task \(name.quoted) was not sent")
             }
+            if let ongoing {
+                if ongoing, context.model.store.tasksByID[name] == nil {
+                    context.error("Expected \(name.quoted) to still be running")
+                } else if !ongoing, context.model.store.tasksByID[name] != nil {
+                    context.error("Expected \(name.quoted) not to still be running")
+                }
+            }
         }
     }
 
-    public func expectTask(_ taskID: Model.Task, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
-        expectTask(name: taskID.taskName, successful: successful, file: file, line: line)
+    public func expectTask(_ taskID: Model.Task, successful: Bool? = nil, ongoing: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        expectTask(name: taskID.taskName, successful: successful, ongoing: ongoing, file: file, line: line)
     }
 
-    public func expectTask(_ taskID: String, successful: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
-        expectTask(name: taskID, successful: successful, file: file, line: line)
+    public func expectTask(_ taskID: String, successful: Bool? = nil, ongoing: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
+        expectTask(name: taskID, successful: successful, ongoing: ongoing, file: file, line: line)
     }
 
     public func expectCancelledTask(_ taskID: String, file: StaticString = #filePath, line: UInt = #line) -> Self {
