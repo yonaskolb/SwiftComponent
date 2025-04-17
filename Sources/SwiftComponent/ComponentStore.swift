@@ -295,22 +295,20 @@ extension ComponentStore {
     
     @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) async {
-        addTask {  @MainActor in
-            await self.disappear(file: file, line: line)
-        }
+        let start = Date()
+        startEvent()
+        mutations = []
+        await model.disappear()
+        sendEvent(type: .view(.disappear), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
+
+        appearanceTask?.cancel()
+        appearanceTask = nil
     }
     
     @MainActor
     func disappear(file: StaticString = #filePath, line: UInt = #line) {
         addTask { @MainActor in
-            let start = Date()
-            self.startEvent()
-            self.mutations = []
-            await self.model.disappear()
-            self.sendEvent(type: .view(.disappear), start: start, mutations: self.mutations, source: .capture(file: file, line: line))
-            
-            self.appearanceTask?.cancel()
-            self.appearanceTask = nil
+            await self.disappear()
         }
     }
     

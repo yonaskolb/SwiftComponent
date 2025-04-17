@@ -26,9 +26,9 @@ final class MemoryTests: XCTestCase {
         
         let childStateIDAndInput = viewModel.connectedModel(\.childInput, state: .init(), id: "constant")
         
-        childStateIDAndInput.disappear()
-        child.disappear()
-        viewModel.disappear()
+        await childStateIDAndInput.disappearAsync()
+        await child.disappearAsync()
+        await viewModel.disappearAsync()
 
         try? await Task.sleep(for: .seconds(0.2))
 
@@ -72,9 +72,22 @@ final class MemoryTests: XCTestCase {
             await self.task("task") {
                 state.count = 2
             }
+            addTask("long running task") {
+                func makeStream() -> AsyncStream<Int> {
+                    let stream = AsyncStream.makeStream(of: Int.self)
+                    stream.continuation.yield(1)
+                    
+                    return stream.stream
+                }
+
+                for await value in makeStream() {
+
+                }
+            }
         }
 
         func disappear() async {
+            cancelTask("long running task")
             await self.task("task") {
                 state.count = 0
             }
