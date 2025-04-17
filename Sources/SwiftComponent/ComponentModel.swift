@@ -10,7 +10,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     associatedtype Input = Never
     associatedtype Output = Never
     associatedtype Route = Never
-    associatedtype Task: ModelTask = String
+    associatedtype Task: ModelTask = Never
     associatedtype Environment: ComponentEnvironment = EmptyEnvironment
     associatedtype Connections = Void
     @MainActor func appear() async
@@ -33,8 +33,9 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
 public protocol ModelTask {
     var taskName: String { get }
 }
-extension String: ModelTask {
-    public var taskName: String { self }
+
+extension Never: ModelTask {
+    public var taskName: String { "" }
 }
 
 extension RawRepresentable where RawValue == String {
@@ -131,7 +132,9 @@ extension ComponentModel {
     public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         await store.task(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
     }
-
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
     @discardableResult
     @MainActor
     public func task<R>(_ taskID: Task, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R) async throws -> R {
@@ -149,10 +152,51 @@ extension ComponentModel {
         store.addTask(taskID.taskName, cancellable: cancellable, source: .capture(file: file, line: line), task)
     }
 
+    @discardableResult
+    @MainActor
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    public func task<R>(_ taskID: String, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> R) async -> R {
+        await store.task(taskID, cancellable: cancellable, source: .capture(file: file, line: line), task)
+    }
+
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    ///   - catchError: This may throw a cancellation error
+    @MainActor
+    public func task<R>(_ taskID: String, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
+        await store.task(taskID, cancellable: cancellable, source: .capture(file: file, line: line), task, catch: catchError)
+    }
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    @discardableResult
+    @MainActor
+    public func task<R>(_ taskID: String, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async throws -> R) async throws -> R {
+        try await store.task(taskID, cancellable: cancellable, source: .capture(file: file, line: line)) {
+            try await task()
+        }
+    }
+    /// Adds a task that will be cancelled upon model deinit. In comparison to `task(_)` you don't have to wait for the result making it useful for never ending tasks like AsyncStreams
+    /// and a task event will be sent as soon as the task is created
+    /// - Parameters:
+    ///   - taskID: a unique id for this task. Tasks of the same id can be cancelled
+    ///   - cancellable: cancel previous ongoing tasks of the same taskID
+    @MainActor
+    public func addTask(_ taskID: String, cancellable: Bool = false, file: StaticString = #filePath, line: UInt = #line, _ task: @escaping () async -> Void) {
+        store.addTask(taskID, cancellable: cancellable, source: .capture(file: file, line: line), task)
+    }
 
     @MainActor
     public func cancelTask(_ taskID: Task) {
         store.cancelTask(cancelID: taskID.taskName)
+    }
+
+    @MainActor
+    public func cancelTask(_ taskID: String) {
+        store.cancelTask(cancelID: taskID)
     }
 
     @MainActor
