@@ -188,7 +188,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
 
     var stateSection: some View {
         Section(header: Text("State")) {
-            SwiftView(value: stateBinding(), config: Config(editing: true))
+            SwiftView(value: stateBinding(), config: Config(editing: true, propertyFilter: Config.prettyPropertyFilter))
                 .showRootNavTitle(false)
         }
     }

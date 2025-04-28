@@ -12,7 +12,7 @@ var package = Package(
         .plugin(name: "SwiftComponentBuildPlugin", targets: ["SwiftComponentBuildPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.2.2"),
+        .package(url: "https://github.com/yonaskolb/SwiftGUI", from: "0.3.0"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.0"),
         .package(url: "https://github.com/yonaskolb/swift-dependencies", from: "1.7.1"),
         .package(url: "https://github.com/pointfreeco/swift-case-paths", from: "1.0.0"),

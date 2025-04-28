@@ -149,8 +149,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/yonaskolb/SwiftGUI",
       "state" : {
-        "revision" : "e95b3e09843e22cd7e6e6337fa9ad0598e999d4c",
-        "version" : "0.2.2"
+        "revision" : "e0d07fc374fd1d999c58675cb8991803f3c615c0",
+        "version" : "0.3.0"
       }
     },
     {

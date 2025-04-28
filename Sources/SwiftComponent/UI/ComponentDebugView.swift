@@ -67,7 +67,7 @@ public struct ComponentDebugView<Model: ComponentModel>: View {
             }
 
             Section(header: Text("State")) {
-                SwiftView(value: model.binding(\.self), config: Config(editing: editableState))
+                SwiftView(value: model.binding(\.self), config: Config(editing: editableState, propertyFilter: Config.prettyPropertyFilter))
                     .showRootNavTitle(false)
             }
             Section(header: eventsHeader) {
