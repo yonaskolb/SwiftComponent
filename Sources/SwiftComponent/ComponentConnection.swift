@@ -6,53 +6,60 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
 
     let id = UUID()
     var output: OutputHandler<From, To>
-    var environment: @MainActor (From) -> To.Environment
+    var environment: Environment
     var action: ActionHandler<From, To>?
     var setDependencies: @MainActor (From, inout DependencyValues) -> Void = { _, _ in }
+    
+    public typealias Environment = @MainActor (From, To.State) -> To.Environment
 
-    public init(output: OutputHandler<From, To>, environment: @MainActor @escaping (From) -> To.Environment) {
+
+    public init(output: OutputHandler<From, To>, environment: @escaping Environment) {
         self.output = output
         self.environment = environment
     }
 
     public init() where To.Output == Never, From.Environment == To.Environment {
-        self.init(output: .ignore, environment: \.environment)
+        self.init(output: .ignore) { model, _ in model.environment }
     }
     
     public init() where To.Output == Never, From.Environment.Parent == To.Environment {
-        self.init(output: .ignore, environment: \.environment.parent)
+        self.init(output: .ignore) { model, _ in model.environment.parent }
     }
 
-    public init(environment: @MainActor @escaping (From) -> To.Environment) where To.Output == Never {
+    public init(environment: @escaping Environment) where To.Output == Never {
         self.init(output: .ignore, environment: environment)
     }
 
     public init(output: OutputHandler<From, To>) where From.Environment == To.Environment {
-        self.init(output: output, environment: \.environment)
+        self.init(output: output) { model, _ in model.environment }
     }
     
     public init(output: OutputHandler<From, To>) where From.Environment.Parent == To.Environment {
-        self.init(output: output, environment: \.environment.parent)
+        self.init(output: output) { model, _ in model.environment.parent }
     }
     
     public init(output: @escaping (To.Output) -> From.Input) where From.Environment == To.Environment {
-        self.init(output: .input(output), environment: \.environment)
+        self.init(output: .input(output)) { model, _ in model.environment }
     }
     
     public init(output: @escaping (To.Output) -> From.Input) where From.Environment.Parent == To.Environment {
-        self.init(output: .input(output), environment: \.environment.parent)
+        self.init(output: .input(output)) { model, _ in model.environment.parent }
     }
     
-    public init(output: @escaping (To.Output) -> From.Input, environment: @MainActor @escaping (From) -> To.Environment) {
+    public init(output: @escaping (To.Output) -> From.Input, environment: @escaping Environment) {
         self.init(output: .input(output), environment: environment)
     }
 
     public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void) where From.Environment == To.Environment {
-        self.init(output: .handle(output), environment: \.environment)
+        self.init(output: .handle(output)) { model, _ in model.environment }
     }
     
     public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void) where From.Environment.Parent == To.Environment {
-        self.init(output: .handle(output), environment: \.environment.parent)
+        self.init(output: .handle(output)) { model, _ in model.environment.parent }
+    }
+    
+    public init(_ output: @MainActor @escaping (ConnectionOutputContext<From, To>) async -> Void, environment: @escaping Environment) {
+        self.init(output: .handle(output), environment: environment)
     }
 
     @MainActor
@@ -69,9 +76,11 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         }
         var childStore = from.scope(
             state: state,
-            environment: self.environment(from.model),
+            environment: To.Environment.preview, // use preview environment on init while we get the state
             output: self.output
         )
+        // reset the environment to the one we want using the resolved state
+        childStore.environment = self.environment(from.model, childStore.state)
         
         // set dependencies
         setDependencies(from.model, &childStore.dependencies.dependencyValues)
