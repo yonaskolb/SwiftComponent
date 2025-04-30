@@ -11,24 +11,6 @@ public struct ComponentSnapshot<Model: ComponentModel> {
 }
 
 extension ComponentSnapshot {
-    public init(
-        _ name: String = "snapshot",
-        state: Model.State,
-        environment: Model.Environment,
-        route: Model.Route? = nil,
-        tags: Set<String> = [],
-        file: StaticString = #file,
-        line: UInt = #line
-    ) {
-        self.init(
-            name: name,
-            state: state,
-            environment: environment,
-            route: route,
-            tags: tags,
-            source: .capture(file: file, line: line)
-        )
-    }
 
     public init(
         _ name: String = "snapshot",
@@ -38,12 +20,11 @@ extension ComponentSnapshot {
         tags: Set<String> = [],
         file: StaticString = #file,
         line: UInt = #line
-    ) where Model.Environment: ComponentEnvironment {
+    ) {
         self.init(
             name: name,
             state: state,
-            environment:
-                environment ?? Model.Environment.preview,
+            environment: (environment ?? Model.Environment.preview).copy(),
             route: route,
             tags: tags,
             source: .capture(file: file, line: line)
@@ -63,7 +44,7 @@ extension TestStep {
             let snapshot = ComponentSnapshot<Model>(
                 name: name,
                 state: context.state,
-                environment: environment ?? context.model.environment,
+                environment: (environment ?? context.model.environment).copy(),
                 route: context.model.route,
                 tags: tags,
                 source: .capture(file: file, line: line)
