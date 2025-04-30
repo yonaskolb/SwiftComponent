@@ -10,7 +10,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     var action: ActionHandler<From, To>?
     var setDependencies: @MainActor (From, inout DependencyValues) -> Void = { _, _ in }
     
-    public typealias Environment = @MainActor (From, AnyHashable?) -> To.Environment
+    public typealias Environment = @MainActor (From, To.Environment.ID?) -> To.Environment
 
 
     public init(output: OutputHandler<From, To>, environment: @escaping Environment) {
@@ -63,7 +63,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     }
 
     @MainActor
-    func connectedStore(from: ComponentStore<From>, state: ScopedState<From.State, To.State>, id: AnyHashable? = nil) -> ComponentStore<To> {
+    func connectedStore(from: ComponentStore<From>, state: ScopedState<From.State, To.State>, id: To.Environment.ID? = nil) -> ComponentStore<To> {
         let connectionID = ConnectionID(
             connectionID: self.id,
             storeID: from.id,
@@ -184,7 +184,7 @@ extension ComponentView {
 extension ViewModel { 
 
     @MainActor
-    func connect<Child: ComponentModel>(to connectionPath: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: ScopedState<Model.State, Child.State>, id: AnyHashable? = nil) -> ViewModel<Child> {
+    func connect<Child: ComponentModel>(to connectionPath: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: ScopedState<Model.State, Child.State>, id: Child.Environment.ID? = nil) -> ViewModel<Child> {
         let connection = store.model.connections[keyPath: connectionPath]
         let store = connection.connectedStore(from: store, state: state, id: id)
         
@@ -202,13 +202,13 @@ extension ViewModel {
 extension ViewModel {
 
     @MainActor
-    public func connectedModel<Child: ComponentModel>(_ connection: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: Child.State, id: AnyHashable?) -> ViewModel<Child> {
+    public func connectedModel<Child: ComponentModel>(_ connection: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: Child.State, id: Child.Environment.ID?) -> ViewModel<Child> {
         connect(to: connection, state: .value(state), id: id)
     }
     
     @MainActor
-    public func connectedModel<Child: ComponentModel>(_ connection: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: Child.State) -> ViewModel<Child> where Child.State: Hashable {
-        connect(to: connection, state: .value(state), id: state)
+    public func connectedModel<Child: ComponentModel>(_ connection: KeyPath<Model.Connections, ModelConnection<Model, Child>>, state: Child.State) -> ViewModel<Child> {
+        connect(to: connection, state: .value(state))
     }
 
     @MainActor
@@ -290,35 +290,35 @@ extension ViewModel {
 
 extension ComponentModel {
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: ScopedState<State, To.State>, id: AnyHashable? = nil, update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: ScopedState<State, To.State>, id: To.Environment.ID? = nil, update: @MainActor (To) async -> Void) async {
         let connection = self.connections[keyPath: connectionPath]
         let store = connection.connectedStore(from: store, state: state, id: id)
         await update(store.model)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, EmbeddedComponentConnection<Self, To>>, id: AnyHashable? = nil, _ update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, EmbeddedComponentConnection<Self, To>>, id: To.Environment.ID? = nil, _ update: @MainActor (To) async -> Void) async {
         let connection = store.model.connections[keyPath: connectionPath]
         await self.connection(connectionPath.appending(path: \.connection), state: .keyPath(connection.state), id: id, update: update)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, PresentedComponentConnection<Self, To>>, id: AnyHashable? = nil, _ update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, PresentedComponentConnection<Self, To>>, id: To.Environment.ID? = nil, _ update: @MainActor (To) async -> Void) async {
         let connection = store.model.connections[keyPath: connectionPath]
         guard let state = self.store.state[keyPath: connection.state] else { return }
         await self.connection(connectionPath.appending(path: \.connection), state: .optionalKeyPath(connection.state, fallback: state), id: id, update: update)
     }
     
-    public func connection<To: ComponentModel, Case: CasePathable>(_ connectionPath: KeyPath<Connections, PresentedCaseComponentConnection<Self, To, Case>>, id: AnyHashable? = nil, _ update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel, Case: CasePathable>(_ connectionPath: KeyPath<Connections, PresentedCaseComponentConnection<Self, To, Case>>, id: To.Environment.ID? = nil, _ update: @MainActor (To) async -> Void) async {
         let connection = store.model.connections[keyPath: connectionPath]
         guard let `case` = self.store.state[keyPath: connection.state], let state = `case`[case: connection.casePath] else { return }
         await self.connection(connectionPath.appending(path: \.connection), state: self.store.caseScopedState(state: connection.state, case: connection.casePath, value: state), id: id, update: update)
     }
 
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: WritableKeyPath<Self.State, To.State?>, id: AnyHashable? = nil, _ update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: WritableKeyPath<Self.State, To.State?>, id: To.Environment.ID? = nil, _ update: @MainActor (To) async -> Void) async {
         guard let childState = store.state[keyPath: state] else { return }
         await self.connection(connectionPath, state: .optionalKeyPath(state, fallback: childState), id: id, update: update)
     }
     
-    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: To.State, id: AnyHashable? = nil, _ update: @MainActor (To) async -> Void) async {
+    public func connection<To: ComponentModel>(_ connectionPath: KeyPath<Connections, ModelConnection<Self, To>>, state: To.State, id: To.Environment.ID? = nil, _ update: @MainActor (To) async -> Void) async {
         await self.connection(connectionPath, state: .value(state), id: id, update: update)
     }
 }
