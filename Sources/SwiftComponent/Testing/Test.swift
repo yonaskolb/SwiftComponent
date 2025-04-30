@@ -5,30 +5,26 @@ public struct Test<ComponentType: Component>: Identifiable {
     public typealias Model = ComponentType.Model
     
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void, Model.Environment: ComponentEnvironment {
-        self.init(name, state: .state(()), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
+        self.init(name, state: (), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void {
-        self.init(name, state: .state(()), assertions: assertions, environment: environment, file: file, line: line, steps)
+        self.init(name, state: (), assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
-        self.init(name, state: .state(state), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
-    }
-
-    public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
-        self.init(name, state: .state(state), assertions: assertions, environment: environment, file: file, line: line, steps)
+        self.init(name, state: state, assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.Environment: ComponentEnvironment {
-        self.init(name, state: .preview, assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
+        self.init(name, state: ComponentType.preview.state, assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
-        self.init(name, state: .preview, assertions: assertions, environment: environment, file: file, line: line, steps)
+        self.init(name, state: ComponentType.preview.state, assertions: assertions, environment: environment, file: file, line: line, steps)
     }
 
-    init(_ name: String? = nil, state: TestState, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
+    public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
         self.name = name
         self.state = state
         self.environment = environment
@@ -38,16 +34,11 @@ public struct Test<ComponentType: Component>: Identifiable {
         self.dependencies = ComponentDependencies()
     }
 
-    public enum TestState {
-        case state(Model.State)
-        case preview
-    }
-
     public var name: String?
     public var index: Int = 0
     public var testName: String { name ?? (index == 0 ? "Test" : "Test \(index + 1)") }
     public var id: String { testName }
-    public var state: TestState
+    public var state: Model.State
     public var environment: Model.Environment
     public var steps: [TestStep<Model>]
     public let source: Source

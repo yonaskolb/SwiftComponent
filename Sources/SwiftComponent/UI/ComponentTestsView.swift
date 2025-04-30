@@ -107,11 +107,10 @@ struct ComponentTestsView<ComponentType: Component>: View {
     @MainActor
     func runTest(_ test: Test<ComponentType>) async {
 
-        let state = ComponentType.state(for: test)
         testRun.startTest(test)
 
-        let model = ViewModel<Model>(state: state, environment: test.environment)
-        let result = await ComponentType.runTest(test, model: model, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
+        let model = ViewModel<Model>(state: test.state, environment: test.environment)
+        let result = await ComponentType.runTest(test, model: model, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
             testRun.addStepResult(result, test: test)
             DispatchQueue.main.async {
                 //        withAnimation {

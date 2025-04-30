@@ -62,17 +62,16 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         runningTests = true
         testRun.startTest(test)
 
-        let state = ComponentType.state(for: test)
         let model: ViewModel<ComponentType.Model>
         if delay > 0 {
             model = self.model
         } else {
-            model = ViewModel(state: state, environment: test.environment)
+            model = ViewModel(state: test.state, environment: test.environment)
         }
         let result = await ComponentType.runTest(
             test,
             model: model,
-            initialState: state,
+            initialState: test.state,
             assertions: ComponentType.testAssertions,
             delay: delay,
             sendEvents: delay > 0 && showTestEvents

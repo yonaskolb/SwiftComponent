@@ -23,7 +23,7 @@ extension Component {
     public static func runTest(
         _ test: Test<Self>,
         model: ViewModel<Model>,
-        initialState: Model.State,
+        initialState: Model.State? = nil,
         assertions: [TestAssertion],
         delay: TimeInterval = 0,
         onlyCollectSnapshots: Bool = false,
@@ -51,13 +51,14 @@ extension Component {
             defer {
                 model.store.previewTaskDelay = 0
             }
-            
-            model.state = initialState
+            if let initialState {
+                model.state = initialState
+            }
             model.route = nil
             model.store.graph.clearRoutes()
             
             var stepResults: [TestStepResult] = []
-            var context = TestContext<Model>(model: model, delay: delay, assertions: assertions, state: initialState)
+            var context = TestContext<Model>(model: model, delay: delay, assertions: assertions, state: model.state)
             if onlyCollectSnapshots {
                 context.runExpectations = false
                 context.collectTestCoverage = false
@@ -192,12 +193,10 @@ extension Component {
             // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
             $0.context = .preview
         } operation: {
-            let state = Self.state(for: test)
-            let model = ViewModel<Model>(state: state, environment: test.environment)
+            let model = ViewModel<Model>(state: test.state, environment: test.environment)
             return await runTest(
                 test,
                 model: model,
-                initialState: state,
                 assertions: assertions ?? testAssertions,
                 onlyCollectSnapshots: onlyCollectSnapshots
             )

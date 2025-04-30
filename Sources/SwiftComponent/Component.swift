@@ -69,15 +69,6 @@ extension Component {
         .largePreview()
     }
 
-    public static func state(for test: Test<Self>) -> Model.State {
-        switch test.state {
-        case .state(let state):
-            return state
-        case .preview:
-            return preview.state
-        }
-    }
-
     public static func previewModel() -> ViewModel<Model> {
         preview.viewModel().dependency(\.context, .preview)
     }
