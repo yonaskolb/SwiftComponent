@@ -1,7 +1,7 @@
 import Foundation
 
 public struct ComponentSnapshot<Model: ComponentModel> {
-    public var name: String = "snapshot"
+    public var name: String
     public var state: Model.State
     public var environment: Model.Environment
     public var route: Model.Route?
@@ -12,6 +12,7 @@ public struct ComponentSnapshot<Model: ComponentModel> {
 
 extension ComponentSnapshot {
     public init(
+        _ name: String = "snapshot",
         state: Model.State,
         environment: Model.Environment,
         route: Model.Route? = nil,
@@ -20,6 +21,7 @@ extension ComponentSnapshot {
         line: UInt = #line
     ) {
         self.init(
+            name: name,
             state: state,
             environment: environment,
             route: route,
@@ -29,7 +31,8 @@ extension ComponentSnapshot {
     }
 
     public init(
-        state: Model.State, 
+        _ name: String = "snapshot",
+        state: Model.State,
         environment: Model.Environment? = nil,
         route: Model.Route? = nil,
         tags: Set<String> = [],
@@ -37,6 +40,7 @@ extension ComponentSnapshot {
         line: UInt = #line
     ) where Model.Environment: ComponentEnvironment {
         self.init(
+            name: name,
             state: state,
             environment:
                 environment ?? Model.Environment.preview,
@@ -56,7 +60,8 @@ extension TestStep {
 
     public static func snapshot(_ name: String, environment: Model.Environment? = nil, tags: Set<String> = [], file: StaticString = #file, line: UInt = #line) -> Self {
         var step = Self(title: "Snapshot", details: name, file: file, line: line) { context in
-            var snapshot = ComponentSnapshot<Model>(
+            let snapshot = ComponentSnapshot<Model>(
+                name: name,
                 state: context.state,
                 environment: environment ?? context.model.environment,
                 route: context.model.route,
@@ -64,7 +69,6 @@ extension TestStep {
                 source: .capture(file: file, line: line)
             )
             snapshot.dependencies.apply(context.model.dependencies)
-            snapshot.name = name
             context.snapshots.append(snapshot)
         }
         step.snapshots = [TestSnapshot(name: name, tags: tags)]
