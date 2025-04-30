@@ -10,7 +10,7 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
     var action: ActionHandler<From, To>?
     var setDependencies: @MainActor (From, inout DependencyValues) -> Void = { _, _ in }
     
-    public typealias Environment = @MainActor (From, To.State) -> To.Environment
+    public typealias Environment = @MainActor (From, AnyHashable?) -> To.Environment
 
 
     public init(output: OutputHandler<From, To>, environment: @escaping Environment) {
@@ -76,11 +76,9 @@ public struct ModelConnection<From: ComponentModel, To: ComponentModel> {
         }
         var childStore = from.scope(
             state: state,
-            environment: To.Environment.preview, // use preview environment on init while we get the state
+            environment: self.environment(from.model, id),
             output: self.output
         )
-        // reset the environment to the one we want using the resolved state
-        childStore.environment = self.environment(from.model, childStore.state)
         
         // set dependencies
         setDependencies(from.model, &childStore.dependencies.dependencyValues)
