@@ -154,6 +154,9 @@ extension TestStep {
             let children = context.model.store.children
             let dependencyValues = context.model.dependencies.dependencyValues
             let cancelledTasks = context.model.store.cancelledTasks
+            let environment = context.model.environment
+            context.model.store.environment = environment.copy()
+            
             for step in steps {
                 let results = await step.runTest(context: &context)
                 context.childStepResults.append(results)
@@ -165,6 +168,7 @@ extension TestStep {
             context.model.dependencies.setValues(dependencyValues)
             context.model.store.children = children
             context.model.store.cancelledTasks = cancelledTasks
+            context.model.store.environment = environment
 
             // don't assert on this step
             context.runAssertions = false
