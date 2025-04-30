@@ -117,7 +117,7 @@ public struct ComponentListView: View {
 
     func test<C: Component>(_ component: C.Type, environment: String) async {
         guard String(describing: C.environmentName) == environment else { return }
-        var testRun = TestRun<C.Model>()
+        var testRun = TestRun<C>()
         var snapshots: [ComponentSnapshot<C.Model>] = []
         for test in C.tests {
             let result = await C.run(test)

@@ -14,7 +14,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
     @Environment(\.colorScheme) var colorScheme: ColorScheme
     @State var showTestEvents = true
     @State var autoRunTests = true
-    @State var testRun: TestRun<ComponentType.Model> = TestRun()
+    @State var testRun: TestRun<ComponentType> = TestRun()
     @State var runningTests = false
     @State var render = UUID()
     @State var previewTestDelay = 0.4
@@ -58,7 +58,7 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         }
     }
 
-    func runTest(_ test: Test<ComponentType.Model>, delay: TimeInterval) async {
+    func runTest(_ test: Test<ComponentType>, delay: TimeInterval) async {
         runningTests = true
         testRun.startTest(test)
 
@@ -69,12 +69,19 @@ struct ComponentDashboardView<ComponentType: Component>: View {
         } else {
             model = ViewModel(state: state, environment: test.environment)
         }
-        let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: delay, sendEvents: delay > 0 && showTestEvents)
+        let result = await ComponentType.runTest(
+            test,
+            model: model,
+            initialState: state,
+            assertions: ComponentType.testAssertions,
+            delay: delay,
+            sendEvents: delay > 0 && showTestEvents
+        )
         testRun.completeTest(test, result: result)
         runningTests = false
     }
 
-    func selectTest(_ test: Test<ComponentType.Model>) {
+    func selectTest(_ test: Test<ComponentType>) {
         clearEvents()
         Task { @MainActor in
             await runTest(test, delay: previewTestDelay)

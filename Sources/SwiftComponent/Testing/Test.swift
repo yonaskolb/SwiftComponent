@@ -1,7 +1,9 @@
 import Foundation
 
-public struct Test<Model: ComponentModel>: Identifiable {
+public struct Test<ComponentType: Component>: Identifiable {
 
+    public typealias Model = ComponentType.Model
+    
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void, Model.Environment: ComponentEnvironment {
         self.init(name, state: .state(()), assertions: assertions, environment: Model.Environment.preview, file: file, line: line, steps)
     }
@@ -54,13 +56,13 @@ public struct Test<Model: ComponentModel>: Identifiable {
 }
 
 @resultBuilder
-public struct TestBuilder<Model: ComponentModel> {
-    public static func buildBlock() -> [Test<Model>] { [] }
-    public static func buildBlock(_ tests: Test<Model>...) -> [Test<Model>] { addIndexes(tests) }
-    public static func buildBlock(_ tests: [Test<Model>]) -> [Test<Model>] { addIndexes(tests) }
-    public static func buildExpression(_ test: Test<Model>) -> Test<Model> { test }
+public struct TestBuilder<ComponentType: Component> {
+    public static func buildBlock() -> [Test<ComponentType>] { [] }
+    public static func buildBlock(_ tests: Test<ComponentType>...) -> [Test<ComponentType>] { addIndexes(tests) }
+    public static func buildBlock(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] { addIndexes(tests) }
+    public static func buildExpression(_ test: Test<ComponentType>) -> Test<ComponentType> { test }
 
-    static func addIndexes(_ tests: [Test<Model>]) -> [Test<Model>] {
+    static func addIndexes(_ tests: [Test<ComponentType>]) -> [Test<ComponentType>] {
         tests.enumerated().map { index, test in
             var test = test
             test.index = index

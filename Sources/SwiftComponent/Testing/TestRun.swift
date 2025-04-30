@@ -9,10 +9,11 @@ import Foundation
 import SwiftUI
 @_implementationOnly import Runtime
 
-struct TestRun<Model: ComponentModel> {
+struct TestRun<ComponentType: Component> {
 
-    var testState: [Test<Model>.ID: TestState] = [:]
-    var testResults: [Test<Model>.ID: [TestStep<Model>.ID]] = [:]
+    typealias Model = ComponentType.Model
+    var testState: [Test<ComponentType>.ID: TestState] = [:]
+    var testResults: [Test<ComponentType>.ID: [TestStep<Model>.ID]] = [:]
     var testStepResults: [TestStep<Model>.ID: TestStepResult] = [:]
     var snapshots: [String: ComponentSnapshot<Model>] = [:]
     var testCoverage: TestCoverage = .init()
@@ -43,11 +44,11 @@ struct TestRun<Model: ComponentModel> {
         testState.values.reduce(0) { $0 + $1.warningCount }
     }
 
-    func getTestState(_ test: Test<Model>) -> TestState {
+    func getTestState(_ test: Test<ComponentType>) -> TestState {
         testState[test.id] ?? .notRun
     }
 
-    mutating func reset(_ tests: [Test<Model>]) {
+    mutating func reset(_ tests: [Test<ComponentType>]) {
         testState = [:]
         testResults = [:]
         testStepResults = [:]
@@ -56,17 +57,17 @@ struct TestRun<Model: ComponentModel> {
         }
     }
 
-    mutating func startTest(_ test: Test<Model>) {
+    mutating func startTest(_ test: Test<ComponentType>) {
         testState[test.id] = .running
         testResults[test.id] = []
     }
 
-    mutating func addStepResult(_ result: TestStepResult, test: Test<Model>) {
+    mutating func addStepResult(_ result: TestStepResult, test: Test<ComponentType>) {
         testResults[test.id, default: []].append(result.id)
         testStepResults[result.id] = result
     }
 
-    mutating func completeTest(_ test: Test<Model>, result: TestResult<Model>) {
+    mutating func completeTest(_ test: Test<ComponentType>, result: TestResult<Model>) {
         testState[test.id] = .complete(result)
         for snapshot in result.snapshots {
             snapshots[snapshot.name] = snapshot
@@ -98,7 +99,7 @@ struct TestRun<Model: ComponentModel> {
         self.totalCoverage = totalCoverage
     }
 
-    func getTestResults(for tests: [Test<Model>]) -> [TestStepResult] {
+    func getTestResults(for tests: [Test<ComponentType>]) -> [TestStepResult] {
         var results: [TestStepResult] = []
         for test in tests {
             let steps = testResults[test.id] ?? []

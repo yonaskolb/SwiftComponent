@@ -17,11 +17,12 @@ public struct TestContext<Model: ComponentModel> {
     var delayNanoseconds: UInt64 { UInt64(1_000_000_000.0 * delay) }
 }
 
-extension ViewModel {
+extension Component {
 
     @MainActor
-    public func runTest(
-        _ test: Test<Model>,
+    public static func runTest(
+        _ test: Test<Self>,
+        model: ViewModel<Model>,
         initialState: Model.State,
         assertions: [TestAssertion],
         delay: TimeInterval = 0,
@@ -33,30 +34,30 @@ extension ViewModel {
             let start = Date()
             let assertions = test.assertions ?? assertions
             
-            self.store.dependencies.reset()
-            self.store.dependencies.apply(test.dependencies)
-            self.store.dependencies.dependencyValues.context = .preview
-            self.store.children = [:]
+            model.store.dependencies.reset()
+            model.store.dependencies.apply(test.dependencies)
+            model.store.dependencies.dependencyValues.context = .preview
+            model.store.children = [:]
             
-            let sendEventsValue = store.sendGlobalEvents
-            store.sendGlobalEvents = sendEvents
+            let sendEventsValue = model.store.sendGlobalEvents
+            model.store.sendGlobalEvents = sendEvents
             defer {
-                store.sendGlobalEvents = sendEventsValue
+                model.store.sendGlobalEvents = sendEventsValue
             }
             
             if delay > 0 {
-                store.previewTaskDelay = delay
+                model.store.previewTaskDelay = delay
             }
             defer {
-                store.previewTaskDelay = 0
+                model.store.previewTaskDelay = 0
             }
             
-            state = initialState
-            route = nil
-            store.graph.clearRoutes()
+            model.state = initialState
+            model.route = nil
+            model.store.graph.clearRoutes()
             
             var stepResults: [TestStepResult] = []
-            var context = TestContext<Model>(model: self, delay: delay, assertions: assertions, state: initialState)
+            var context = TestContext<Model>(model: model, delay: delay, assertions: assertions, state: initialState)
             if onlyCollectSnapshots {
                 context.runExpectations = false
                 context.collectTestCoverage = false
@@ -186,14 +187,20 @@ extension TestStep {
 extension Component {
 
     @MainActor
-    public static func run(_ test: Test<Model>, assertions: [TestAssertion]? = nil, onlyCollectSnapshots: Bool = false) async -> TestResult<Model> {
+    public static func run(_ test: Test<Self>, assertions: [TestAssertion]? = nil, onlyCollectSnapshots: Bool = false) async -> TestResult<Model> {
         return await withDependencies {
             // standardise context, and prevent failures in unit tests, as dependency tracking is handled within
             $0.context = .preview
         } operation: {
             let state = Self.state(for: test)
             let model = ViewModel<Model>(state: state, environment: test.environment)
-            return await model.runTest(test, initialState: state, assertions: assertions ?? testAssertions, onlyCollectSnapshots: onlyCollectSnapshots)
+            return await runTest(
+                test,
+                model: model,
+                initialState: state,
+                assertions: assertions ?? testAssertions,
+                onlyCollectSnapshots: onlyCollectSnapshots
+            )
         }
     }
 }

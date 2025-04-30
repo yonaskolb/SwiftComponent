@@ -4,7 +4,7 @@ import SwiftUI
 struct ComponentTestsView<ComponentType: Component>: View {
 
     typealias Model = ComponentType.Model
-    @State var testRun = TestRun<Model>()
+    @State var testRun = TestRun<ComponentType>()
     @AppStorage("testPreview.showStepTitles") var showStepTitles = true
     @AppStorage("testPreview.showEvents") var showEvents = false
     @AppStorage("testPreview.showMutations") var showMutations = false
@@ -63,11 +63,11 @@ struct ComponentTestsView<ComponentType: Component>: View {
         return collapsedTests[ComponentType.Model.baseName] ?? [:]
     }
 
-    func testIsCollapsed(_ test: Test<Model>) -> Bool {
+    func testIsCollapsed(_ test: Test<ComponentType>) -> Bool {
         collapsedTests[test.testName] ?? false
     }
 
-    func collapseTest(_ test: Test<Model>, _ collapsed: Bool) {
+    func collapseTest(_ test: Test<ComponentType>, _ collapsed: Bool) {
         withAnimation {
             collapsedTests[test.testName] = collapsed
         }
@@ -105,13 +105,13 @@ struct ComponentTestsView<ComponentType: Component>: View {
     }
 
     @MainActor
-    func runTest(_ test: Test<Model>) async {
+    func runTest(_ test: Test<ComponentType>) async {
 
         let state = ComponentType.state(for: test)
         testRun.startTest(test)
 
         let model = ViewModel<Model>(state: state, environment: test.environment)
-        let result = await model.runTest(test, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
+        let result = await ComponentType.runTest(test, model: model, initialState: state, assertions: ComponentType.testAssertions, delay: 0, sendEvents: false) { result in
             testRun.addStepResult(result, test: test)
             DispatchQueue.main.async {
                 //        withAnimation {
@@ -147,7 +147,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func showTest(_ test: Test<Model>) -> Bool {
+    func showTest(_ test: Test<ComponentType>) -> Bool {
         switch testFilter {
             case .none:
                 return true
@@ -351,7 +351,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
             .cornerRadius(6)
     }
 
-    func testRow(_ test: Test<Model>) -> some View {
+    func testRow(_ test: Test<ComponentType>) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             testHeader(test)
                 .padding(16)
@@ -375,7 +375,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func testHeader(_ test: Test<Model>) -> some View {
+    func testHeader(_ test: Test<ComponentType>) -> some View {
         Button {
             collapseTest(test, !testIsCollapsed(test))
 //            Task { @MainActor in
@@ -442,7 +442,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func stepColor(stepResult: TestStepResult, test: Test<Model>) -> Color {
+    func stepColor(stepResult: TestStepResult, test: Test<ComponentType>) -> Color {
         switch testRun.getTestState(test) {
             case .complete(let result):
                 if result.success {
@@ -454,7 +454,7 @@ struct ComponentTestsView<ComponentType: Component>: View {
         }
     }
 
-    func stepResultRow(_ stepResult: TestStepResult, test: Test<Model>) -> some View {
+    func stepResultRow(_ stepResult: TestStepResult, test: Test<ComponentType>) -> some View {
         HStack(alignment: .top, spacing: 0) {
             if showStepTitles {
                 HStack {

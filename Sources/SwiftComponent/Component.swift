@@ -9,13 +9,13 @@ public protocol Component: PreviewProvider {
     typealias Snapshots = [ComponentSnapshot<Model>]
     typealias Snapshot = ComponentSnapshot<Model>
 
-    typealias Tests = [Test<Model>]
+    typealias Tests = [Test<Self>]
 
     typealias Route = ComponentModelRoute<Model.Route>
     typealias Routes = [Route]
 
     @SnapshotBuilder<Model> static var snapshots: Snapshots { get }
-    @TestBuilder<Model> static var tests: Tests { get }
+    @TestBuilder<Self> static var tests: Tests { get }
     @RouteBuilder static var routes: Routes { get }
     static var preview: PreviewModel { get }
     @ViewBuilder static func view(model: ViewModel<Model>) -> ViewType
@@ -69,7 +69,7 @@ extension Component {
         .largePreview()
     }
 
-    public static func state(for test: Test<Model>) -> Model.State {
+    public static func state(for test: Test<Self>) -> Model.State {
         switch test.state {
         case .state(let state):
             return state
