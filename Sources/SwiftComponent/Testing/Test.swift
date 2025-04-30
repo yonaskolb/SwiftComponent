@@ -5,15 +5,15 @@ public struct Test<ComponentType: Component>: Identifiable {
     public typealias Model = ComponentType.Model
     
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) where Model.State == Void {
-        self.init(name, state: (), assertions: assertions, environment: environment ?? Model.Environment.preview, file: file, line: line, steps)
+        self.init(name, state: (), assertions: assertions, environment: environment ?? ComponentType.preview.environment.copy(), file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, environment: Model.Environment? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
-        self.init(name, state: state, assertions: assertions, environment: environment ?? Model.Environment.preview, file: file, line: line, steps)
+        self.init(name, state: state, assertions: assertions, environment: environment ?? ComponentType.preview.environment.copy(), file: file, line: line, steps)
     }
     
     public init(_ name: String? = nil, assertions: [TestAssertion]? = nil, environment: Model.Environment? = nil, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
-        self.init(name, state: ComponentType.preview.state, assertions: assertions, environment: environment ?? Model.Environment.preview, file: file, line: line, steps)
+        self.init(name, state: ComponentType.preview.state, assertions: assertions, environment: environment ?? ComponentType.preview.environment.copy(), file: file, line: line, steps)
     }
 
     public init(_ name: String? = nil, state: Model.State, assertions: [TestAssertion]? = nil, environment: Model.Environment, file: StaticString = #filePath, line: UInt = #line, @TestStepBuilder<Model> _ steps: () -> [TestStep<Model>]) {
