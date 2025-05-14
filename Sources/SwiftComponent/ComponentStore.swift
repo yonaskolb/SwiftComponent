@@ -119,10 +119,14 @@ class ComponentStore<Model: ComponentModel> {
             model.connect(route: route)
             self.route = route
         }
-        events.sink { [weak self] event in
-            self?.model.handle(event: event)
-        }
-        .store(in: &subscriptions)
+        events
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                MainActor.assumeIsolated {
+                	self?.model.handle(event: event)
+            	}
+    		}
+    		.store(in: &subscriptions)
     }
     
     deinit {
@@ -367,7 +371,7 @@ extension ComponentStore {
     @MainActor
     func task<R>(_ name: String, cancellable: Bool, source: Source, _ task: @MainActor @escaping () async throws -> R, catch catchError: (Error) -> Void) async {
         do {
-            try await self.task(name, cancellable: cancellable, source: source, task) as R
+            try await self.task(name, cancellable: cancellable, source: source, task)
         } catch {
             catchError(error)
         }

@@ -10,7 +10,7 @@ extension ComponentModelMacro: MemberMacro {
         providingMembersOf declaration: some DeclGroupSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard let structDecl = declaration.as(StructDeclSyntax.self) else {
+        guard declaration.isStruct else {
             throw MacroError.onlyStruct
         }
         // TODO: only make public if type is public

@@ -58,6 +58,7 @@ extension TestStep {
 }
 
 extension ComponentSnapshot {
+    @MainActor
     public func viewModel() -> ViewModel<Model> {
         ViewModel(state: state, environment: environment, route: route).apply(dependencies)
     }

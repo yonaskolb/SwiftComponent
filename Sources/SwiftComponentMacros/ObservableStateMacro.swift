@@ -316,8 +316,7 @@ enum ObservableStateCase {
           """
             }
         case let .ifConfig(configs):
-            return
-            configs
+            return configs
                 .map {
           """
           \($0.poundKeyword.text) \($0.condition?.trimmedDescription ?? "")
@@ -347,8 +346,7 @@ enum ObservableStateCase {
           """
             }
         case let .ifConfig(configs):
-            return
-            configs
+            return configs
                 .map {
           """
           \($0.poundKeyword.text) \($0.condition?.trimmedDescription ?? "")

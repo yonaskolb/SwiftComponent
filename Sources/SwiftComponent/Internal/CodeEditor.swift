@@ -38,11 +38,11 @@ class CodeRewriter: SyntaxRewriter {
         return updated
     }
 
-    override func visit(_ node: MemberDeclBlockSyntax) -> MemberDeclBlockSyntax {
+    override func visit(_ node: MemberBlockSyntax) -> MemberBlockSyntax {
         for block in blocks {
             if block.syntax.id == node.id {
                 var parser = Parser(block.source)
-                return MemberDeclBlockSyntax.parse(from: &parser)
+                return MemberBlockSyntax.parse(from: &parser)
             }
         }
         return node
@@ -60,7 +60,7 @@ struct Codeblock {
 
     init(syntax: SyntaxProtocol) {
 
-        if let block: MemberDeclBlockSyntax = syntax.getChild() {
+        if let block: MemberBlockSyntax = syntax.getChild() {
             self.source = block.description
             self.syntax = block
         } else {
@@ -75,8 +75,8 @@ extension CodeParser {
     func getState() -> String? {
         guard
             let structSyntax = syntax.getStruct(id: "State"),
-            let block = structSyntax.children(viewMode: .sourceAccurate).compactMap( { $0.as(MemberDeclBlockSyntax.self) }).first,
-            let declarationList = block.children(viewMode: .sourceAccurate).compactMap( { $0.as(MemberDeclListSyntax.self) }).first
+            let block = structSyntax.children(viewMode: .sourceAccurate).compactMap( { $0.as(MemberBlockSyntax.self) }).first,
+            let declarationList = block.children(viewMode: .sourceAccurate).compactMap( { $0.as(MemberBlockItemListSyntax.self) }).first
         else { return nil }
         let string = declarationList.children(viewMode: .sourceAccurate)
             .map { $0.description }
@@ -92,14 +92,14 @@ extension SyntaxProtocol {
         getChild { structSyntax in
             guard
                 let typeClause: InheritedTypeListSyntax = structSyntax.getChild(),
-                let _: SimpleTypeIdentifierSyntax = typeClause.getChild(compare: { $0.name.text == type })
+                let _: IdentifierTypeSyntax = typeClause.getChild(compare: { $0.name.text == type })
             else { return false }
             return true
         }
     }
 
     func getStruct(id: String) -> StructDeclSyntax? {
-        getChild { $0.identifier.description == id }
+        getChild { $0.name.description == id }
     }
 
     func getChild<ChildType: SyntaxProtocol>(compare: (ChildType) -> Bool = { _ in true })  -> ChildType? {

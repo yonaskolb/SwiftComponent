@@ -20,7 +20,7 @@ public protocol ComponentModel<State, Action>: DependencyContainer {
     @MainActor func handle(action: Action) async
     @MainActor func handle(input: Input) async
     var _$connections: Connections { get }
-    nonisolated func handle(event: Event)
+    func handle(event: Event)
     @discardableResult nonisolated func connect(route: Route) -> RouteConnection
     nonisolated init(context: Context)
     var _$context: Context { get }
@@ -81,7 +81,7 @@ public extension ComponentModel where Input == Void {
 }
 
 public extension ComponentModel where Route == Never {
-    func connect(route: Route) -> RouteConnection { RouteConnection() }
+    nonisolated func connect(route: Route) -> RouteConnection { RouteConnection() }
 }
 
 // default handlers

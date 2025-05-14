@@ -117,7 +117,7 @@ extension TestStep {
         }
     }
 
-    public func expectRoute<Child: ComponentModel>(_ path: CasePath<Model.Route, ComponentRoute<Child>>, state expectedState: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func expectRoute<Child: ComponentModel>(_ path: AnyCasePath<Model.Route, ComponentRoute<Child>>, state expectedState: Child.State, childRoute: Child.Route? = nil, file: StaticString = #filePath, line: UInt = #line) -> Self {
         addExpectation(title: "Expect route", details: Child.baseName, file: file, line: line) { context in
             let foundRoute: Model.Route? = context.findEventValue { event in
                 if case .route(let route) = event.type, let route = route as? Model.Route {

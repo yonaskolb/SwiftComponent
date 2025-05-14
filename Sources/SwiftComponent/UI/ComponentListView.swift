@@ -40,6 +40,7 @@ public struct ComponentListView: View {
         let snapshots: [SnapshotViewModel]
     }
 
+    @MainActor
     struct ComponentViewModel: Identifiable {
         var id: String
         var component: any Component.Type

@@ -55,7 +55,7 @@ struct ExampleModel {
 
     func handle(action: Action) async {
         switch action {
-        case .tap(let int):
+        case .tap(_):
             state.date = dependencies.date()
             if #available(iOS 16, macOS 13, *) {
                 try? await dependencies.continuousClock.sleep(for: .seconds(1))
@@ -100,7 +100,6 @@ struct ExampleView: ComponentView {
 
 @ComponentModel
 struct ExampleChildModel {
-    
     
     struct State: Equatable {
         var name: String

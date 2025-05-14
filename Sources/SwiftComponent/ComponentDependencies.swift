@@ -58,6 +58,7 @@ public class ComponentDependencies {
     }
 }
 
+@MainActor
 public protocol DependencyContainer {
     var dependencies: ComponentDependencies { get }
 }
