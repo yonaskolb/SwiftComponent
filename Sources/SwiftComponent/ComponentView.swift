@@ -148,7 +148,16 @@ extension ComponentView {
     }
 
     @MainActor
+    @ViewBuilder
     public var body: some View {
+        if Model.Route.self == Never.self {
+            ComponentViewContainer(model: model, view: view)
+        } else {
+            routePresentations()
+        }
+    }
+    
+    func routePresentations() -> some View {
         ComponentViewContainer(model: model, view: view)
             .push(isPresented: presentationBinding(.push)) {
                 if let route = model.route {
