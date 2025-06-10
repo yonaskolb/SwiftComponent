@@ -1,6 +1,8 @@
 import Foundation
 import PackagePlugin
+#if canImport(XcodeProjectPlugin)
 import XcodeProjectPlugin
+#endif
 
 @main
 struct ComponentBuilderPlugin {
