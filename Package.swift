@@ -19,7 +19,7 @@ var package = Package(
         .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.5.0"),
         .package(url: "https://github.com/pointfreeco/swift-perception", from: "1.6.0"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", from: "1.0.0"),
-        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
         .package(url: "https://github.com/wickwirew/Runtime", from: "2.2.7"),
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "601.0.1"),
         .package(url: "https://github.com/yonaskolb/AccessibilitySnapshot", from: "0.8.1"),
