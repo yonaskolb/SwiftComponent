@@ -2,7 +2,6 @@ import Foundation
 import SwiftUI
 
 @ComponentModel
-@MainActor
 struct ExampleModel {
     
     struct Connections {

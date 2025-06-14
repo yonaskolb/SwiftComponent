@@ -7,11 +7,11 @@
 
 import SwiftUI
 
+@MainActor
 struct ComponentSnapshotView<ComponentType: Component>: View {
     let snapshotName: String
     @State var snapshot: ComponentSnapshot<ComponentType.Model>?
 
-    @MainActor
     func generateSnapshot() async {
         if let snapshot = ComponentType.snapshots.first(where: { $0.name == snapshotName}) {
             self.snapshot = snapshot

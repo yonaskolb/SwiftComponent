@@ -4,6 +4,7 @@ import Combine
 import os
 import Dependencies
 
+@MainActor
 class ComponentStore<Model: ComponentModel> {
     
     enum StateStorage {
@@ -132,7 +133,13 @@ class ComponentStore<Model: ComponentModel> {
     deinit {
         modelCancellables = []
         children = [:]
-        cancelTasks()
+        
+        tasksByID.forEach { $0.value.cancel() }
+        tasksByID = [:]
+        tasks.values.forEach { $0.cancel() }
+        tasks = [:]
+        // TODO: update to isolated deinit in Swift 6.2
+        //cancelTasks()
     }
     
     func cancelTasks() {

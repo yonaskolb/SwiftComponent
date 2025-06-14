@@ -68,6 +68,7 @@ public struct RouteConnection {
     }
 }
 
+@MainActor
 public class ComponentRoute<Model: ComponentModel> {
 
     let state: Model.State

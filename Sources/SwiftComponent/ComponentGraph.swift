@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 class ComponentGraph {
 
     var sendViewBodyEvents = false
@@ -19,9 +20,13 @@ class ComponentGraph {
     }
 
     func remove<Model: ComponentModel>(_ model: ViewModel<Model>) {
-        viewModelsByPath[model.store.path] = nil
-        routes[model.store.path] = nil
-        storesByModelType[Model.name]?.removeAll { ($0.value as? ComponentStore<Model>)?.id == model.store.id }
+        remove(model.store)
+    }
+    
+    func remove<Model: ComponentModel>(_ store: ComponentStore<Model>) {
+        viewModelsByPath[store.path] = nil
+        routes[store.path] = nil
+        storesByModelType[Model.name]?.removeAll { ($0.value as? ComponentStore<Model>)?.id == store.id }
     }
 
     func getScopedModel<Model: ComponentModel, Child: ComponentModel>(model: ViewModel<Model>, child: Child.Type) -> ViewModel<Child>? {

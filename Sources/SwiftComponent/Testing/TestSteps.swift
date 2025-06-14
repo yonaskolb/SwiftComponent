@@ -191,7 +191,7 @@ extension TestStep {
         file: StaticString = #filePath,
         line: UInt = #line,
         steps: @escaping () -> [TestStep<Child>],
-        createModel: @escaping (inout TestContext<Model>) async -> ViewModel<Child>?
+        createModel: @MainActor @escaping (inout TestContext<Model>) async -> ViewModel<Child>?
     ) -> Self {
         .init(
             title: title,

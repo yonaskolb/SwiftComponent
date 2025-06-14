@@ -3,6 +3,7 @@ import SwiftUI
 import Combine
 
 @dynamicMemberLookup
+@MainActor
 public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     let store: ComponentStore<Model>
@@ -66,7 +67,11 @@ public class ViewModel<Model: ComponentModel>: ObservableObject {
 
     deinit {
 //        print("deinit ViewModel \(Model.baseName)")
-        store.graph.remove(self)
+        
+        // TODO: update to isolated deinit in Swift 6.2
+        MainActor.assumeIsolated {
+            store.graph.remove(self)
+        }
     }
 
     public func onEvent(includeGrandchildren: Bool = true, _ event: @escaping (Event) -> Void) -> Self {

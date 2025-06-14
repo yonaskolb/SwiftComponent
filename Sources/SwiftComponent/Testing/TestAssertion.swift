@@ -25,6 +25,7 @@ extension [TestAssertion] {
 public protocol TestAssertion {
 
     var id: String { get }
+    @MainActor
     func assert<Model: ComponentModel>(context: inout TestAssertionContext<Model>)
 }
 

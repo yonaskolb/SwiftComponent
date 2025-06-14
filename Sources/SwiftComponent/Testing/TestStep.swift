@@ -16,7 +16,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
     public var expectations: [TestExpectation<Model>] = []
     var dependencies: ComponentDependencies
     var snapshots: [TestSnapshot] = []
-    fileprivate var _run: (inout TestContext<Model>) async -> Void
+    fileprivate var _run: @MainActor (inout TestContext<Model>) async -> Void
 
     public init(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping @MainActor (inout TestContext<Model>) async -> Void) {
         self.title = title
@@ -42,7 +42,7 @@ public struct TestStep<Model: ComponentModel>: Identifiable {
 
 extension TestStep {
 
-    public func beforeRun(_ run: @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func beforeRun(_ run: @MainActor @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
         var step = self
         let stepRun = _run
         step._run = { context in
@@ -52,7 +52,7 @@ extension TestStep {
         return step
     }
 
-    public func afterRun(_ run: @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
+    public func afterRun(_ run: @MainActor @escaping (inout TestContext<Model>) async -> Void, file: StaticString = #filePath, line: UInt = #line) -> Self {
         var step = self
         let stepRun = _run
         step._run = { context in

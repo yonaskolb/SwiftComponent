@@ -1,6 +1,7 @@
 import Foundation
 @_implementationOnly import Runtime
 
+@MainActor
 public struct TestContext<Model: ComponentModel> {
     public let model: ViewModel<Model>
     public var delay: TimeInterval

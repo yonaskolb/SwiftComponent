@@ -5,7 +5,7 @@ public struct TestExpectation<Model: ComponentModel> {
     public let title: String
     public let details: String?
     public let source: Source
-    let run: (inout Context) -> Void
+    @MainActor let run: (inout Context) -> Void
 
     public var description: String {
         var string = title
@@ -40,7 +40,7 @@ public struct TestExpectation<Model: ComponentModel> {
 
 extension TestStep {
 
-    public func addExpectation(title: String, details: String? = nil, file: StaticString, line: UInt, run: @escaping (inout TestExpectation<Model>.Context) -> Void) -> Self {
+    public func addExpectation(title: String, details: String? = nil, file: StaticString, line: UInt, run: @MainActor @escaping (inout TestExpectation<Model>.Context) -> Void) -> Self {
         var step = self
         let expectation = TestExpectation<Model>(title: title, details: details, source: .capture(file: file, line: line), run: run)
         step.expectations.append(expectation)
