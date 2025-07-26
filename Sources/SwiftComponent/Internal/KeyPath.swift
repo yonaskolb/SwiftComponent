@@ -10,7 +10,7 @@ extension KeyPath {
 #if swift(>=5.8)
         if #available(iOS 16.4, macOS 13.3, *) {
             // Is in format "\State.standup.name" so drop the slash and type
-            return debugDescription
+            let debugDescriptionResult = debugDescription
                 .dropFirst() // drop slash
                 .split(separator: ".")
                 .filter { !($0.hasPrefix("<computed") && $0.hasSuffix(">")) }
@@ -20,6 +20,14 @@ extension KeyPath {
                 .replacingOccurrences(of: "<Unknown>", with: "_")
                 .replacingOccurrences(of: #"^\$"#, with: "", options: .regularExpression) // drop leading $
                 .replacingOccurrences(of: #"\?$"#, with: "", options: .regularExpression) // drop trailing ?
+            
+            // If debugDescription parsing resulted in empty string (likely due to computed properties),
+            // fall back to Runtime-based approach
+            if !debugDescriptionResult.isEmpty {
+                return debugDescriptionResult
+            } else {
+                return mirrorPropertyName
+            }
         } else {
             return mirrorPropertyName
         }
