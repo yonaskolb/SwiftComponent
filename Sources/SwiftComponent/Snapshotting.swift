@@ -18,23 +18,30 @@ public struct SnapshotModifier {
 
 extension Component {
     
+    /// Returns all snapshots, both static and those made within tests by running those tests
     @MainActor
-    /// must be called from a test target with an app host
-    public static func generateSnapshots(
-        size: CGSize,
-        snapshotDirectory: String? = nil,
-        variants: [String: [SnapshotModifier]] = [:],
-        file: StaticString = #file
-    ) async throws -> Set<URL> {
-        var snapshots = self.snapshots
+    public static func allSnapshots() async -> [ComponentSnapshot<Model>] {
+        var allSnapshots = self.snapshots
         for test in tests {
             // only run tests if they contain snapshots steps, otherwise we can skip for performance
             let testContainsSnapshots = test.steps.contains { !$0.snapshots.isEmpty }
             if testContainsSnapshots {
                 let testSnapshots = await run(test, assertions: [], onlyCollectSnapshots: true).snapshots
-                snapshots.append(contentsOf: testSnapshots)
+                allSnapshots.append(contentsOf: testSnapshots)
             }
         }
+        return allSnapshots
+    }
+    
+    /// must be called from a test target with an app host
+    @MainActor
+    public static func generateSnapshots(
+        size: CGSize,
+        snapshotDirectory: URL? = nil,
+        variants: [String: [SnapshotModifier]] = [:],
+        file: StaticString = #file
+    ) async throws -> Set<URL> {
+        let snapshots = await allSnapshots()
         var snapshotPaths: Set<URL> = []
         for snapshot in snapshots {
             let filePaths = try await write(
@@ -54,7 +61,7 @@ extension Component {
     public static func write(
         snapshot: ComponentSnapshot<Model>,
         size: CGSize,
-        snapshotDirectory: String? = nil,
+        snapshotDirectory: URL? = nil,
         variants: [String: [SnapshotModifier]] = [:],
         file: StaticString = #file
     ) async throws -> [URL] {
@@ -75,7 +82,7 @@ extension Component {
         state: Model.State,
         name: String,
         size: CGSize,
-        snapshotDirectory: String? = nil,
+        snapshotDirectory: URL? = nil,
         variants: [String: [SnapshotModifier]],
         file: StaticString = #file
     ) async throws -> [URL] {
@@ -83,7 +90,7 @@ extension Component {
         var writtenFiles: [URL] = []
         let fileUrl = URL(fileURLWithPath: "\(file)", isDirectory: false)
 
-        let snapshotsPath = snapshotDirectory.map { URL(fileURLWithPath: $0, isDirectory: true) } ??
+        let snapshotsPath = snapshotDirectory ??
         fileUrl
             .deletingLastPathComponent()
             .appendingPathComponent("Snapshots")
