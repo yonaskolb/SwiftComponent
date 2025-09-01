@@ -37,6 +37,7 @@ extension Component {
     @MainActor
     public static func generateSnapshots(
         size: CGSize,
+        files: Set<SnapshotFile> = [.image],
         snapshotDirectory: URL? = nil,
         variants: [String: [SnapshotModifier]] = [:],
         file: StaticString = #file
@@ -47,6 +48,7 @@ extension Component {
             let filePaths = try await write(
                 snapshot: snapshot,
                 size: size,
+                files: files,
                 snapshotDirectory: snapshotDirectory,
                 variants: variants,
                 file: file
@@ -61,6 +63,7 @@ extension Component {
     public static func write(
         snapshot: ComponentSnapshot<Model>,
         size: CGSize,
+        files: Set<SnapshotFile> = [.image],
         snapshotDirectory: URL? = nil,
         variants: [String: [SnapshotModifier]] = [:],
         file: StaticString = #file
@@ -70,6 +73,7 @@ extension Component {
             state: snapshot.state,
             name: "\(name).\(snapshot.name)",
             size: size,
+            files: files,
             snapshotDirectory: snapshotDirectory,
             variants: variants,
             file: file
@@ -82,6 +86,7 @@ extension Component {
         state: Model.State,
         name: String,
         size: CGSize,
+        files: Set<SnapshotFile> = [.image],
         snapshotDirectory: URL? = nil,
         variants: [String: [SnapshotModifier]],
         file: StaticString = #file
@@ -100,38 +105,50 @@ extension Component {
 
 		#if canImport(UIKit)
         // accessibility markdown
-        let accessibilityFilePath = filePath.appendingPathExtension("md")
-        let accessibilitySnapshot = view.accessibilityHierarchy().markdown()
-        try accessibilitySnapshot.data(using: .utf8)?.write(to: accessibilityFilePath)
-        writtenFiles.append(accessibilityFilePath)
+        if files.contains(.accessibilty) {
+            let accessibilityFilePath = filePath.appendingPathExtension("md")
+            let accessibilitySnapshot = view.accessibilityHierarchy().markdown()
+            try accessibilitySnapshot.data(using: .utf8)?.write(to: accessibilityFilePath)
+            writtenFiles.append(accessibilityFilePath)
+        }
 
         // image
-        if variants.isEmpty {
-            let imageFilePath = filePath.appendingPathExtension("png")
-            let imageSnapshot = view.snapshot(size: size)
-            try imageSnapshot.pngData()?.write(to: imageFilePath)
-            writtenFiles.append(imageFilePath)
-        } else {
-            for (variant, environments) in variants {
-                var modifiedView = AnyView(view)
-                for environment in environments {
-                    modifiedView = environment.render(modifiedView)
-                }
-                let imageSnapshot = modifiedView.snapshot(size: size)
-                let imageFilePath = snapshotsPath.appendingPathComponent("\(name).\(variant)").appendingPathExtension("png")
+        if files.contains(.image) {
+            if variants.isEmpty {
+                let imageFilePath = filePath.appendingPathExtension("png")
+                let imageSnapshot = view.snapshot(size: size)
                 try imageSnapshot.pngData()?.write(to: imageFilePath)
                 writtenFiles.append(imageFilePath)
+            } else {
+                for (variant, environments) in variants {
+                    var modifiedView = AnyView(view)
+                    for environment in environments {
+                        modifiedView = environment.render(modifiedView)
+                    }
+                    let imageSnapshot = modifiedView.snapshot(size: size)
+                    let imageFilePath = snapshotsPath.appendingPathComponent("\(name).\(variant)").appendingPathExtension("png")
+                    try imageSnapshot.pngData()?.write(to: imageFilePath)
+                    writtenFiles.append(imageFilePath)
+                }
             }
         }
 		#endif
         // state
-        let stateFilePath = filePath.appendingPathExtension("swift")
-        let stateString = dumpToString(state)
-        try stateString.data(using: .utf8)?.write(to: stateFilePath)
-        writtenFiles.append(stateFilePath)
+        if files.contains(.state) {
+            let stateFilePath = filePath.appendingPathExtension("swift")
+            let stateString = dumpToString(state)
+            try stateString.data(using: .utf8)?.write(to: stateFilePath)
+            writtenFiles.append(stateFilePath)
+        }
         
         return writtenFiles
     }
+}
+
+public enum SnapshotFile {
+    case image
+    case accessibilty
+    case state
 }
 
 #if os(iOS)
